@@ -4,5 +4,5 @@ _bmad/
 .claude/
 .cursor/
 
-# save docs in separate repo
+# save docs in separate private repo. only documentation/ should be committed to public repo
 docs/
