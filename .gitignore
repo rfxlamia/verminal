@@ -1,0 +1,8 @@
+# keep config in local
+_bmad/
+.agents/
+.claude/
+.cursor/
+
+# save docs in separate repo
+docs/
