@@ -10,6 +10,10 @@ export function getConfigPath(): string {
   return join(app.getPath('home'), CONFIG_DIR_NAME)
 }
 
+export function getLogsPath(): string {
+  return join(getConfigPath(), 'logs')
+}
+
 export function ensureConfigDirectory(): Result<void> {
   try {
     const configPath = getConfigPath()
