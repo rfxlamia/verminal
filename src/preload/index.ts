@@ -1,8 +1,50 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
-// Custom APIs for renderer
-const api = {}
+// Custom APIs for renderer matching IpcContract
+const api = {
+  app: {
+    getVersion: () => ipcRenderer.invoke('app:getVersion'),
+    getPaths: () => ipcRenderer.invoke('app:getPaths'),
+  },
+  pty: {
+    spawn: (shell: string, args: string[], cwd: string) =>
+      ipcRenderer.invoke('pty:spawn', { shell, args, cwd }),
+    kill: (sessionId: number) => ipcRenderer.invoke('pty:kill', sessionId),
+    write: (sessionId: number, data: string) => ipcRenderer.send('pty:write', sessionId, data),
+    resize: (sessionId: number, cols: number, rows: number) =>
+      ipcRenderer.send('pty:resize', sessionId, cols, rows),
+    onData: (sessionId: number, cb: (data: string) => void) => {
+      const channel = `pty:data:${sessionId}`
+      const listener = (_: Electron.IpcRendererEvent, data: string) => cb(data)
+      ipcRenderer.on(channel, listener)
+      return () => ipcRenderer.removeListener(channel, listener)
+    },
+    onExit: (sessionId: number, cb: (code: number) => void) => {
+      const channel = `pty:exit:${sessionId}`
+      const listener = (_: Electron.IpcRendererEvent, code: number) => cb(code)
+      ipcRenderer.on(channel, listener)
+      return () => ipcRenderer.removeListener(channel, listener)
+    },
+  },
+  layout: {
+    save: (name: string, data: unknown) => ipcRenderer.invoke('layout:save', name, data),
+    load: (name: string) => ipcRenderer.invoke('layout:load', name),
+    list: () => ipcRenderer.invoke('layout:list'),
+    delete: (name: string) => ipcRenderer.invoke('layout:delete', name),
+  },
+  config: {
+    read: () => ipcRenderer.invoke('config:read'),
+    write: (data: unknown) => ipcRenderer.invoke('config:write', data),
+  },
+  fs: {
+    listDir: (path: string) => ipcRenderer.invoke('fs:listDir', path),
+    getCwd: (sessionId: number) => ipcRenderer.invoke('fs:getCwd', sessionId),
+  },
+  shell: {
+    detect: () => ipcRenderer.invoke('shell:detect'),
+  },
+}
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise

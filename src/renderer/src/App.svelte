@@ -1,8 +1,19 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
   import Versions from './components/Versions.svelte'
   import electronLogo from './assets/electron.svg'
 
   const ipcHandle = (): void => window.electron.ipcRenderer.send('ping')
+
+  onMount(async () => {
+    // IPC smoke test - verify window.api is accessible
+    const result = await window.api.app.getVersion()
+    if (result.ok) {
+      console.log('[IPC smoke test] app version:', result.data)
+    } else {
+      console.error('[IPC smoke test] error:', result.error)
+    }
+  })
 </script>
 
 <img alt="logo" class="logo" src={electronLogo} />

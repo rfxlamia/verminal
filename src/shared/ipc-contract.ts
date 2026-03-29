@@ -2,9 +2,36 @@ export type Result<T> =
   | { ok: true; data: T }
   | { ok: false; error: { code: string; message: string; details?: unknown } };
 
+export type UnsubscribeFn = () => void;
+
 export interface IpcContract {
-  // Add specific IPC channels here as the application grows
   app: {
     getVersion: () => Promise<Result<string>>;
+    getPaths: () => Promise<Result<{ home: string; userData: string }>>;
+  };
+  pty: {
+    spawn: (shell: string, args: string[], cwd: string) => Promise<Result<{ sessionId: number }>>;
+    kill: (sessionId: number) => Promise<Result<void>>;
+    write: (sessionId: number, data: string) => void;
+    resize: (sessionId: number, cols: number, rows: number) => void;
+    onData: (sessionId: number, cb: (data: string) => void) => UnsubscribeFn;
+    onExit: (sessionId: number, cb: (code: number) => void) => UnsubscribeFn;
+  };
+  layout: {
+    save: (name: string, data: unknown) => Promise<Result<void>>;
+    load: (name: string) => Promise<Result<unknown>>;
+    list: () => Promise<Result<string[]>>;
+    delete: (name: string) => Promise<Result<void>>;
+  };
+  config: {
+    read: () => Promise<Result<unknown>>;
+    write: (data: unknown) => Promise<Result<void>>;
+  };
+  fs: {
+    listDir: (path: string) => Promise<Result<string[]>>;
+    getCwd: (sessionId: number) => Promise<Result<string>>;
+  };
+  shell: {
+    detect: () => Promise<Result<string[]>>;
   };
 }
