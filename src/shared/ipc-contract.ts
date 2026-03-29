@@ -26,6 +26,7 @@ export interface IpcContract {
   config: {
     read: () => Promise<Result<unknown>>;
     write: (data: unknown) => Promise<Result<void>>;
+    getPath: () => Promise<Result<string>>;  // NEW
   };
   fs: {
     listDir: (path: string) => Promise<Result<string[]>>;

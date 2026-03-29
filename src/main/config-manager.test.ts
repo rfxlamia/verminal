@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { ensureConfigDirectory, getConfigPath } from './config-manager'
+import { ensureConfigDirectory } from './config-manager'
 import { app } from 'electron'
 import { existsSync, rmdirSync, statSync } from 'fs'
 import { join } from 'path'

@@ -77,6 +77,21 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
+  // Add config:getPath handler
+  ipcMain.handle('config:getPath', (): Result<string> => {
+    try {
+      return { ok: true, data: getConfigPath() }
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          code: 'PATH_RESOLUTION_ERROR',
+          message: (error as Error).message,
+        },
+      }
+    }
+  })
+
   createWindow()
 
   app.on('activate', function () {

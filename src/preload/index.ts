@@ -36,6 +36,7 @@ const api = {
   config: {
     read: () => ipcRenderer.invoke('config:read'),
     write: (data: unknown) => ipcRenderer.invoke('config:write', data),
+    getPath: () => ipcRenderer.invoke('config:getPath'),  // NEW
   },
   fs: {
     listDir: (path: string) => ipcRenderer.invoke('fs:listDir', path),
