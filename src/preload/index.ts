@@ -18,13 +18,17 @@ const api = {
       const channel = `pty:data:${sessionId}`
       const listener = (_event: Electron.IpcRendererEvent, data: string): void => cb(data)
       ipcRenderer.on(channel, listener)
-      return (): void => ipcRenderer.removeListener(channel, listener)
+      return (): void => {
+        ipcRenderer.removeListener(channel, listener)
+      }
     },
     onExit: (sessionId: number, cb: (code: number) => void): (() => void) => {
       const channel = `pty:exit:${sessionId}`
       const listener = (_event: Electron.IpcRendererEvent, code: number): void => cb(code)
       ipcRenderer.on(channel, listener)
-      return (): void => ipcRenderer.removeListener(channel, listener)
+      return (): void => {
+        ipcRenderer.removeListener(channel, listener)
+      }
     },
   },
   layout: {

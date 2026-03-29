@@ -17,9 +17,8 @@ describe('app lifecycle', () => {
 
   beforeEach(() => {
     testHome = join(tmpdir(), 'verminal-lifecycle-test-' + Date.now())
-    mockGetPath.mockImplementation((name: string) => {
-      if (name === 'home') return testHome
-      return `/tmp/verminal-test/${name}`
+    mockGetPath.mockImplementation(() => {
+      return testHome
     })
 
     // Cleanup before test
