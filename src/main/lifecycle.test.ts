@@ -4,20 +4,11 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 
 // Mock electron before importing any modules
-const mockWhenReady = vi.fn(() => Promise.resolve())
-const mockGetPath = vi.fn((name: string) => `/tmp/verminal-test/${name}`)
+const mockGetPath = vi.fn((_name: string) => '/mock/fallback')
 
 vi.mock('electron', () => ({
   app: {
     getPath: mockGetPath,
-    whenReady: mockWhenReady,
-    on: vi.fn(),
-    setAppUserModelId: vi.fn(),
-  },
-  ipcMain: { handle: vi.fn(), on: vi.fn() },
-  shell: { openExternal: vi.fn() },
-  BrowserWindow: {
-    getAllWindows: vi.fn(() => []),
   },
 }))
 

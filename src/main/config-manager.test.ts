@@ -5,13 +5,10 @@ import { existsSync, rmdirSync, statSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 
-// Mock app.getPath to use temp directory
+// Mock app.getPath to use temp directory (static fallback, overridden in beforeEach)
 vi.mock('electron', () => ({
   app: {
-    getPath: vi.fn((name: string) => {
-      if (name === 'home') return join(tmpdir(), 'verminal-test-' + Date.now())
-      return `/mock/${name}`
-    }),
+    getPath: vi.fn(() => '/mock/fallback'),
   },
 }))
 
@@ -67,6 +64,11 @@ describe('config-manager', () => {
   it('should not use tilde literal in path resolution', () => {
     const path = getConfigPath()
     expect(path).not.toContain('~')
-    expect(path).toMatch(/^\//)  // Absolute path (Unix)
+    // Absolute path check (Unix only - Windows uses C:\ style)
+    if (process.platform !== 'win32') {
+      expect(path).toMatch(/^\//)
+    } else {
+      expect(path).toMatch(/^[A-Za-z]:\\/)
+    }
   })
 })
