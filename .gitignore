@@ -3,6 +3,7 @@ _bmad/
 .agents/
 .claude/
 .cursor/
+.obsidian/
 
 # save docs in separate private repo. only documentation/ should be committed to public repo
 docs/
