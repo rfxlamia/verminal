@@ -3,9 +3,30 @@ import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import icon from '../../../resources/icon.png?asset'
 
+/**
+ * Minimum window width in pixels
+ * @constant {number}
+ */
 export const WINDOW_MIN_WIDTH = 1280
+
+/**
+ * Minimum window height in pixels
+ * @constant {number}
+ */
 export const WINDOW_MIN_HEIGHT = 720
 
+/**
+ * Creates and configures the main application window.
+ *
+ * Configures a BrowserWindow with:
+ * - Minimum dimensions of 1280x720
+ * - Security settings: contextIsolation=true, nodeIntegration=false
+ * - Platform-specific icon handling for Linux
+ * - Preload script for IPC communication
+ * - External URL handling via system browser
+ *
+ * @returns {BrowserWindow} The configured main window instance
+ */
 export function createWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
     width: WINDOW_MIN_WIDTH,
