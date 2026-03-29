@@ -9,11 +9,13 @@ function createWindow(): void {
     width: 900,
     height: 670,
     show: false,
-    autoHideMenuBar: true,
+    title: 'Verminal',
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false
     }
   })
 
