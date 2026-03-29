@@ -1,9 +1,6 @@
-# keep config in local
-_bmad/
-.agents/
-.claude/
-.cursor/
-.obsidian/
-
-# save docs in separate private repo. only documentation/ should be committed to public repo
-docs/
+node_modules
+dist
+out
+.DS_Store
+.eslintcache
+*.log*
