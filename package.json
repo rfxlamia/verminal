@@ -1,10 +1,10 @@
 {
   "name": "verminal",
   "version": "1.0.0",
-  "description": "An Electron application with Svelte and TypeScript",
+  "description": "A tiling terminal emulator built with Electron, Svelte 5, and TypeScript",
   "main": "./out/main/index.js",
-  "author": "example.com",
-  "homepage": "https://electron-vite.org",
+  "author": "V",
+  "homepage": "https://github.com/verminal/verminal",
   "scripts": {
     "format": "prettier --plugin prettier-plugin-svelte --write .",
     "lint": "eslint --cache .",

@@ -13,6 +13,7 @@ if (process.contextIsolated) {
     contextBridge.exposeInMainWorld('api', api)
   } catch (error) {
     console.error(error)
+    throw error
   }
 } else {
   // @ts-ignore (define in dts)

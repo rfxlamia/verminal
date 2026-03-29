@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: verminal
+appId: com.verminal.app
+productName: Verminal
 directories:
   buildResources: build
 files:
@@ -39,6 +39,7 @@ linux:
 appImage:
   artifactName: ${name}-${version}.${ext}
 npmRebuild: false
+# TODO: replace with real update server URL before release
 publish:
   provider: generic
   url: https://example.com/auto-updates
