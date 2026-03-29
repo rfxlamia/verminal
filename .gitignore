@@ -1,6 +1,21 @@
+# build
+
 node_modules
 dist
 out
 .DS_Store
 .eslintcache
 *.log*
+
+# agents config (can be regenerated)
+.agents/
+.agent/
+.bmad/
+.claude/
+.github/skills
+
+# bmad config (can be installed from npx bmad-method install)
+_bmad/
+
+# docs (separate repo). for public documentation, use contributions/
+docs/
