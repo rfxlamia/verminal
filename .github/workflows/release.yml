@@ -14,6 +14,7 @@ jobs:
   build:
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -46,7 +47,7 @@ jobs:
         # macOS: build dmg via build:mac
         run: |
           if [ "${{ matrix.build_target }}" = "linux" ]; then
-            npm run build && electron-builder --linux AppImage
+            npm run build && npx electron-builder --linux AppImage
           else
             npm run build:${{ matrix.build_target }}
           fi
@@ -59,6 +60,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: verminal-${{ matrix.os }}
-          path: dist/*.{AppImage,dmg}
+          path: |
+            dist/*.AppImage
+            dist/*.dmg
           if-no-files-found: error
           retention-days: 7
