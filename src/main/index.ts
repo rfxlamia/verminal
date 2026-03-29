@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import type { Result } from '../shared/ipc-contract'
-import { ensureConfigDirectory, getConfigPath } from './config-manager'
+import { ensureConfigDirectory, getConfigPath, getLogsPath } from './config-manager'
 import { createWindow } from './app/window-manager'
 
 // This method will be called when Electron has finished
@@ -31,13 +31,26 @@ app.whenReady().then(() => {
     data: app.getVersion(),
   }))
 
-  ipcMain.handle('app:getPaths', (): Result<{ home: string; userData: string }> => ({
-    ok: true,
-    data: {
-      home: app.getPath('home'),
-      userData: app.getPath('userData'),
-    },
-  }))
+  ipcMain.handle('app:getPaths', (): Result<{ home: string; userData: string; logsDir: string }> => {
+    try {
+      return {
+        ok: true,
+        data: {
+          home: app.getPath('home'),
+          userData: app.getPath('userData'),
+          logsDir: getLogsPath(),
+        },
+      }
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          code: 'PATH_RESOLUTION_ERROR',
+          message: (error as Error).message,
+        },
+      }
+    }
+  })
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))

@@ -18,8 +18,8 @@ describe('IpcContract', () => {
     expectTypeOf<IpcContract['app']['getVersion']>().toMatchTypeOf<() => Promise<Result<string>>>()
   })
 
-  it('has app.getPaths returning Promise<Result<{ home: string; userData: string }>>', () => {
-    expectTypeOf<IpcContract['app']['getPaths']>().toMatchTypeOf<() => Promise<Result<{ home: string; userData: string }>>>()
+  it('has app.getPaths returning Promise<Result<{ home: string; userData: string; logsDir: string }>>', () => {
+    expectTypeOf<IpcContract['app']['getPaths']>().toMatchTypeOf<() => Promise<Result<{ home: string; userData: string; logsDir: string }>>>()
   })
 
   it('has pty namespace with spawn, kill, write, resize, onData, onExit', () => {

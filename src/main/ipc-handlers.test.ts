@@ -36,6 +36,12 @@ vi.mock('@electron-toolkit/utils', () => ({
   is: { dev: false },
 }))
 
+vi.mock('./config-manager', () => ({
+  getConfigPath: vi.fn(() => '/home/user/.verminal'),
+  getLogsPath: vi.fn(() => '/home/user/.verminal/logs'),
+  ensureConfigDirectory: vi.fn(() => ({ ok: true, data: undefined })),
+}))
+
 vi.mock('../../resources/icon.png?asset', () => ({ default: 'icon.png' }))
 
 describe('main IPC registration', () => {
@@ -56,7 +62,7 @@ describe('main IPC registration', () => {
     const versionHandler = getVersionCall?.[1] as () => { ok: boolean; data: string }
     const pathsHandler = getPathsCall?.[1] as () => {
       ok: boolean
-      data: { home: string; userData: string }
+      data: { home: string; userData: string; logsDir: string }
     }
 
     mockGetVersion.mockReturnValue('1.2.0')
@@ -72,6 +78,7 @@ describe('main IPC registration', () => {
       data: {
         home: '/home/user',
         userData: '/home/user/.config/verminal',
+        logsDir: '/home/user/.verminal/logs',
       },
     })
   })

@@ -7,7 +7,7 @@ export type UnsubscribeFn = () => void;
 export interface IpcContract {
   app: {
     getVersion: () => Promise<Result<string>>;
-    getPaths: () => Promise<Result<{ home: string; userData: string }>>;
+    getPaths: () => Promise<Result<{ home: string; userData: string; logsDir: string }>>;
   };
   pty: {
     spawn: (shell: string, args: string[], cwd: string) => Promise<Result<{ sessionId: number }>>;
