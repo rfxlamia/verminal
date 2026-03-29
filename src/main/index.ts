@@ -3,6 +3,11 @@ import { electronApp, optimizer } from '@electron-toolkit/utils'
 import type { Result } from '../shared/ipc-contract'
 import { ensureConfigDirectory, getConfigPath, getLogsPath } from './config-manager'
 import { createWindow } from './app/window-manager'
+import { initCrashLogger } from './logging/crash-log'
+
+// Initialize crash handler BEFORE any async operations
+// This ensures crashes during startup are captured
+initCrashLogger()
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
