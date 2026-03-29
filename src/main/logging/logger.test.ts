@@ -1,21 +1,18 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Mock console methods
-const mockConsoleLog = vi.spyOn(console, 'log').mockImplementation(() => {})
-const mockConsoleDebug = vi.spyOn(console, 'debug').mockImplementation(() => {})
-const mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
-
-// Import after mock setup
+// Import logger - console will be spied on in beforeEach
 import { logger } from './logger'
 
 describe('logger', () => {
+  let mockConsoleLog: ReturnType<typeof vi.spyOn>
+  let mockConsoleDebug: ReturnType<typeof vi.spyOn>
+  let mockConsoleError: ReturnType<typeof vi.spyOn>
+
   beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
-
-  afterEach(() => {
-    vi.restoreAllMocks()
+    // Create fresh spies for each test
+    mockConsoleLog = vi.spyOn(console, 'log').mockImplementation(() => {})
+    mockConsoleDebug = vi.spyOn(console, 'debug').mockImplementation(() => {})
+    mockConsoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
   describe('debug', () => {
