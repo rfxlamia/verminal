@@ -1,0 +1,55 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { ensureConfigDirectory, getConfigPath } from './config-manager'
+import { app } from 'electron'
+import { existsSync, rmdirSync, statSync } from 'fs'
+import { join } from 'path'
+import { tmpdir } from 'os'
+
+// Mock app.getPath to use temp directory
+vi.mock('electron', () => ({
+  app: {
+    getPath: vi.fn((name: string) => {
+      if (name === 'home') return join(tmpdir(), 'verminal-test-' + Date.now())
+      return `/mock/${name}`
+    }),
+  },
+}))
+
+describe('config-manager', () => {
+  let testHome: string
+
+  beforeEach(() => {
+    testHome = join(tmpdir(), 'verminal-test-' + Date.now())
+    vi.mocked(app.getPath).mockImplementation((name: string) => {
+      if (name === 'home') return testHome
+      return `/mock/${name}`
+    })
+  })
+
+  afterEach(() => {
+    // Cleanup
+    const configPath = join(testHome, '.verminal')
+    if (existsSync(configPath)) {
+      rmdirSync(configPath, { recursive: true })
+    }
+  })
+
+  it('should create config directory with correct permissions', () => {
+    const result = ensureConfigDirectory()
+    expect(result.ok).toBe(true)
+    expect(existsSync(join(testHome, '.verminal'))).toBe(true)
+
+    // Unix permission check (skip on Windows)
+    if (process.platform !== 'win32') {
+      const stats = statSync(join(testHome, '.verminal'))
+      expect(stats.mode & 0o777).toBe(0o700)
+    }
+  })
+
+  it('should create subdirectories: layouts, logs, snapshots', () => {
+    ensureConfigDirectory()
+    expect(existsSync(join(testHome, '.verminal', 'layouts'))).toBe(true)
+    expect(existsSync(join(testHome, '.verminal', 'logs'))).toBe(true)
+    expect(existsSync(join(testHome, '.verminal', 'snapshots'))).toBe(true)
+  })
+})
