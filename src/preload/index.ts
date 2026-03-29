@@ -14,17 +14,17 @@ const api = {
     write: (sessionId: number, data: string) => ipcRenderer.send('pty:write', sessionId, data),
     resize: (sessionId: number, cols: number, rows: number) =>
       ipcRenderer.send('pty:resize', sessionId, cols, rows),
-    onData: (sessionId: number, cb: (data: string) => void) => {
+    onData: (sessionId: number, cb: (data: string) => void): (() => void) => {
       const channel = `pty:data:${sessionId}`
-      const listener = (_: Electron.IpcRendererEvent, data: string) => cb(data)
+      const listener = (_event: Electron.IpcRendererEvent, data: string): void => cb(data)
       ipcRenderer.on(channel, listener)
-      return () => ipcRenderer.removeListener(channel, listener)
+      return (): void => ipcRenderer.removeListener(channel, listener)
     },
-    onExit: (sessionId: number, cb: (code: number) => void) => {
+    onExit: (sessionId: number, cb: (code: number) => void): (() => void) => {
       const channel = `pty:exit:${sessionId}`
-      const listener = (_: Electron.IpcRendererEvent, code: number) => cb(code)
+      const listener = (_event: Electron.IpcRendererEvent, code: number): void => cb(code)
       ipcRenderer.on(channel, listener)
-      return () => ipcRenderer.removeListener(channel, listener)
+      return (): void => ipcRenderer.removeListener(channel, listener)
     },
   },
   layout: {

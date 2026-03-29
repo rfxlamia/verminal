@@ -4,7 +4,7 @@ import { join } from 'path'
 import { tmpdir } from 'os'
 
 // Mock electron before importing any modules
-const mockGetPath = vi.fn((_: string) => '/mock/fallback')
+const mockGetPath = vi.fn(() => '/mock/fallback')
 
 vi.mock('electron', () => ({
   app: {

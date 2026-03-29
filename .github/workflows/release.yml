@@ -1,0 +1,64 @@
+name: Build Artifacts
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'electron-builder.yml'
+      - 'electron.vite.config.ts'
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_ext: AppImage
+            build_target: linux
+          - os: macos-latest
+            artifact_ext: dmg
+            build_target: mac
+          - os: macos-15-intel
+            artifact_ext: dmg
+            build_target: mac
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        # Linux: build AppImage only (snap/deb targets deferred to Story 10)
+        # macOS: build dmg via build:mac
+        run: |
+          if [ "${{ matrix.build_target }}" = "linux" ]; then
+            npm run build && electron-builder --linux AppImage
+          else
+            npm run build:${{ matrix.build_target }}
+          fi
+        env:
+          # Disable code signing for Phase 0 (unsigned builds only)
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: verminal-${{ matrix.os }}
+          path: dist/*.{AppImage,dmg}
+          if-no-files-found: error
+          retention-days: 7

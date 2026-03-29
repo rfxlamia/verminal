@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Track event handlers for verification
-const mockOnHandlers = new Map<string, Function>()
-const mockWebContentsHandlers = new Map<string, Function>()
+const mockOnHandlers = new Map<string, (...args: unknown[]) => unknown>()
+const mockWebContentsHandlers = new Map<string, (...args: unknown[]) => unknown>()
 
 // Mock Electron modules
 vi.mock('electron', () => ({
   BrowserWindow: vi.fn().mockImplementation((options) => ({
     _options: options,
-    on: vi.fn((event: string, handler: Function) => {
+    on: vi.fn((event: string, handler: (...args: unknown[]) => unknown) => {
       mockOnHandlers.set(event, handler)
     }),
     webContents: {
-      setWindowOpenHandler: vi.fn((handler: Function) => {
+      setWindowOpenHandler: vi.fn((handler: (...args: unknown[]) => unknown) => {
         mockWebContentsHandlers.set('setWindowOpenHandler', handler)
       }),
     },
