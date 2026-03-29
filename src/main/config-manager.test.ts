@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { ensureConfigDirectory } from './config-manager'
+import { ensureConfigDirectory, getConfigPath } from './config-manager'
 import { app } from 'electron'
 import { existsSync, rmdirSync, statSync } from 'fs'
 import { join } from 'path'
@@ -51,5 +51,22 @@ describe('config-manager', () => {
     expect(existsSync(join(testHome, '.verminal', 'layouts'))).toBe(true)
     expect(existsSync(join(testHome, '.verminal', 'logs'))).toBe(true)
     expect(existsSync(join(testHome, '.verminal', 'snapshots'))).toBe(true)
+  })
+
+  it('should handle concurrent directory creation gracefully', () => {
+    // Simultaneous calls should not throw
+    const results = [
+      ensureConfigDirectory(),
+      ensureConfigDirectory(),
+      ensureConfigDirectory(),
+    ]
+    // All should succeed (mkdirSync with recursive: true handles this)
+    results.forEach(r => expect(r.ok).toBe(true))
+  })
+
+  it('should not use tilde literal in path resolution', () => {
+    const path = getConfigPath()
+    expect(path).not.toContain('~')
+    expect(path).toMatch(/^\//)  // Absolute path (Unix)
   })
 })
