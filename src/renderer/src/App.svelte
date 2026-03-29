@@ -6,12 +6,18 @@
   const ipcHandle = (): void => window.electron.ipcRenderer.send('ping')
 
   onMount(async () => {
+    if (!import.meta.env.DEV) return
+
     // IPC smoke test - verify window.api is accessible
-    const result = await window.api.app.getVersion()
-    if (result.ok) {
-      console.log('[IPC smoke test] app version:', result.data)
-    } else {
-      console.error('[IPC smoke test] error:', result.error)
+    try {
+      const result = await window.api.app.getVersion()
+      if (result.ok) {
+        console.log('[IPC smoke test] app version:', result.data)
+      } else {
+        console.error('[IPC smoke test] error:', result.error)
+      }
+    } catch (error) {
+      console.error('[IPC smoke test] invoke failed:', error)
     }
   })
 </script>

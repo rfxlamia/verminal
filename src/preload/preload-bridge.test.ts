@@ -1,42 +1,61 @@
-import { describe, it, expect, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-describe('api bridge shape', () => {
-  it('exposes app namespace with getVersion', () => {
-    // Simulate what contextBridge.exposeInMainWorld receives
-    const mockIpcRenderer = {
-      invoke: vi.fn(),
-      send: vi.fn(),
-      on: vi.fn(() => () => {}),
-      removeListener: vi.fn(),
-    }
+const mockExposeInMainWorld = vi.fn()
+const mockInvoke = vi.fn()
+const mockSend = vi.fn()
+const mockOn = vi.fn()
+const mockRemoveListener = vi.fn()
 
-    const bridge = {
-      app: {
-        getVersion: () => mockIpcRenderer.invoke('app:getVersion'),
-        getPaths: () => mockIpcRenderer.invoke('app:getPaths'),
-      },
-    }
+vi.mock('electron', () => ({
+  contextBridge: { exposeInMainWorld: mockExposeInMainWorld },
+  ipcRenderer: {
+    invoke: mockInvoke,
+    send: mockSend,
+    on: mockOn,
+    removeListener: mockRemoveListener,
+  },
+}))
 
-    expect(typeof bridge.app.getVersion).toBe('function')
-    bridge.app.getVersion()
-    expect(mockIpcRenderer.invoke).toHaveBeenCalledWith('app:getVersion')
+vi.mock('@electron-toolkit/preload', () => ({
+  electronAPI: { ipcRenderer: { send: vi.fn() } },
+}))
+
+describe('preload bridge wiring', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    vi.clearAllMocks()
+    ;(process as typeof process & { contextIsolated?: boolean }).contextIsolated = true
   })
 
-  it('onData returns an unsubscribe function', () => {
-    const mockIpcRenderer = {
-      on: vi.fn(),
-      removeListener: vi.fn(),
-    }
-    const onData = (sessionId: number, cb: (data: string) => void) => {
-      const channel = `pty:data:${sessionId}`
-      const listener = (_: unknown, data: string) => cb(data)
-      mockIpcRenderer.on(channel, listener)
-      return () => mockIpcRenderer.removeListener(channel, listener)
+  it('exposes api and forwards app:getVersion through ipcRenderer.invoke', async () => {
+    await import('./index')
+
+    const apiExposeCall = mockExposeInMainWorld.mock.calls.find((call) => call[0] === 'api')
+    expect(apiExposeCall).toBeTruthy()
+
+    const api = apiExposeCall?.[1] as {
+      app: { getVersion: () => Promise<unknown>; getPaths: () => Promise<unknown> }
     }
 
-    const unsub = onData(1, () => {})
-    expect(typeof unsub).toBe('function')
-    unsub()
-    expect(mockIpcRenderer.removeListener).toHaveBeenCalled()
+    await api.app.getVersion()
+    expect(mockInvoke).toHaveBeenCalledWith('app:getVersion')
+  })
+
+  it('returns unsubscribe function that removes matching pty:data listener', async () => {
+    await import('./index')
+
+    const apiExposeCall = mockExposeInMainWorld.mock.calls.find((call) => call[0] === 'api')
+    const api = apiExposeCall?.[1] as {
+      pty: { onData: (sessionId: number, cb: (data: string) => void) => () => void }
+    }
+
+    const callback = vi.fn()
+    const unsubscribe = api.pty.onData(1, callback)
+
+    expect(typeof unsubscribe).toBe('function')
+    expect(mockOn).toHaveBeenCalledWith('pty:data:1', expect.any(Function))
+
+    unsubscribe()
+    expect(mockRemoveListener).toHaveBeenCalledWith('pty:data:1', expect.any(Function))
   })
 })

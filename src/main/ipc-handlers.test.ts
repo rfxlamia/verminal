@@ -1,51 +1,78 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Mock electron before importing handler
+const mockHandle = vi.fn()
+const mockOn = vi.fn()
+const mockGetVersion = vi.fn(() => '0.0.1')
+const mockGetPath = vi.fn((name: string) => `/mock/${name}`)
+
+class MockBrowserWindow {
+  static getAllWindows = vi.fn(() => [new MockBrowserWindow()])
+
+  on = vi.fn()
+  show = vi.fn()
+  loadURL = vi.fn()
+  loadFile = vi.fn()
+  webContents = {
+    setWindowOpenHandler: vi.fn(() => ({ action: 'deny' as const })),
+  }
+}
+
 vi.mock('electron', () => ({
-  app: { getVersion: vi.fn(() => '0.0.1'), getPath: vi.fn((name: string) => `/mock/${name}`) },
-  ipcMain: { handle: vi.fn(), on: vi.fn() },
-  BrowserWindow: vi.fn(),
-  shell: {},
+  app: {
+    getVersion: mockGetVersion,
+    getPath: mockGetPath,
+    whenReady: vi.fn(() => Promise.resolve()),
+    on: vi.fn(),
+    quit: vi.fn(),
+  },
+  ipcMain: { handle: mockHandle, on: mockOn },
+  BrowserWindow: MockBrowserWindow,
+  shell: { openExternal: vi.fn() },
 }))
 
-describe('app:getVersion handler', () => {
-  it('returns Result<string> with ok: true and version string', async () => {
-    const { app } = await import('electron')
-    vi.mocked(app.getVersion).mockReturnValue('1.2.0')
+vi.mock('@electron-toolkit/utils', () => ({
+  electronApp: { setAppUserModelId: vi.fn() },
+  optimizer: { watchWindowShortcuts: vi.fn() },
+  is: { dev: false },
+}))
 
-    // Simulate the handler logic directly
-    const handler = async (): Promise<{ ok: true; data: string }> => ({
-      ok: true,
-      data: app.getVersion(),
-    })
+vi.mock('../../resources/icon.png?asset', () => ({ default: 'icon.png' }))
 
-    const result = await handler()
-    expect(result.ok).toBe(true)
-    expect(result.data).toBe('1.2.0')
+describe('main IPC registration', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    vi.clearAllMocks()
   })
-})
 
-describe('app:getPaths handler', () => {
-  it('returns Result with home and userData paths', async () => {
-    const { app } = await import('electron')
-    vi.mocked(app.getPath).mockImplementation((name: string) => {
+  it('registers app:getVersion and app:getPaths handlers that return Result payloads', async () => {
+    await import('./index')
+
+    const getVersionCall = mockHandle.mock.calls.find((call) => call[0] === 'app:getVersion')
+    const getPathsCall = mockHandle.mock.calls.find((call) => call[0] === 'app:getPaths')
+
+    expect(getVersionCall).toBeTruthy()
+    expect(getPathsCall).toBeTruthy()
+
+    const versionHandler = getVersionCall?.[1] as () => { ok: boolean; data: string }
+    const pathsHandler = getPathsCall?.[1] as () => {
+      ok: boolean
+      data: { home: string; userData: string }
+    }
+
+    mockGetVersion.mockReturnValue('1.2.0')
+    mockGetPath.mockImplementation((name: string) => {
       if (name === 'home') return '/home/user'
       if (name === 'userData') return '/home/user/.config/verminal'
       return `/mock/${name}`
     })
 
-    // Simulate the handler logic directly
-    const handler = async (): Promise<{ ok: true; data: { home: string; userData: string } }> => ({
+    expect(versionHandler()).toEqual({ ok: true, data: '1.2.0' })
+    expect(pathsHandler()).toEqual({
       ok: true,
       data: {
-        home: app.getPath('home'),
-        userData: app.getPath('userData'),
+        home: '/home/user',
+        userData: '/home/user/.config/verminal',
       },
     })
-
-    const result = await handler()
-    expect(result.ok).toBe(true)
-    expect(result.data.home).toBe('/home/user')
-    expect(result.data.userData).toBe('/home/user/.config/verminal')
   })
 })
