@@ -58,4 +58,35 @@ describe('preload bridge wiring', () => {
     unsubscribe()
     expect(mockRemoveListener).toHaveBeenCalledWith('pty:data:1', expect.any(Function))
   })
+
+  it('sends quit:confirm through ipcRenderer.send', async () => {
+    await import('./index')
+
+    const apiExposeCall = mockExposeInMainWorld.mock.calls.find((call) => call[0] === 'api')
+    const api = apiExposeCall?.[1] as {
+      quit: { confirm: () => void }
+    }
+
+    api.quit.confirm()
+
+    expect(mockSend).toHaveBeenCalledWith('quit:confirm')
+  })
+
+  it('returns unsubscribe function that removes matching quit:show-dialog listener', async () => {
+    await import('./index')
+
+    const apiExposeCall = mockExposeInMainWorld.mock.calls.find((call) => call[0] === 'api')
+    const api = apiExposeCall?.[1] as {
+      quit: { onShowDialog: (cb: (data: { sessionCount: number }) => void) => () => void }
+    }
+
+    const callback = vi.fn()
+    const unsubscribe = api.quit.onShowDialog(callback)
+
+    expect(typeof unsubscribe).toBe('function')
+    expect(mockOn).toHaveBeenCalledWith('quit:show-dialog', expect.any(Function))
+
+    unsubscribe()
+    expect(mockRemoveListener).toHaveBeenCalledWith('quit:show-dialog', expect.any(Function))
+  })
 })

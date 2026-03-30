@@ -49,6 +49,18 @@ const api = {
   shell: {
     detect: () => ipcRenderer.invoke('shell:detect'),
   },
+  quit: {
+    confirm: () => ipcRenderer.send('quit:confirm'),
+    onShowDialog: (cb: (data: { sessionCount: number }) => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: { sessionCount: number }): void => {
+        cb(data)
+      }
+      ipcRenderer.on('quit:show-dialog', handler)
+      return (): void => {
+        ipcRenderer.removeListener('quit:show-dialog', handler)
+      }
+    },
+  },
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

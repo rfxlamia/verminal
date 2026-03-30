@@ -35,4 +35,8 @@ export interface IpcContract {
   shell: {
     detect: () => Promise<Result<string[]>>;
   };
+  quit: {
+    confirm: () => void;
+    onShowDialog: (cb: (data: { sessionCount: number }) => void) => UnsubscribeFn;
+  };
 }

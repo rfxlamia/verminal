@@ -51,4 +51,11 @@ describe('IpcContract', () => {
   it('has shell namespace with detect', () => {
     expectTypeOf<IpcContract['shell']['detect']>().toMatchTypeOf<() => Promise<Result<string[]>>>()
   })
+
+  it('has quit namespace with confirm and onShowDialog', () => {
+    expectTypeOf<IpcContract['quit']['confirm']>().toMatchTypeOf<() => void>()
+    expectTypeOf<IpcContract['quit']['onShowDialog']>().toMatchTypeOf<
+      (cb: (data: { sessionCount: number }) => void) => (() => void)
+    >()
+  })
 })

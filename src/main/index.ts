@@ -3,6 +3,7 @@ import { electronApp, optimizer } from '@electron-toolkit/utils'
 import type { Result } from '../shared/ipc-contract'
 import { ensureConfigDirectory, getConfigPath, getLogsPath } from './config-manager'
 import { createWindow } from './app/window-manager'
+import { handleQuitConfirm, registerQuitHandler } from './app/quit-handler'
 import { initCrashLogger } from './logging/crash-log'
 
 // Initialize crash handler BEFORE any async operations
@@ -60,6 +61,11 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
+  // Phase 0 stubs (replaced with real PTY callbacks in Epic 2)
+  const getSessionCount = (): number => 0
+  const getActiveSessionIds = (): number[] => []
+  const killSession = (_id: number): void => {}
+
   // Add config:getPath handler
   ipcMain.handle('config:getPath', (): Result<string> => {
     try {
@@ -75,12 +81,22 @@ app.whenReady().then(() => {
     }
   })
 
-  createWindow()
+  const createMainWindow = (): BrowserWindow => {
+    const mainWindow = createWindow()
+    registerQuitHandler(mainWindow, getSessionCount)
+    return mainWindow
+  }
+
+  createMainWindow()
+
+  ipcMain.on('quit:confirm', () => {
+    handleQuitConfirm(getActiveSessionIds, killSession)
+  })
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (BrowserWindow.getAllWindows().length === 0) createMainWindow()
   })
 })
 

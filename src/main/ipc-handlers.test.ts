@@ -4,6 +4,8 @@ const mockHandle = vi.fn()
 const mockOn = vi.fn()
 const mockGetVersion = vi.fn(() => '0.0.1')
 const mockGetPath = vi.fn((name: string) => `/mock/${name}`)
+const mockHandleQuitConfirm = vi.fn()
+const mockRegisterQuitHandler = vi.fn()
 
 class MockBrowserWindow {
   static getAllWindows = vi.fn(() => [new MockBrowserWindow()])
@@ -40,6 +42,11 @@ vi.mock('./config-manager', () => ({
   getConfigPath: vi.fn(() => '/home/user/.verminal'),
   getLogsPath: vi.fn(() => '/home/user/.verminal/logs'),
   ensureConfigDirectory: vi.fn(() => ({ ok: true, data: undefined })),
+}))
+
+vi.mock('./app/quit-handler', () => ({
+  handleQuitConfirm: mockHandleQuitConfirm,
+  registerQuitHandler: mockRegisterQuitHandler,
 }))
 
 vi.mock('../../resources/icon.png?asset', () => ({ default: 'icon.png' }))
@@ -81,5 +88,18 @@ describe('main IPC registration', () => {
         logsDir: '/home/user/.verminal/logs',
       },
     })
+  })
+
+  it('registers quit:confirm listener and delegates to handleQuitConfirm', async () => {
+    await import('./index')
+
+    const quitConfirmCall = mockOn.mock.calls.find((call) => call[0] === 'quit:confirm')
+    expect(quitConfirmCall).toBeTruthy()
+
+    const quitConfirmHandler = quitConfirmCall?.[1] as () => void
+    quitConfirmHandler()
+
+    expect(mockHandleQuitConfirm).toHaveBeenCalledTimes(1)
+    expect(mockRegisterQuitHandler).toHaveBeenCalledTimes(1)
   })
 })

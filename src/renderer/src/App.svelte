@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import Versions from './components/Versions.svelte'
+  import QuitDialog from './components/workspace/QuitDialog.svelte'
   import electronLogo from './assets/electron.svg'
 
   const ipcHandle = (): void => window.electron.ipcRenderer.send('ping')
@@ -41,3 +42,4 @@
   </div>
 </div>
 <Versions />
+<QuitDialog />
