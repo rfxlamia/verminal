@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // Mock Electron BEFORE any imports
 vi.mock('electron', () => ({
   app: {
-    getPath: vi.fn().mockReturnValue('/home/testuser'),
-  },
+    getPath: vi.fn().mockReturnValue('/home/testuser')
+  }
 }))
 
 // Import AFTER mocks are defined

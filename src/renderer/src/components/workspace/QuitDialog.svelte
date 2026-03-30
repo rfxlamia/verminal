@@ -68,11 +68,7 @@
 
 {#if visible}
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div
-    class="quit-dialog-backdrop"
-    role="presentation"
-    onkeydown={handleKeydown}
-  >
+  <div class="quit-dialog-backdrop" role="presentation" onkeydown={handleKeydown}>
     <div
       bind:this={dialogElement}
       class="quit-dialog"
@@ -86,16 +82,10 @@
         {sessionCount} active terminal session{sessionCount !== 1 ? 's' : ''} will be terminated.
       </p>
       <div class="quit-dialog-actions">
-        <button
-          class="quit-dialog-btn quit-dialog-btn--cancel"
-          onclick={handleCancel}
-          autofocus
-        >
+        <button class="quit-dialog-btn quit-dialog-btn--cancel" onclick={handleCancel} autofocus>
           Cancel
         </button>
-        <button class="quit-dialog-btn quit-dialog-btn--quit" onclick={handleQuit}>
-          Quit
-        </button>
+        <button class="quit-dialog-btn quit-dialog-btn--quit" onclick={handleQuit}> Quit </button>
       </div>
     </div>
   </div>

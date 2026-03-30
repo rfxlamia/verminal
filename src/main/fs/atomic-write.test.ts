@@ -8,18 +8,23 @@ vi.mock('fs', () => ({
   closeSync: vi.fn(),
   renameSync: vi.fn(),
   existsSync: vi.fn(),
-  mkdirSync: vi.fn(),
+  mkdirSync: vi.fn()
 }))
 
 vi.mock('path', () => ({
   dirname: vi.fn((p: string) => p.substring(0, p.lastIndexOf('/')) || '/'),
   basename: vi.fn((p: string) => p.substring(p.lastIndexOf('/') + 1)),
-  join: vi.fn((...parts: string[]) => parts.join('/')),
+  join: vi.fn((...parts: string[]) => parts.join('/'))
+}))
+
+vi.mock('os', () => ({
+  tmpdir: vi.fn(() => '/tmp')
 }))
 
 // Import AFTER mocks are defined
 import { atomicWrite } from './atomic-write'
 import { openSync, writeSync, fsyncSync, closeSync, renameSync } from 'fs'
+import { tmpdir } from 'os'
 
 describe('atomic-write', () => {
   beforeEach(() => {
@@ -39,14 +44,15 @@ describe('atomic-write', () => {
       expect(writeSync).toHaveBeenCalledWith(3, 'test content', 0, 'utf-8')
     })
 
-    it('should create temp file beside target with .tmp.<pid>.<counter> pattern', () => {
+    it('should create temp file in OS temp dir with .tmp.<pid>.<counter> pattern', () => {
       const mockPid = 12345
       vi.stubGlobal('process', { ...process, pid: mockPid })
 
       atomicWrite('/home/user/.verminal/config.toml', 'content')
 
+      expect(tmpdir).toHaveBeenCalled()
       expect(openSync).toHaveBeenCalledWith(
-        expect.stringMatching(/config\.toml\.tmp\.12345\.\d+$/),
+        expect.stringMatching(/^\/tmp\/config\.toml\.tmp\.12345\.\d+$/),
         'w'
       )
     })

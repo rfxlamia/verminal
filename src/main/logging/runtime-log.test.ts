@@ -2,20 +2,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock dependencies BEFORE imports
 vi.mock('../fs/atomic-write', () => ({
-  atomicWrite: vi.fn(),
+  atomicWrite: vi.fn()
 }))
 
 vi.mock('fs', () => ({
   existsSync: vi.fn(),
-  readFileSync: vi.fn(),
+  readFileSync: vi.fn()
 }))
 
 vi.mock('../config-manager', () => ({
-  getLogsPath: vi.fn().mockReturnValue('/home/testuser/.verminal/logs'),
+  getLogsPath: vi.fn().mockReturnValue('/home/testuser/.verminal/logs')
 }))
 
 vi.mock('path', () => ({
-  join: vi.fn((...parts: string[]) => parts.join('/')),
+  join: vi.fn((...parts: string[]) => parts.join('/'))
 }))
 
 // Import AFTER mocks
@@ -54,7 +54,9 @@ describe('runtime-log', () => {
       const callArgs = vi.mocked(atomicWrite).mock.calls[0]
       const content = callArgs[1] as string
 
-      expect(content).toMatch(/^\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\] \[INFO\] test message\n$/)
+      expect(content).toMatch(
+        /^\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\] \[INFO\] test message\n$/
+      )
 
       vi.useRealTimers()
     })

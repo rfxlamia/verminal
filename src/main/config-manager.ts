@@ -40,8 +40,8 @@ export function ensureConfigDirectory(): Result<void> {
         error: {
           code: 'PERMISSION_DENIED',
           message: `Cannot create config directory: ${err.message}`,
-          details: { path: getConfigPath() },
-        },
+          details: { path: getConfigPath() }
+        }
       }
     }
     if (err.code === 'ENOSPC') {
@@ -50,8 +50,8 @@ export function ensureConfigDirectory(): Result<void> {
         error: {
           code: 'DISK_FULL',
           message: `Insufficient disk space: ${err.message}`,
-          details: { path: getConfigPath() },
-        },
+          details: { path: getConfigPath() }
+        }
       }
     }
     return {
@@ -59,8 +59,8 @@ export function ensureConfigDirectory(): Result<void> {
       error: {
         code: 'DIRECTORY_CREATE_ERROR',
         message: err.message,
-        details: { path: getConfigPath() },
-      },
+        details: { path: getConfigPath() }
+      }
     }
   }
 }

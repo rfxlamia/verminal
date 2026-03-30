@@ -4,32 +4,37 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 vi.mock('electron', () => ({
   app: {
     getPath: vi.fn().mockReturnValue('/home/testuser'),
-    getVersion: vi.fn().mockReturnValue('1.0.0-test'),
-  },
+    getVersion: vi.fn().mockReturnValue('1.0.0-test')
+  }
 }))
 
 // Mock fs module
 vi.mock('fs', () => ({
   writeFileSync: vi.fn(),
   mkdirSync: vi.fn(),
-  existsSync: vi.fn().mockReturnValue(true),
+  existsSync: vi.fn().mockReturnValue(true)
 }))
 
 // Mock os module
 vi.mock('os', () => ({
-  homedir: vi.fn().mockReturnValue('/fallback/home'),
+  homedir: vi.fn().mockReturnValue('/fallback/home')
 }))
 
 // Mock config-manager
 vi.mock('../config-manager', () => ({
-  getLogsPath: vi.fn().mockReturnValue('/home/testuser/.verminal/logs'),
+  getLogsPath: vi.fn().mockReturnValue('/home/testuser/.verminal/logs')
 }))
 
 // Import AFTER mocks are defined
 import { writeFileSync, mkdirSync, existsSync } from 'fs'
 import { app } from 'electron'
 import { getLogsPath } from '../config-manager'
-import { formatCrashLog, writeCrashLog, initCrashLogger, resetCrashLoggerForTests } from './crash-log'
+import {
+  formatCrashLog,
+  writeCrashLog,
+  initCrashLogger,
+  resetCrashLoggerForTests
+} from './crash-log'
 
 describe('crash-log', () => {
   beforeEach(() => {
@@ -243,9 +248,9 @@ describe('crash-log', () => {
       vi.spyOn(process, 'on')
       initCrashLogger()
 
-      const handler = vi.mocked(process.on).mock.calls.find(
-        ([event]) => event === 'uncaughtException'
-      )?.[1] as (error: Error) => void
+      const handler = vi
+        .mocked(process.on)
+        .mock.calls.find(([event]) => event === 'uncaughtException')?.[1] as (error: Error) => void
 
       expect(handler).toBeDefined()
 
@@ -261,9 +266,11 @@ describe('crash-log', () => {
       vi.spyOn(process, 'on')
       initCrashLogger()
 
-      const handler = vi.mocked(process.on).mock.calls.find(
-        ([event]) => event === 'unhandledRejection'
-      )?.[1] as (reason: unknown) => void
+      const handler = vi
+        .mocked(process.on)
+        .mock.calls.find(([event]) => event === 'unhandledRejection')?.[1] as (
+        reason: unknown
+      ) => void
 
       expect(handler).toBeDefined()
 

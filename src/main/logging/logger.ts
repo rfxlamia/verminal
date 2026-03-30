@@ -44,5 +44,5 @@ export const logger = {
     } catch {
       console.error(`[ERROR] ${full}`)
     }
-  },
+  }
 }

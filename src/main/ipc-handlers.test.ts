@@ -16,7 +16,7 @@ class MockBrowserWindow {
   loadURL = vi.fn()
   loadFile = vi.fn()
   webContents = {
-    setWindowOpenHandler: vi.fn(() => ({ action: 'deny' as const })),
+    setWindowOpenHandler: vi.fn(() => ({ action: 'deny' as const }))
   }
 }
 
@@ -26,29 +26,29 @@ vi.mock('electron', () => ({
     getPath: mockGetPath,
     whenReady: vi.fn(() => Promise.resolve()),
     on: vi.fn(),
-    quit: vi.fn(),
+    quit: vi.fn()
   },
   ipcMain: { handle: mockHandle, on: mockOn },
   BrowserWindow: MockBrowserWindow,
-  shell: { openExternal: vi.fn() },
+  shell: { openExternal: vi.fn() }
 }))
 
 vi.mock('@electron-toolkit/utils', () => ({
   electronApp: { setAppUserModelId: vi.fn() },
   optimizer: { watchWindowShortcuts: vi.fn() },
-  is: { dev: false },
+  is: { dev: false }
 }))
 
 vi.mock('./config-manager', () => ({
   getConfigPath: vi.fn(() => '/home/user/.verminal'),
   getLogsPath: vi.fn(() => '/home/user/.verminal/logs'),
-  ensureConfigDirectory: vi.fn(() => ({ ok: true, data: undefined })),
+  ensureConfigDirectory: vi.fn(() => ({ ok: true, data: undefined }))
 }))
 
 vi.mock('./app/quit-handler', () => ({
   handleQuitConfirm: mockHandleQuitConfirm,
   handleQuitCancel: mockHandleQuitCancel,
-  registerQuitHandler: mockRegisterQuitHandler,
+  registerQuitHandler: mockRegisterQuitHandler
 }))
 
 vi.mock('../../resources/icon.png?asset', () => ({ default: 'icon.png' }))
@@ -87,8 +87,8 @@ describe('main IPC registration', () => {
       data: {
         home: '/home/user',
         userData: '/home/user/.config/verminal',
-        logsDir: '/home/user/.verminal/logs',
-      },
+        logsDir: '/home/user/.verminal/logs'
+      }
     })
   })
 

@@ -4,31 +4,40 @@ import {
   handleQuitCancel,
   handleQuitConfirm,
   registerQuitHandler,
-  resetQuitHandlerForTests,
+  resetQuitHandlerForTests
 } from './quit-handler'
 
 const { mockAppQuit } = vi.hoisted(() => ({
-  mockAppQuit: vi.fn(),
+  mockAppQuit: vi.fn()
 }))
 
 vi.mock('electron', () => ({
   app: {
-    quit: mockAppQuit,
-  },
+    quit: mockAppQuit
+  }
 }))
 
 vi.mock('../logging/crash-log', () => ({
-  logError: vi.fn(),
+  logError: vi.fn()
 }))
 
-function createMockWindow(isDestroyed = false, webContentsDestroyed = false) {
+interface MockWindow {
+  on: ReturnType<typeof vi.fn>
+  isDestroyed: ReturnType<typeof vi.fn>
+  webContents: {
+    send: ReturnType<typeof vi.fn>
+    isDestroyed: ReturnType<typeof vi.fn>
+  }
+}
+
+function createMockWindow(isDestroyed = false, webContentsDestroyed = false): MockWindow {
   return {
     on: vi.fn(),
     isDestroyed: vi.fn(() => isDestroyed),
     webContents: {
       send: vi.fn(),
-      isDestroyed: vi.fn(() => webContentsDestroyed),
-    },
+      isDestroyed: vi.fn(() => webContentsDestroyed)
+    }
   }
 }
 
@@ -44,13 +53,17 @@ describe('registerQuitHandler', () => {
 
     registerQuitHandler(mainWindow as unknown as BrowserWindow, getActiveSessionIds)
 
-    const closeHandler = mainWindow.on.mock.calls[0]?.[1] as ((event: { preventDefault: () => void }) => void)
+    const closeHandler = mainWindow.on.mock.calls[0]?.[1] as (event: {
+      preventDefault: () => void
+    }) => void
     const event = { preventDefault: vi.fn() }
 
     closeHandler(event)
 
     expect(event.preventDefault).toHaveBeenCalledTimes(1)
-    expect(mainWindow.webContents.send).toHaveBeenCalledWith('quit:show-dialog', { sessionCount: 2 })
+    expect(mainWindow.webContents.send).toHaveBeenCalledWith('quit:show-dialog', {
+      sessionCount: 2
+    })
   })
 
   it('allows close to proceed when there are no active sessions', () => {
@@ -59,7 +72,9 @@ describe('registerQuitHandler', () => {
 
     registerQuitHandler(mainWindow as unknown as BrowserWindow, getActiveSessionIds)
 
-    const closeHandler = mainWindow.on.mock.calls[0]?.[1] as ((event: { preventDefault: () => void }) => void)
+    const closeHandler = mainWindow.on.mock.calls[0]?.[1] as (event: {
+      preventDefault: () => void
+    }) => void
     const event = { preventDefault: vi.fn() }
 
     closeHandler(event)
@@ -72,9 +87,14 @@ describe('registerQuitHandler', () => {
     const mainWindow = createMockWindow()
 
     handleQuitConfirm(mainWindow as unknown as BrowserWindow, () => [], vi.fn())
-    registerQuitHandler(mainWindow as unknown as BrowserWindow, vi.fn(() => [1, 2, 3]))
+    registerQuitHandler(
+      mainWindow as unknown as BrowserWindow,
+      vi.fn(() => [1, 2, 3])
+    )
 
-    const closeHandler = mainWindow.on.mock.calls[0]?.[1] as ((event: { preventDefault: () => void }) => void)
+    const closeHandler = mainWindow.on.mock.calls[0]?.[1] as (event: {
+      preventDefault: () => void
+    }) => void
     const event = { preventDefault: vi.fn() }
 
     closeHandler(event)
@@ -89,7 +109,9 @@ describe('registerQuitHandler', () => {
 
     registerQuitHandler(mainWindow as unknown as BrowserWindow, getActiveSessionIds)
 
-    const closeHandler = mainWindow.on.mock.calls[0]?.[1] as ((event: { preventDefault: () => void }) => void)
+    const closeHandler = mainWindow.on.mock.calls[0]?.[1] as (event: {
+      preventDefault: () => void
+    }) => void
     const event = { preventDefault: vi.fn() }
 
     // First close - should show dialog
@@ -110,7 +132,9 @@ describe('registerQuitHandler', () => {
 
     registerQuitHandler(mainWindow as unknown as BrowserWindow, getActiveSessionIds)
 
-    const closeHandler = mainWindow.on.mock.calls[0]?.[1] as ((event: { preventDefault: () => void }) => void)
+    const closeHandler = mainWindow.on.mock.calls[0]?.[1] as (event: {
+      preventDefault: () => void
+    }) => void
     const event = { preventDefault: vi.fn() }
 
     closeHandler(event)
@@ -125,7 +149,9 @@ describe('registerQuitHandler', () => {
 
     registerQuitHandler(mainWindow as unknown as BrowserWindow, getActiveSessionIds)
 
-    const closeHandler = mainWindow.on.mock.calls[0]?.[1] as ((event: { preventDefault: () => void }) => void)
+    const closeHandler = mainWindow.on.mock.calls[0]?.[1] as (event: {
+      preventDefault: () => void
+    }) => void
     const event = { preventDefault: vi.fn() }
 
     // Show dialog

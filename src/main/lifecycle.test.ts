@@ -8,8 +8,8 @@ const mockGetPath = vi.fn(() => '/mock/fallback')
 
 vi.mock('electron', () => ({
   app: {
-    getPath: mockGetPath,
-  },
+    getPath: mockGetPath
+  }
 }))
 
 describe('app lifecycle', () => {

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock runtime-log BEFORE importing logger
 vi.mock('./runtime-log', () => ({
-  appendRuntimeLog: vi.fn(),
+  appendRuntimeLog: vi.fn()
 }))
 
 // Import AFTER mocks
@@ -25,10 +25,7 @@ describe('logger', () => {
     it('should include optional data as JSON', () => {
       logger.debug('Debug with data', { key: 'value' })
 
-      expect(appendRuntimeLog).toHaveBeenCalledWith(
-        'debug',
-        'Debug with data {"key":"value"}'
-      )
+      expect(appendRuntimeLog).toHaveBeenCalledWith('debug', 'Debug with data {"key":"value"}')
     })
   })
 
@@ -42,10 +39,7 @@ describe('logger', () => {
     it('should include optional data as JSON', () => {
       logger.info('Info with data', { count: 42 })
 
-      expect(appendRuntimeLog).toHaveBeenCalledWith(
-        'info',
-        'Info with data {"count":42}'
-      )
+      expect(appendRuntimeLog).toHaveBeenCalledWith('info', 'Info with data {"count":42}')
     })
   })
 

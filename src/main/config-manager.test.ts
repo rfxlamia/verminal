@@ -8,8 +8,8 @@ import { tmpdir } from 'os'
 // Mock app.getPath to use temp directory (static fallback, overridden in beforeEach)
 vi.mock('electron', () => ({
   app: {
-    getPath: vi.fn(() => '/mock/fallback'),
-  },
+    getPath: vi.fn(() => '/mock/fallback')
+  }
 }))
 
 describe('config-manager', () => {
@@ -52,13 +52,9 @@ describe('config-manager', () => {
 
   it('should handle concurrent directory creation gracefully', () => {
     // Simultaneous calls should not throw
-    const results = [
-      ensureConfigDirectory(),
-      ensureConfigDirectory(),
-      ensureConfigDirectory(),
-    ]
+    const results = [ensureConfigDirectory(), ensureConfigDirectory(), ensureConfigDirectory()]
     // All should succeed (mkdirSync with recursive: true handles this)
-    results.forEach(r => expect(r.ok).toBe(true))
+    results.forEach((r) => expect(r.ok).toBe(true))
   })
 
   it('should not use tilde literal in path resolution', () => {

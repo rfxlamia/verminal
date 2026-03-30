@@ -5,7 +5,7 @@ import { electronAPI } from '@electron-toolkit/preload'
 const api = {
   app: {
     getVersion: () => ipcRenderer.invoke('app:getVersion'),
-    getPaths: () => ipcRenderer.invoke('app:getPaths'),
+    getPaths: () => ipcRenderer.invoke('app:getPaths')
   },
   pty: {
     spawn: (shell: string, args: string[], cwd: string) =>
@@ -29,25 +29,25 @@ const api = {
       return (): void => {
         ipcRenderer.removeListener(channel, listener)
       }
-    },
+    }
   },
   layout: {
     save: (name: string, data: unknown) => ipcRenderer.invoke('layout:save', name, data),
     load: (name: string) => ipcRenderer.invoke('layout:load', name),
     list: () => ipcRenderer.invoke('layout:list'),
-    delete: (name: string) => ipcRenderer.invoke('layout:delete', name),
+    delete: (name: string) => ipcRenderer.invoke('layout:delete', name)
   },
   config: {
     read: () => ipcRenderer.invoke('config:read'),
     write: (data: unknown) => ipcRenderer.invoke('config:write', data),
-    getPath: () => ipcRenderer.invoke('config:getPath'),  // NEW
+    getPath: () => ipcRenderer.invoke('config:getPath') // NEW
   },
   fs: {
     listDir: (path: string) => ipcRenderer.invoke('fs:listDir', path),
-    getCwd: (sessionId: number) => ipcRenderer.invoke('fs:getCwd', sessionId),
+    getCwd: (sessionId: number) => ipcRenderer.invoke('fs:getCwd', sessionId)
   },
   shell: {
-    detect: () => ipcRenderer.invoke('shell:detect'),
+    detect: () => ipcRenderer.invoke('shell:detect')
   },
   quit: {
     confirm: () => ipcRenderer.send('quit:confirm'),
@@ -60,8 +60,8 @@ const api = {
       return (): void => {
         ipcRenderer.removeListener('quit:show-dialog', handler)
       }
-    },
-  },
+    }
+  }
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

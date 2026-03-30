@@ -14,24 +14,24 @@ vi.mock('electron', () => ({
     webContents: {
       setWindowOpenHandler: vi.fn((handler: (...args: unknown[]) => unknown) => {
         mockWebContentsHandlers.set('setWindowOpenHandler', handler)
-      }),
+      })
     },
     loadURL: vi.fn(),
     loadFile: vi.fn(),
     show: vi.fn(),
     getSize: vi.fn(() => [options.width, options.height]),
-    setMinimumSize: vi.fn(),
+    setMinimumSize: vi.fn()
   })),
   shell: { openExternal: vi.fn() },
   app: {
     getPath: vi.fn((name: string) => `/mock/${name}`),
-    isPackaged: false,
-  },
+    isPackaged: false
+  }
 }))
 
 // Mock electron-toolkit/utils
 vi.mock('@electron-toolkit/utils', () => ({
-  is: { dev: false },
+  is: { dev: false }
 }))
 
 vi.mock('../../../resources/icon.png?asset', () => ({ default: 'icon.png' }))

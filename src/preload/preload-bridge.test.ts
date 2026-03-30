@@ -12,12 +12,12 @@ vi.mock('electron', () => ({
     invoke: mockInvoke,
     send: mockSend,
     on: mockOn,
-    removeListener: mockRemoveListener,
-  },
+    removeListener: mockRemoveListener
+  }
 }))
 
 vi.mock('@electron-toolkit/preload', () => ({
-  electronAPI: { ipcRenderer: { send: vi.fn() } },
+  electronAPI: { ipcRenderer: { send: vi.fn() } }
 }))
 
 describe('preload bridge wiring', () => {

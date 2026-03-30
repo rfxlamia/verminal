@@ -32,31 +32,37 @@ app.whenReady().then(() => {
   })
 
   // IPC handlers
-  ipcMain.handle('app:getVersion', (): Result<string> => ({
-    ok: true,
-    data: app.getVersion(),
-  }))
+  ipcMain.handle(
+    'app:getVersion',
+    (): Result<string> => ({
+      ok: true,
+      data: app.getVersion()
+    })
+  )
 
-  ipcMain.handle('app:getPaths', (): Result<{ home: string; userData: string; logsDir: string }> => {
-    try {
-      return {
-        ok: true,
-        data: {
-          home: app.getPath('home'),
-          userData: app.getPath('userData'),
-          logsDir: getLogsPath(),
-        },
-      }
-    } catch (error) {
-      return {
-        ok: false,
-        error: {
-          code: 'PATH_RESOLUTION_ERROR',
-          message: (error as Error).message,
-        },
+  ipcMain.handle(
+    'app:getPaths',
+    (): Result<{ home: string; userData: string; logsDir: string }> => {
+      try {
+        return {
+          ok: true,
+          data: {
+            home: app.getPath('home'),
+            userData: app.getPath('userData'),
+            logsDir: getLogsPath()
+          }
+        }
+      } catch (error) {
+        return {
+          ok: false,
+          error: {
+            code: 'PATH_RESOLUTION_ERROR',
+            message: (error as Error).message
+          }
+        }
       }
     }
-  })
+  )
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
