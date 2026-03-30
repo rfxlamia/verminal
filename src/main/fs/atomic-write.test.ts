@@ -26,7 +26,7 @@ describe('atomic-write', () => {
     // Reset all mocks to default behavior before each test
     vi.resetAllMocks()
     vi.mocked(openSync).mockReturnValue(3) // Mock file descriptor
-    vi.mocked(writeSync).mockImplementation(() => {})
+    vi.mocked(writeSync).mockReturnValue(undefined as unknown as number)
     vi.mocked(fsyncSync).mockImplementation(() => {})
     vi.mocked(closeSync).mockImplementation(() => {})
     vi.mocked(renameSync).mockImplementation(() => {})
@@ -118,9 +118,9 @@ describe('atomic-write', () => {
       let lastRenameTarget: string | undefined
       let lastRenameSource: string | undefined
 
-      vi.mocked(renameSync).mockImplementation((from: string, to: string) => {
-        lastRenameSource = from
-        lastRenameTarget = to
+      vi.mocked(renameSync).mockImplementation((from, to) => {
+        lastRenameSource = from as string
+        lastRenameTarget = to as string
       })
 
       atomicWrite('/home/user/config.toml', 'final content')
@@ -145,12 +145,13 @@ describe('atomic-write', () => {
     it('should call openSync, writeSync, fsyncSync, closeSync, renameSync in correct order', () => {
       const callOrder: string[] = []
 
-      vi.mocked(openSync).mockImplementation((...args) => {
+      vi.mocked(openSync).mockImplementation(() => {
         callOrder.push('open')
         return 99
       })
       vi.mocked(writeSync).mockImplementation(() => {
         callOrder.push('write')
+        return undefined as unknown as number
       })
       vi.mocked(fsyncSync).mockImplementation(() => {
         callOrder.push('fsync')
