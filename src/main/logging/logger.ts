@@ -1,33 +1,48 @@
+import { appendRuntimeLog } from './runtime-log'
+
 /**
  * Logger facade for main process
- * Provides debug, info, and error logging
- *
- * NOTE: This is a minimal implementation. Full file-based logging
- * will be implemented in Story 1.7 with atomic-write.ts
+ * Delegates to runtime-log.ts for file-based logging with atomic writes
+ * Falls back to console if file logging fails (e.g., during early boot)
  */
 export const logger = {
   /**
    * Log debug message
-   * Currently uses console.debug as fallback
+   * Writes to verminal.log with fallback to console.debug
    */
   debug: (msg: string, data?: unknown): void => {
-    console.debug(`[DEBUG] ${msg}`, data ?? '')
+    const full = data ? `${msg} ${JSON.stringify(data)}` : msg
+    try {
+      appendRuntimeLog('debug', full)
+    } catch {
+      console.debug(`[DEBUG] ${full}`)
+    }
   },
 
   /**
    * Log info message
-   * Currently uses console.log as fallback
+   * Writes to verminal.log with fallback to console.log
    */
   info: (msg: string, data?: unknown): void => {
-    console.log(`[INFO] ${msg}`, data ?? '')
+    const full = data ? `${msg} ${JSON.stringify(data)}` : msg
+    try {
+      appendRuntimeLog('info', full)
+    } catch {
+      console.log(`[INFO] ${full}`)
+    }
   },
 
   /**
    * Log error message
-   * Currently uses console.error as fallback
-   * Crash logs should use writeCrashLog() directly
+   * Writes to verminal.log with fallback to console.error
+   * Crash logs should use writeCrashLog() directly for critical errors
    */
   error: (msg: string, data?: unknown): void => {
-    console.error(`[ERROR] ${msg}`, data ?? '')
+    const full = data ? `${msg} ${JSON.stringify(data)}` : msg
+    try {
+      appendRuntimeLog('error', full)
+    } catch {
+      console.error(`[ERROR] ${full}`)
+    }
   },
 }
