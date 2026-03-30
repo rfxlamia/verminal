@@ -7,8 +7,8 @@ let tmpCounter = 0
  * Atomically writes content to a file using the write-to-temp-then-rename pattern.
  *
  * This ensures that the target file is never in a partially-written state, even if
- * the process is killed during the write operation. Uses fsync to flush kernel buffers
- * before renaming.
+ * the process is killed during the write operation. Uses fsyncSync to flush
+ * operating system buffers to persistent storage before renaming.
  *
  * @param targetPath - The final path where the content should be written
  * @param content - The string content to write
