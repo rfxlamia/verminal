@@ -5,6 +5,7 @@ const mockOn = vi.fn()
 const mockGetVersion = vi.fn(() => '0.0.1')
 const mockGetPath = vi.fn((name: string) => `/mock/${name}`)
 const mockHandleQuitConfirm = vi.fn()
+const mockHandleQuitCancel = vi.fn()
 const mockRegisterQuitHandler = vi.fn()
 
 class MockBrowserWindow {
@@ -46,6 +47,7 @@ vi.mock('./config-manager', () => ({
 
 vi.mock('./app/quit-handler', () => ({
   handleQuitConfirm: mockHandleQuitConfirm,
+  handleQuitCancel: mockHandleQuitCancel,
   registerQuitHandler: mockRegisterQuitHandler,
 }))
 
@@ -101,5 +103,17 @@ describe('main IPC registration', () => {
 
     expect(mockHandleQuitConfirm).toHaveBeenCalledTimes(1)
     expect(mockRegisterQuitHandler).toHaveBeenCalledTimes(1)
+  })
+
+  it('registers quit:cancel listener and delegates to handleQuitCancel', async () => {
+    await import('./index')
+
+    const quitCancelCall = mockOn.mock.calls.find((call) => call[0] === 'quit:cancel')
+    expect(quitCancelCall).toBeTruthy()
+
+    const quitCancelHandler = quitCancelCall?.[1] as () => void
+    quitCancelHandler()
+
+    expect(mockHandleQuitCancel).toHaveBeenCalledTimes(1)
   })
 })

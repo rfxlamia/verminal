@@ -4,9 +4,12 @@
   let visible = $state(false)
   let sessionCount = $state(0)
   let unsubscribe: (() => void) | null = null
+  let dialogElement: HTMLDivElement | null = null
 
   onMount(() => {
     unsubscribe = window.api.quit.onShowDialog((data) => {
+      // Guard against multiple events while already visible
+      if (visible) return
       sessionCount = data.sessionCount
       visible = true
     })
@@ -17,17 +20,48 @@
   })
 
   function handleCancel(): void {
+    if (!visible) return
     visible = false
+    window.api.quit.cancel()
   }
 
   function handleQuit(): void {
+    if (!visible) return
     visible = false
     window.api.quit.confirm()
   }
 
   function handleKeydown(event: KeyboardEvent): void {
     if (event.key === 'Escape') {
+      event.preventDefault()
       handleCancel()
+    } else if (event.key === 'Enter') {
+      event.preventDefault()
+      // Activate the focused button (same as click)
+      const activeElement = document.activeElement as HTMLElement
+      if (activeElement?.tagName === 'BUTTON') {
+        activeElement.click()
+      } else {
+        // Default to Quit if no button focused (Enter should confirm dangerous action)
+        handleQuit()
+      }
+    } else if (event.key === 'Tab') {
+      // Focus trap: keep focus within dialog
+      const focusableElements = dialogElement?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+      if (!focusableElements || focusableElements.length === 0) return
+
+      const firstElement = focusableElements[0]
+      const lastElement = focusableElements[focusableElements.length - 1]
+
+      if (event.shiftKey && document.activeElement === firstElement) {
+        event.preventDefault()
+        lastElement.focus()
+      } else if (!event.shiftKey && document.activeElement === lastElement) {
+        event.preventDefault()
+        firstElement.focus()
+      }
     }
   }
 </script>
@@ -40,6 +74,7 @@
     onkeydown={handleKeydown}
   >
     <div
+      bind:this={dialogElement}
       class="quit-dialog"
       role="dialog"
       aria-modal="true"
@@ -51,10 +86,16 @@
         {sessionCount} active terminal session{sessionCount !== 1 ? 's' : ''} will be terminated.
       </p>
       <div class="quit-dialog-actions">
-        <button class="quit-dialog-btn quit-dialog-btn--cancel" onclick={handleCancel} autofocus>
+        <button
+          class="quit-dialog-btn quit-dialog-btn--cancel"
+          onclick={handleCancel}
+          autofocus
+        >
           Cancel
         </button>
-        <button class="quit-dialog-btn quit-dialog-btn--quit" onclick={handleQuit}>Quit</button>
+        <button class="quit-dialog-btn quit-dialog-btn--quit" onclick={handleQuit}>
+          Quit
+        </button>
       </div>
     </div>
   </div>

@@ -109,3 +109,11 @@ export function initCrashLogger(): void {
 export function resetCrashLoggerForTests(): void {
   crashLoggerInitialized = false
 }
+
+/**
+ * Log a non-fatal error for debugging purposes
+ * Writes to stderr and optionally could be extended to write to log file
+ */
+export function logError(message: string): void {
+  console.error(`[ERROR] ${message}`)
+}

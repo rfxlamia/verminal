@@ -72,6 +72,19 @@ describe('preload bridge wiring', () => {
     expect(mockSend).toHaveBeenCalledWith('quit:confirm')
   })
 
+  it('sends quit:cancel through ipcRenderer.send', async () => {
+    await import('./index')
+
+    const apiExposeCall = mockExposeInMainWorld.mock.calls.find((call) => call[0] === 'api')
+    const api = apiExposeCall?.[1] as {
+      quit: { cancel: () => void }
+    }
+
+    api.quit.cancel()
+
+    expect(mockSend).toHaveBeenCalledWith('quit:cancel')
+  })
+
   it('returns unsubscribe function that removes matching quit:show-dialog listener', async () => {
     await import('./index')
 

@@ -37,6 +37,7 @@ export interface IpcContract {
   };
   quit: {
     confirm: () => void;
+    cancel: () => void;
     onShowDialog: (cb: (data: { sessionCount: number }) => void) => UnsubscribeFn;
   };
 }

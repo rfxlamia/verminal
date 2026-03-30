@@ -51,6 +51,7 @@ const api = {
   },
   quit: {
     confirm: () => ipcRenderer.send('quit:confirm'),
+    cancel: () => ipcRenderer.send('quit:cancel'),
     onShowDialog: (cb: (data: { sessionCount: number }) => void): (() => void) => {
       const handler = (_event: Electron.IpcRendererEvent, data: { sessionCount: number }): void => {
         cb(data)

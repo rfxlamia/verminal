@@ -3,7 +3,7 @@ import { electronApp, optimizer } from '@electron-toolkit/utils'
 import type { Result } from '../shared/ipc-contract'
 import { ensureConfigDirectory, getConfigPath, getLogsPath } from './config-manager'
 import { createWindow } from './app/window-manager'
-import { handleQuitConfirm, registerQuitHandler } from './app/quit-handler'
+import { handleQuitCancel, handleQuitConfirm, registerQuitHandler } from './app/quit-handler'
 import { initCrashLogger } from './logging/crash-log'
 
 // Initialize crash handler BEFORE any async operations
@@ -62,35 +62,37 @@ app.whenReady().then(() => {
   ipcMain.on('ping', () => console.log('pong'))
 
   // Phase 0 stubs (replaced with real PTY callbacks in Epic 2)
-  const getSessionCount = (): number => 0
   const getActiveSessionIds = (): number[] => []
   const killSession = (): void => {}
 
-  // Add config:getPath handler
-  ipcMain.handle('config:getPath', (): Result<string> => {
-    try {
-      return { ok: true, data: getConfigPath() }
-    } catch (error) {
-      return {
-        ok: false,
-        error: {
-          code: 'PATH_RESOLUTION_ERROR',
-          message: (error as Error).message,
-        },
-      }
-    }
-  })
+  // Track mainWindow reference for quit handlers
+  let mainWindow: BrowserWindow | null = null
 
   const createMainWindow = (): BrowserWindow => {
-    const mainWindow = createWindow()
-    registerQuitHandler(mainWindow, getSessionCount)
+    mainWindow = createWindow()
+    registerQuitHandler(mainWindow, getActiveSessionIds)
     return mainWindow
   }
 
   createMainWindow()
 
+  // Quit IPC handlers with error boundaries
   ipcMain.on('quit:confirm', () => {
-    handleQuitConfirm(getActiveSessionIds, killSession)
+    if (!mainWindow) return
+    try {
+      handleQuitConfirm(mainWindow, getActiveSessionIds, killSession)
+    } catch (error) {
+      console.error('Error in quit:confirm handler:', error)
+    }
+  })
+
+  ipcMain.on('quit:cancel', () => {
+    if (!mainWindow) return
+    try {
+      handleQuitCancel(mainWindow)
+    } catch (error) {
+      console.error('Error in quit:cancel handler:', error)
+    }
   })
 
   app.on('activate', function () {
