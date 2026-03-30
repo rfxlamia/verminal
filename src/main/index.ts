@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { electronApp, optimizer } from '@electron-toolkit/utils'
 import type { Result } from '../shared/ipc-contract'
-import { ensureConfigDirectory, getConfigPath, getLogsPath } from './config-manager'
+import { ensureConfigDirectory, getLogsPath } from './config-manager'
 import { createWindow } from './app/window-manager'
 import { handleQuitCancel, handleQuitConfirm, registerQuitHandler } from './app/quit-handler'
 import { initCrashLogger } from './logging/crash-log'
