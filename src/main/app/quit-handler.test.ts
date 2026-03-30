@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { BrowserWindow } from 'electron'
 import {
   handleQuitConfirm,
   registerQuitHandler,
@@ -30,7 +31,7 @@ describe('registerQuitHandler', () => {
     }
     const getSessionCount = vi.fn(() => 2)
 
-    registerQuitHandler(mainWindow as any, getSessionCount)
+    registerQuitHandler(mainWindow as unknown as BrowserWindow, getSessionCount)
 
     const closeHandler = mainWindow.on.mock.calls[0]?.[1] as ((event: { preventDefault: () => void }) => void)
     const event = { preventDefault: vi.fn() }
@@ -50,7 +51,7 @@ describe('registerQuitHandler', () => {
     }
     const getSessionCount = vi.fn(() => 0)
 
-    registerQuitHandler(mainWindow as any, getSessionCount)
+    registerQuitHandler(mainWindow as unknown as BrowserWindow, getSessionCount)
 
     const closeHandler = mainWindow.on.mock.calls[0]?.[1] as ((event: { preventDefault: () => void }) => void)
     const event = { preventDefault: vi.fn() }
@@ -70,7 +71,7 @@ describe('registerQuitHandler', () => {
     }
 
     handleQuitConfirm(() => [], vi.fn())
-    registerQuitHandler(mainWindow as any, vi.fn(() => 3))
+    registerQuitHandler(mainWindow as unknown as BrowserWindow, vi.fn(() => 3))
 
     const closeHandler = mainWindow.on.mock.calls[0]?.[1] as ((event: { preventDefault: () => void }) => void)
     const event = { preventDefault: vi.fn() }

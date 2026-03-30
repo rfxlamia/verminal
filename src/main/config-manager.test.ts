@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ensureConfigDirectory, getConfigPath } from './config-manager'
 import { app } from 'electron'
-import { existsSync, rmdirSync, statSync } from 'fs'
+import { existsSync, rmSync, statSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 
@@ -27,7 +27,7 @@ describe('config-manager', () => {
     // Cleanup
     const configPath = join(testHome, '.verminal')
     if (existsSync(configPath)) {
-      rmdirSync(configPath, { recursive: true })
+      rmSync(configPath, { recursive: true, force: true })
     }
   })
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { existsSync, rmdirSync } from 'fs'
+import { existsSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 
@@ -24,7 +24,7 @@ describe('app lifecycle', () => {
     // Cleanup before test
     const configPath = join(testHome, '.verminal')
     if (existsSync(configPath)) {
-      rmdirSync(configPath, { recursive: true })
+      rmSync(configPath, { recursive: true, force: true })
     }
   })
 
@@ -47,7 +47,7 @@ describe('app lifecycle', () => {
 
     // Cleanup
     if (existsSync(configPath)) {
-      rmdirSync(configPath, { recursive: true })
+      rmSync(configPath, { recursive: true, force: true })
     }
   })
 })

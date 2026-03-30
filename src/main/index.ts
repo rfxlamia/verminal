@@ -64,7 +64,7 @@ app.whenReady().then(() => {
   // Phase 0 stubs (replaced with real PTY callbacks in Epic 2)
   const getSessionCount = (): number => 0
   const getActiveSessionIds = (): number[] => []
-  const killSession = (_id: number): void => {}
+  const killSession = (): void => {}
 
   // Add config:getPath handler
   ipcMain.handle('config:getPath', (): Result<string> => {
