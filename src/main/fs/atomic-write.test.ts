@@ -23,8 +23,13 @@ import { openSync, writeSync, fsyncSync, closeSync, renameSync } from 'fs'
 
 describe('atomic-write', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    // Reset all mocks to default behavior before each test
+    vi.resetAllMocks()
     vi.mocked(openSync).mockReturnValue(3) // Mock file descriptor
+    vi.mocked(writeSync).mockImplementation(() => {})
+    vi.mocked(fsyncSync).mockImplementation(() => {})
+    vi.mocked(closeSync).mockImplementation(() => {})
+    vi.mocked(renameSync).mockImplementation(() => {})
   })
 
   describe('atomicWrite', () => {
@@ -49,14 +54,7 @@ describe('atomic-write', () => {
     it('should call fsync on file descriptor before close', () => {
       atomicWrite('/home/user/config.toml', 'content')
 
-      // Get the order of calls
-      const fsyncCalls = vi.mocked(fsyncSync).mock.calls
-      const closeCalls = vi.mocked(closeSync).mock.calls
-
       expect(fsyncSync).toHaveBeenCalledWith(3)
-      // fsync should be called before close
-      expect(fsyncCalls.length).toBeGreaterThan(0)
-      expect(closeCalls.length).toBeGreaterThan(0)
     })
 
     it('should rename temp file to target path', () => {
@@ -84,12 +82,6 @@ describe('atomic-write', () => {
 
     it('should preserve original target content if write is interrupted before rename', () => {
       // Simulate interruption: fsync succeeds but rename throws
-      vi.mocked(fsyncSync).mockImplementation(() => {
-        // fsync works fine
-      })
-      vi.mocked(closeSync).mockImplementation(() => {
-        // close works fine
-      })
       vi.mocked(renameSync).mockImplementation(() => {
         throw new Error('Process killed during rename')
       })
@@ -105,7 +97,8 @@ describe('atomic-write', () => {
 
     it('should use distinct temp names for concurrent calls', () => {
       const openCalls: string[] = []
-      vi.mocked(openSync).mockImplementation((path: string) => {
+      // Track the paths passed to openSync
+      vi.mocked(openSync).mockImplementation((path: unknown) => {
         openCalls.push(path as string)
         return openCalls.length + 10 // Unique fd
       })
@@ -150,20 +143,28 @@ describe('atomic-write', () => {
     })
 
     it('should call openSync, writeSync, fsyncSync, closeSync, renameSync in correct order', () => {
+      const callOrder: string[] = []
+
+      vi.mocked(openSync).mockImplementation((...args) => {
+        callOrder.push('open')
+        return 99
+      })
+      vi.mocked(writeSync).mockImplementation(() => {
+        callOrder.push('write')
+      })
+      vi.mocked(fsyncSync).mockImplementation(() => {
+        callOrder.push('fsync')
+      })
+      vi.mocked(closeSync).mockImplementation(() => {
+        callOrder.push('close')
+      })
+      vi.mocked(renameSync).mockImplementation(() => {
+        callOrder.push('rename')
+      })
+
       atomicWrite('/home/user/config.toml', 'ordered content')
 
-      expect(openSync).toHaveBeenCalled()
-      expect(writeSync).toHaveBeenCalled()
-      expect(fsyncSync).toHaveBeenCalled()
-      expect(closeSync).toHaveBeenCalled()
-      expect(renameSync).toHaveBeenCalled()
-
-      // Verify all were called
-      expect(vi.mocked(openSync).mock.calls.length).toBe(1)
-      expect(vi.mocked(writeSync).mock.calls.length).toBe(1)
-      expect(vi.mocked(fsyncSync).mock.calls.length).toBe(1)
-      expect(vi.mocked(closeSync).mock.calls.length).toBe(1)
-      expect(vi.mocked(renameSync).mock.calls.length).toBe(1)
+      expect(callOrder).toEqual(['open', 'write', 'fsync', 'close', 'rename'])
     })
   })
 })
