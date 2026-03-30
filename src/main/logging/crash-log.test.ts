@@ -29,15 +29,17 @@ vi.mock('../config-manager', () => ({
 import { writeFileSync, mkdirSync, existsSync } from 'fs'
 import { app } from 'electron'
 import { getLogsPath } from '../config-manager'
-import { formatCrashLog, writeCrashLog, initCrashLogger } from './crash-log'
+import { formatCrashLog, writeCrashLog, initCrashLogger, resetCrashLoggerForTests } from './crash-log'
 
 describe('crash-log', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resetCrashLoggerForTests()
     // Default mock returns
     vi.mocked(existsSync).mockReturnValue(true)
     vi.mocked(getLogsPath).mockReturnValue('/home/testuser/.verminal/logs')
     vi.mocked(app.getVersion).mockReturnValue('1.0.0-test')
+    vi.spyOn(process, 'exit').mockImplementation(() => undefined as never)
   })
 
   afterEach(() => {
@@ -62,6 +64,15 @@ describe('crash-log', () => {
 
       expect(result).toContain('App Version: 1.0.0-test')
       expect(app.getVersion).toHaveBeenCalled()
+    })
+
+    it('should fallback to unknown app version when app.getVersion throws', () => {
+      vi.mocked(app.getVersion).mockImplementation(() => {
+        throw new Error('app not ready')
+      })
+
+      const result = formatCrashLog(new Error('Test'))
+      expect(result).toContain('App Version: unknown')
     })
 
     it('should include electron version', () => {
@@ -211,6 +222,23 @@ describe('crash-log', () => {
       expect(processOnSpy).toHaveBeenCalledWith('unhandledRejection', expect.any(Function))
     })
 
+    it('should be idempotent and avoid duplicate listener registration', () => {
+      const processOnSpy = vi.spyOn(process, 'on')
+
+      initCrashLogger()
+      initCrashLogger()
+
+      const uncaughtCalls = processOnSpy.mock.calls.filter(
+        ([event]) => event === 'uncaughtException'
+      )
+      const rejectionCalls = processOnSpy.mock.calls.filter(
+        ([event]) => event === 'unhandledRejection'
+      )
+
+      expect(uncaughtCalls).toHaveLength(1)
+      expect(rejectionCalls).toHaveLength(1)
+    })
+
     it('should write crash log on uncaught exception', () => {
       vi.spyOn(process, 'on')
       initCrashLogger()
@@ -243,6 +271,8 @@ describe('crash-log', () => {
       handler(testError)
 
       expect(writeFileSync).toHaveBeenCalled()
+      expect(process.exit).toHaveBeenCalledWith(1)
+      expect(process.exitCode).toBe(1)
     })
   })
 })

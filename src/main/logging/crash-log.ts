@@ -4,13 +4,23 @@ import { join } from 'path'
 import { homedir } from 'os'
 import { getLogsPath } from '../config-manager'
 
+let crashLoggerInitialized = false
+
+function getSafeAppVersion(): string {
+  try {
+    return app.getVersion()
+  } catch {
+    return 'unknown'
+  }
+}
+
 /**
  * Format crash log content with all required fields
  * Includes timestamp, versions, platform info, error message and stack trace
  */
 export function formatCrashLog(error: Error): string {
   const timestamp = new Date().toISOString()
-  const appVersion = app.getVersion()
+  const appVersion = getSafeAppVersion()
   const electronVersion = process.versions.electron
   const platform = process.platform
   const arch = process.arch
@@ -74,6 +84,11 @@ export function writeCrashLog(error: Error): void {
  * Must be called before any async operations begin
  */
 export function initCrashLogger(): void {
+  if (crashLoggerInitialized) {
+    return
+  }
+  crashLoggerInitialized = true
+
   // Handle uncaught exceptions
   process.on('uncaughtException', (error: Error) => {
     writeCrashLog(error)
@@ -85,5 +100,12 @@ export function initCrashLogger(): void {
   process.on('unhandledRejection', (reason: unknown) => {
     const error = reason instanceof Error ? reason : new Error(String(reason))
     writeCrashLog(error)
+    // Unhandled rejections are treated as critical failures.
+    process.exitCode = 1
+    process.exit(1)
   })
+}
+
+export function resetCrashLoggerForTests(): void {
+  crashLoggerInitialized = false
 }
