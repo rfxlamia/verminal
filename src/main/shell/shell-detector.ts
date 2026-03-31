@@ -1,24 +1,8 @@
-import { existsSync, accessSync, constants } from 'node:fs'
 import { platform } from 'node:os'
+import { isExecutable } from '../utils/fs-utils'
 
 const LINUX_SHELL_PATHS = ['/bin/bash', '/usr/bin/bash', '/bin/zsh', '/usr/bin/zsh', '/bin/sh']
 const MACOS_SHELL_PATHS = ['/bin/zsh', '/bin/bash', '/bin/sh']
-
-/**
- * Check if a path is an executable file.
- * Verifies both file existence and execute permission.
- */
-function isExecutable(path: string): boolean {
-  if (!existsSync(path)) {
-    return false
-  }
-  try {
-    accessSync(path, constants.X_OK)
-    return true
-  } catch {
-    return false
-  }
-}
 
 /**
  * Detect available shells on the system.

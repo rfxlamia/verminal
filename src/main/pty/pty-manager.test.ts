@@ -1,11 +1,23 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // Hoisted mock definitions
-const { mockGetPreferredShell, mockExistsSync, mockStatSync, mockAccessSync } = vi.hoisted(() => ({
+const {
+  mockGetPreferredShell,
+  mockExistsSync,
+  mockStatSync,
+  mockAccessSync,
+  mockPtySpawn
+} = vi.hoisted(() => ({
   mockGetPreferredShell: vi.fn(),
   mockExistsSync: vi.fn(),
   mockStatSync: vi.fn(),
-  mockAccessSync: vi.fn()
+  mockAccessSync: vi.fn(),
+  mockPtySpawn: vi.fn()
+}))
+
+// Mock node-pty
+vi.mock('node-pty', () => ({
+  spawn: mockPtySpawn
 }))
 
 vi.mock('../shell/shell-detector', () => ({
@@ -26,8 +38,42 @@ import {
   getSession,
   killSession,
   getActiveSessionIds,
-  clearAllSessions
+  clearAllSessions,
+  writePty,
+  resizePty,
+  killPtySession
 } from './pty-manager'
+
+// Helper to create a fake PTY instance
+function createFakePty() {
+  const eventHandlers: { [key: string]: ((...args: unknown[]) => void)[] } = {}
+
+  const pty = {
+    pid: 12345,
+    process: 'bash',
+    cols: 80,
+    rows: 24,
+    write: vi.fn(),
+    resize: vi.fn(),
+    kill: vi.fn(),
+    onData: vi.fn((cb: (...args: unknown[]) => void) => {
+      if (!eventHandlers['data']) eventHandlers['data'] = []
+      eventHandlers['data'].push(cb)
+    }),
+    onExit: vi.fn((cb: (...args: unknown[]) => void) => {
+      if (!eventHandlers['exit']) eventHandlers['exit'] = []
+      eventHandlers['exit'].push(cb)
+    }),
+    emitData: (data: string) => {
+      eventHandlers['data']?.forEach((cb) => cb(data))
+    },
+    emitExit: (exitCode: number, signal?: number | string) => {
+      eventHandlers['exit']?.forEach((cb) => cb({ exitCode, signal }))
+    }
+  }
+
+  return pty
+}
 
 describe('pty-manager', () => {
   beforeEach(() => {
@@ -40,6 +86,12 @@ describe('pty-manager', () => {
     // Default: directories exist
     mockExistsSync.mockReturnValue(true)
     mockStatSync.mockReturnValue({ isDirectory: () => true })
+    // Use fake timers for buffered data tests
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   describe('spawnPty', () => {
@@ -68,12 +120,14 @@ describe('pty-manager', () => {
       mockAccessSync.mockImplementation((path: string) => {
         if (path !== '/valid/shell') throw new Error('Not executable')
       })
+      const fakePty = createFakePty()
+      mockPtySpawn.mockReturnValue(fakePty)
 
       const result = await spawnPty('/valid/shell')
 
       expect(result.ok).toBe(true)
       if (result.ok) {
-        expect(result.data.shell).toBe('/valid/shell')
+        expect(result.data.sessionId).toBeGreaterThan(0)
       }
     })
 
@@ -109,33 +163,39 @@ describe('pty-manager', () => {
       mockAccessSync.mockImplementation((path: string) => {
         if (path !== '/bin/zsh') throw new Error('Not executable')
       })
+      const fakePty = createFakePty()
+      mockPtySpawn.mockReturnValue(fakePty)
 
       const result = await spawnPty('  /bin/zsh  ')
 
       expect(result.ok).toBe(true)
       if (result.ok) {
-        expect(result.data.shell).toBe('/bin/zsh')
+        expect(result.data.sessionId).toBeGreaterThan(0)
       }
     })
 
     it('uses provided shell when available', async () => {
+      const fakePty = createFakePty()
+      mockPtySpawn.mockReturnValue(fakePty)
+
       const result = await spawnPty('/bin/zsh')
 
       expect(result.ok).toBe(true)
       if (result.ok) {
-        expect(result.data.shell).toBe('/bin/zsh')
         expect(result.data.sessionId).toBeGreaterThan(0)
       }
     })
 
     it('auto-detects shell when not provided', async () => {
       mockGetPreferredShell.mockReturnValue('/bin/bash')
+      const fakePty = createFakePty()
+      mockPtySpawn.mockReturnValue(fakePty)
 
       const result = await spawnPty()
 
       expect(result.ok).toBe(true)
       if (result.ok) {
-        expect(result.data.shell).toBe('/bin/bash')
+        expect(result.data.sessionId).toBeGreaterThan(0)
       }
     })
 
@@ -149,8 +209,10 @@ describe('pty-manager', () => {
       mockAccessSync.mockImplementation((path: string) => {
         if (path !== '/bin/zsh') throw new Error('Not executable')
       })
+      const fakePty = createFakePty()
+      mockPtySpawn.mockReturnValue(fakePty)
 
-      const result = await spawnPty('/bin/zsh', '/custom/path')
+      const result = await spawnPty('/bin/zsh', [], '/custom/path')
 
       expect(result.ok).toBe(true)
       if (result.ok) {
@@ -170,8 +232,10 @@ describe('pty-manager', () => {
       mockAccessSync.mockImplementation((path: string) => {
         if (path !== '/bin/zsh') throw new Error('Not executable')
       })
+      const fakePty = createFakePty()
+      mockPtySpawn.mockReturnValue(fakePty)
 
-      const result = await spawnPty('/bin/zsh', '/nonexistent/path')
+      const result = await spawnPty('/bin/zsh', [], '/nonexistent/path')
 
       expect(result.ok).toBe(true)
       if (result.ok) {
@@ -189,6 +253,8 @@ describe('pty-manager', () => {
       mockAccessSync.mockImplementation((path: string) => {
         if (path !== '/bin/zsh') throw new Error('Not executable')
       })
+      const fakePty = createFakePty()
+      mockPtySpawn.mockReturnValue(fakePty)
 
       const result = await spawnPty('/bin/zsh')
 
@@ -208,6 +274,8 @@ describe('pty-manager', () => {
       mockAccessSync.mockImplementation((path: string) => {
         if (path !== '/bin/zsh') throw new Error('Not executable')
       })
+      const fakePty = createFakePty()
+      mockPtySpawn.mockReturnValue(fakePty)
 
       const result = await spawnPty('/bin/zsh')
 
@@ -229,6 +297,8 @@ describe('pty-manager', () => {
       mockAccessSync.mockImplementation((path: string) => {
         if (path !== '/bin/zsh') throw new Error('Not executable')
       })
+      const fakePty = createFakePty()
+      mockPtySpawn.mockReturnValue(fakePty)
 
       const result = await spawnPty('/bin/zsh')
 
@@ -242,6 +312,10 @@ describe('pty-manager', () => {
     it('assigns unique session IDs', async () => {
       mockExistsSync.mockReturnValue(true)
       mockAccessSync.mockReturnValue(undefined)
+
+      const pty1 = createFakePty()
+      const pty2 = createFakePty()
+      mockPtySpawn.mockReturnValueOnce(pty1).mockReturnValueOnce(pty2)
 
       const result1 = await spawnPty('/bin/zsh')
       const result2 = await spawnPty('/bin/bash')
@@ -265,8 +339,10 @@ describe('pty-manager', () => {
       mockAccessSync.mockImplementation((path: string) => {
         if (path !== '/bin/zsh') throw new Error('Not executable')
       })
+      const fakePty = createFakePty()
+      mockPtySpawn.mockReturnValue(fakePty)
 
-      const result = await spawnPty('/bin/zsh', '/test/path')
+      const result = await spawnPty('/bin/zsh', [], '/test/path')
 
       expect(result.ok).toBe(true)
       if (result.ok) {
@@ -284,23 +360,25 @@ describe('pty-manager', () => {
   })
 
   describe('killSession', () => {
-    it('removes session and returns true', async () => {
+    it('removes session and kills PTY process', async () => {
       mockExistsSync.mockReturnValue(true)
       mockAccessSync.mockReturnValue(undefined)
+      const fakePty = createFakePty()
+      mockPtySpawn.mockReturnValue(fakePty)
 
       const result = await spawnPty('/bin/zsh')
 
       expect(result.ok).toBe(true)
       if (result.ok) {
-        const removed = killSession(result.data.sessionId)
-        expect(removed).toBe(true)
+        killSession(result.data.sessionId)
+        expect(fakePty.kill).toHaveBeenCalled()
         expect(getSession(result.data.sessionId)).toBeUndefined()
       }
     })
 
-    it('returns false for non-existent session', () => {
-      const removed = killSession(999)
-      expect(removed).toBe(false)
+    it('handles non-existent session gracefully', () => {
+      // killSession returns void, so this just shouldn't throw
+      expect(() => killSession(999)).not.toThrow()
     })
   })
 
@@ -312,6 +390,11 @@ describe('pty-manager', () => {
     it('returns all active session IDs', async () => {
       mockExistsSync.mockReturnValue(true)
       mockAccessSync.mockReturnValue(undefined)
+      mockGetPreferredShell.mockReturnValue('/bin/bash')
+
+      const fakePty1 = createFakePty()
+      const fakePty2 = createFakePty()
+      mockPtySpawn.mockReturnValueOnce(fakePty1).mockReturnValueOnce(fakePty2)
 
       const result1 = await spawnPty('/bin/zsh')
       const result2 = await spawnPty('/bin/bash')
@@ -323,6 +406,144 @@ describe('pty-manager', () => {
         expect(ids).toContain(result1.data.sessionId)
         expect(ids).toContain(result2.data.sessionId)
         expect(ids.length).toBe(2)
+      }
+    })
+  })
+
+  // ============================================================================
+  // NEW LIFECYCLE TESTS for real node-pty integration
+  // ============================================================================
+
+  describe('node-pty lifecycle', () => {
+    beforeEach(() => {
+      mockExistsSync.mockReturnValue(true)
+      mockAccessSync.mockReturnValue(undefined)
+      mockGetPreferredShell.mockReturnValue('/bin/bash')
+    })
+
+    it('calls node-pty spawn with shell, args, cwd, and xterm defaults', async () => {
+      const fakePty = createFakePty()
+      mockPtySpawn.mockReturnValue(fakePty)
+
+      const result = await spawnPty('/bin/bash', ['-l'], '/tmp')
+
+      expect(result).toEqual({ ok: true, data: { sessionId: 1 } })
+      expect(mockPtySpawn).toHaveBeenCalledWith(
+        '/bin/bash',
+        ['-l'],
+        expect.objectContaining({
+          cwd: '/tmp',
+          cols: 80,
+          rows: 24,
+          name: 'xterm-256color'
+        })
+      )
+    })
+
+    it('does not consume a session id when node-pty spawn throws', async () => {
+      mockPtySpawn.mockImplementationOnce(() => {
+        throw new Error('spawn failed')
+      })
+      const fakePty = createFakePty()
+      mockPtySpawn.mockReturnValueOnce(fakePty)
+
+      const failed = await spawnPty()
+      const succeeded = await spawnPty()
+
+      expect(failed.ok).toBe(false)
+      expect(succeeded).toEqual({ ok: true, data: { sessionId: 1 } })
+    })
+
+    it('writes to the correct PTY session only', async () => {
+      const pty1 = createFakePty()
+      const pty2 = createFakePty()
+      mockPtySpawn.mockReturnValueOnce(pty1).mockReturnValueOnce(pty2)
+
+      const r1 = await spawnPty('/bin/bash')
+      const r2 = await spawnPty('/bin/bash')
+
+      if (r1.ok && r2.ok) {
+        writePty(r1.data.sessionId, 'ls\n')
+        expect(pty1.write).toHaveBeenCalledWith('ls\n')
+        expect(pty2.write).not.toHaveBeenCalled()
+      }
+    })
+
+    it('buffers PTY data in ~8ms windows before invoking the hook', async () => {
+      const fakePty = createFakePty()
+      const onData = vi.fn()
+      mockPtySpawn.mockReturnValue(fakePty)
+
+      const result = await spawnPty('/bin/bash', [], '/tmp', { onData })
+      expect(result.ok).toBe(true)
+
+      fakePty.emitData('he')
+      fakePty.emitData('llo')
+      expect(onData).not.toHaveBeenCalled()
+
+      vi.advanceTimersByTime(8)
+      expect(onData).toHaveBeenCalledWith(1, 'hello')
+    })
+
+    it('flushes buffered data and cleans up exactly once on PTY exit', async () => {
+      const fakePty = createFakePty()
+      const onData = vi.fn()
+      const onExit = vi.fn()
+      mockPtySpawn.mockReturnValue(fakePty)
+
+      const result = await spawnPty('/bin/bash', [], '/tmp', { onData, onExit })
+      expect(result.ok).toBe(true)
+
+      fakePty.emitData('partial')
+      fakePty.emitExit(0)
+
+      expect(onData).toHaveBeenCalledWith(1, 'partial')
+      expect(onExit).toHaveBeenCalledWith(1, 0)
+      expect(getSession(1)).toBeUndefined()
+    })
+
+    it('killPtySession sends PTY kill to the targeted session and returns Result<void>', async () => {
+      const pty1 = createFakePty()
+      const pty2 = createFakePty()
+      mockPtySpawn.mockReturnValueOnce(pty1).mockReturnValueOnce(pty2)
+
+      await spawnPty('/bin/bash')
+      await spawnPty('/bin/bash')
+
+      const result = killPtySession(1)
+
+      expect(result).toEqual({ ok: true, data: undefined })
+      expect(pty1.kill).toHaveBeenCalled()
+      expect(pty2.kill).not.toHaveBeenCalled()
+    })
+
+    it('killSession remains quit-handler compatible by delegating to real PTY shutdown', async () => {
+      const fakePty = createFakePty()
+      mockPtySpawn.mockReturnValue(fakePty)
+
+      await spawnPty('/bin/bash')
+      killSession(1)
+
+      expect(fakePty.kill).toHaveBeenCalled()
+    })
+
+    it('resizes the correct PTY session', async () => {
+      const fakePty = createFakePty()
+      mockPtySpawn.mockReturnValue(fakePty)
+
+      const result = await spawnPty('/bin/bash')
+      if (result.ok) {
+        resizePty(result.data.sessionId, 120, 40)
+        expect(fakePty.resize).toHaveBeenCalledWith(120, 40)
+      }
+    })
+
+    it('returns error when killing non-existent session', () => {
+      const result = killPtySession(999)
+
+      expect(result.ok).toBe(false)
+      if (!result.ok) {
+        expect(result.error.code).toBe('SESSION_NOT_FOUND')
       }
     })
   })

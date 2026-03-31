@@ -1,30 +1,54 @@
-import { existsSync, statSync, accessSync, constants } from 'node:fs'
+import { existsSync, statSync } from 'node:fs'
+import { spawn } from 'node-pty'
+import type { IPty } from 'node-pty'
 import type { Result } from '../../shared/ipc-contract'
 import { getPreferredShell } from '../shell/shell-detector'
+import { isExecutable } from '../utils/fs-utils'
+
+const DEFAULT_COLS = 80
+const DEFAULT_ROWS = 24
+const DATA_BUFFER_INTERVAL_MS = 8
+
+export interface SpawnPtyHooks {
+  onData?: (sessionId: number, data: string) => void
+  onExit?: (sessionId: number, exitCode: number) => void
+}
 
 export interface PTYSession {
   sessionId: number
   shell: string
+  args: string[]
   cwd: string
+  pty: IPty
+  bufferedData: string
+  flushTimer: NodeJS.Timeout | null
 }
 
 const sessions = new Map<number, PTYSession>()
 let sessionIdCounter = 1
 
-/**
- * Check if a path is an executable file.
- * Verifies both file existence and execute permission.
- */
-function isExecutable(path: string): boolean {
-  if (!existsSync(path)) {
-    return false
+function cleanupSession(sessionId: number): void {
+  const session = sessions.get(sessionId)
+  if (!session) return
+
+  if (session.flushTimer) {
+    clearTimeout(session.flushTimer)
+    session.flushTimer = null
   }
-  try {
-    accessSync(path, constants.X_OK)
-    return true
-  } catch {
-    return false
-  }
+
+  sessions.delete(sessionId)
+}
+
+function flushBufferedData(session: PTYSession, hooks?: SpawnPtyHooks): void {
+  if (session.bufferedData.length === 0) return
+  hooks?.onData?.(session.sessionId, session.bufferedData)
+  session.bufferedData = ''
+}
+
+function resolveSpawnEnv(): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(process.env).filter((entry): entry is [string, string] => typeof entry[1] === 'string')
+  )
 }
 
 /**
@@ -58,13 +82,17 @@ function resolveCwd(preferredCwd?: string): string {
  * Spawn a new PTY session with the specified or auto-detected shell.
  *
  * @param shell - Shell path to use (auto-detected if not provided)
+ * @param args - Arguments to pass to the shell
  * @param cwd - Working directory (auto-resolved if not provided)
- * @returns Result with sessionId and shell path, or error if no shell available
+ * @param hooks - Callbacks for PTY data and exit events
+ * @returns Result with sessionId, or error if no shell available
  */
 export async function spawnPty(
   shell?: string,
-  cwd?: string
-): Promise<Result<{ sessionId: number; shell: string }>> {
+  args: string[] = [],
+  cwd?: string,
+  hooks: SpawnPtyHooks = {}
+): Promise<Result<{ sessionId: number }>> {
   let shellToUse: string | null
 
   if (shell) {
@@ -75,7 +103,7 @@ export async function spawnPty(
         ok: false,
         error: {
           code: 'SHELL_NOT_AVAILABLE',
-          message: `Provided shell path is not valid or not executable: ${shell}`
+          message: `Provided shell path is not valid or not executable: ${shellToUse}`
         }
       }
     }
@@ -95,20 +123,52 @@ export async function spawnPty(
 
   const cwdToUse = resolveCwd(cwd)
 
-  const sessionId = sessionIdCounter++
-  const session: PTYSession = {
-    sessionId,
-    shell: shellToUse,
-    cwd: cwdToUse
-  }
+  try {
+    const ptyProcess = spawn(shellToUse, args, {
+      name: 'xterm-256color',
+      cols: DEFAULT_COLS,
+      rows: DEFAULT_ROWS,
+      cwd: cwdToUse,
+      env: resolveSpawnEnv()
+    })
 
-  sessions.set(sessionId, session)
-
-  return {
-    ok: true,
-    data: {
+    const sessionId = sessionIdCounter++
+    const session: PTYSession = {
       sessionId,
-      shell: shellToUse
+      shell: shellToUse,
+      args,
+      cwd: cwdToUse,
+      pty: ptyProcess,
+      bufferedData: '',
+      flushTimer: null
+    }
+
+    ptyProcess.onData((chunk: string) => {
+      session.bufferedData += chunk
+      if (!session.flushTimer) {
+        session.flushTimer = setTimeout(() => {
+          session.flushTimer = null
+          flushBufferedData(session, hooks)
+        }, DATA_BUFFER_INTERVAL_MS)
+      }
+    })
+
+    ptyProcess.onExit(({ exitCode }) => {
+      flushBufferedData(session, hooks)
+      cleanupSession(sessionId)
+      hooks.onExit?.(sessionId, exitCode)
+    })
+
+    sessions.set(sessionId, session)
+
+    return { ok: true, data: { sessionId } }
+  } catch (error) {
+    return {
+      ok: false,
+      error: {
+        code: 'PTY_SPAWN_ERROR',
+        message: (error as Error).message
+      }
     }
   }
 }
@@ -117,8 +177,47 @@ export function getSession(sessionId: number): PTYSession | undefined {
   return sessions.get(sessionId)
 }
 
-export function killSession(sessionId: number): boolean {
-  return sessions.delete(sessionId)
+export function writePty(sessionId: number, data: string): void {
+  const session = sessions.get(sessionId)
+  session?.pty.write(data)
+}
+
+export function resizePty(sessionId: number, cols: number, rows: number): void {
+  const session = sessions.get(sessionId)
+  session?.pty.resize(cols, rows)
+}
+
+export function killPtySession(sessionId: number): Result<void> {
+  const session = sessions.get(sessionId)
+  if (!session) {
+    return {
+      ok: false,
+      error: {
+        code: 'SESSION_NOT_FOUND',
+        message: `Session ${sessionId} not found`
+      }
+    }
+  }
+
+  try {
+    session.pty.kill()
+    cleanupSession(sessionId)
+    return { ok: true, data: undefined }
+  } catch (error) {
+    cleanupSession(sessionId)
+    return {
+      ok: false,
+      error: {
+        code: 'PTY_KILL_ERROR',
+        message: (error as Error).message
+      }
+    }
+  }
+}
+
+// Keep this export for quit-handler compatibility, but delegate to real PTY shutdown.
+export function killSession(sessionId: number): void {
+  void killPtySession(sessionId)
 }
 
 export function getActiveSessionIds(): number[] {
