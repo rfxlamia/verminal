@@ -5,6 +5,7 @@ import { ensureConfigDirectory, getLogsPath } from './config-manager'
 import { createWindow } from './app/window-manager'
 import { handleQuitCancel, handleQuitConfirm, registerQuitHandler } from './app/quit-handler'
 import { initCrashLogger } from './logging/crash-log'
+import { handleShellDetect } from './shell/shell-manager'
 
 // Initialize crash handler BEFORE any async operations
 // This ensures crashes during startup are captured
@@ -66,6 +67,9 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  // Shell detection IPC handler
+  ipcMain.handle('shell:detect', handleShellDetect)
 
   // Phase 0 stubs (replaced with real PTY callbacks in Epic 2)
   const getActiveSessionIds = (): number[] => []
