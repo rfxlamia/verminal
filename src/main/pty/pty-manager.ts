@@ -142,7 +142,7 @@ export async function spawnPty(
   const cwdToUse = resolveCwd(cwd)
 
   // Validate args array elements are strings
-  if (!Array.isArray(args) || !args.every(arg => typeof arg === 'string')) {
+  if (!Array.isArray(args) || !args.every((arg) => typeof arg === 'string')) {
     return {
       ok: false,
       error: {

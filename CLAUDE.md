@@ -171,5 +171,9 @@ type Result<T> =
 ## Additional Project Preferences
 
 - **[QUALITY-GATES]**: Saat mengerjakan project ini, WAJIB zero regresi (test suite lulus), strict TypeScript harus zero warning dan zero error, serta DILARANG melakukan push atau create PR sebelum quality gates terpenuhi (termasuk lolos CI/CD).
-  Ditambahkan: 2026-03-30
-  Konteks: Permintaan eksplisit user untuk quality gate wajib sebelum finalisasi/push/PR.
+
+- **WAJIB** lolos lint, typecheck, test, dan build sebelum commit.
+
+  `npm run lint && npx tsc --noEmit && npm test && npm run build`
+
+- Ditambahkan: 2026-03-30

@@ -1,19 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 // Hoisted mock definitions
-const {
-  mockGetPreferredShell,
-  mockExistsSync,
-  mockStatSync,
-  mockAccessSync,
-  mockPtySpawn
-} = vi.hoisted(() => ({
-  mockGetPreferredShell: vi.fn(),
-  mockExistsSync: vi.fn(),
-  mockStatSync: vi.fn(),
-  mockAccessSync: vi.fn(),
-  mockPtySpawn: vi.fn()
-}))
+const { mockGetPreferredShell, mockExistsSync, mockStatSync, mockAccessSync, mockPtySpawn } =
+  vi.hoisted(() => ({
+    mockGetPreferredShell: vi.fn(),
+    mockExistsSync: vi.fn(),
+    mockStatSync: vi.fn(),
+    mockAccessSync: vi.fn(),
+    mockPtySpawn: vi.fn()
+  }))
 
 // Mock node-pty
 vi.mock('node-pty', () => ({
@@ -45,7 +40,21 @@ import {
 } from './pty-manager'
 
 // Helper to create a fake PTY instance
-function createFakePty() {
+interface FakePty {
+  pid: number
+  process: string
+  cols: number
+  rows: number
+  write: ReturnType<typeof vi.fn>
+  resize: ReturnType<typeof vi.fn>
+  kill: ReturnType<typeof vi.fn>
+  onData: (cb: (...args: unknown[]) => void) => void
+  onExit: (cb: (...args: unknown[]) => void) => void
+  emitData: (data: string) => void
+  emitExit: (exitCode: number, signal?: number | string) => void
+}
+
+function createFakePty(): FakePty {
   const eventHandlers: { [key: string]: ((...args: unknown[]) => void)[] } = {}
 
   const pty = {

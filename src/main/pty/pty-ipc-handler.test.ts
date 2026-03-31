@@ -124,7 +124,10 @@ describe('pty-ipc-handler', () => {
     const [, handler] = spawnCall!
     const sender = { send: vi.fn(), isDestroyed: vi.fn(() => false) }
 
-    const errorResult = { ok: false, error: { code: 'SHELL_NOT_AVAILABLE', message: 'No shell found' } }
+    const errorResult = {
+      ok: false,
+      error: { code: 'SHELL_NOT_AVAILABLE', message: 'No shell found' }
+    }
     mockSpawnPty.mockResolvedValue(errorResult)
 
     const result = await handler({ sender }, { shell: '/invalid', args: [], cwd: '/tmp' })
@@ -141,7 +144,10 @@ describe('pty-ipc-handler', () => {
     const [, handler] = spawnCall!
     const sender = { send: vi.fn(), isDestroyed: vi.fn(() => true) }
 
-    const errorResult = { ok: false, error: { code: 'SHELL_NOT_AVAILABLE', message: 'No shell found' } }
+    const errorResult = {
+      ok: false,
+      error: { code: 'SHELL_NOT_AVAILABLE', message: 'No shell found' }
+    }
     mockSpawnPty.mockResolvedValue(errorResult)
 
     await handler({ sender }, { shell: '/invalid', args: [], cwd: '/tmp' })
