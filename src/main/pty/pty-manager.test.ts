@@ -146,7 +146,9 @@ describe('pty-manager', () => {
     it('returns error when explicitly provided shell is not executable', async () => {
       mockExistsSync.mockReturnValue(true)
       mockAccessSync.mockImplementation(() => {
-        throw new Error('Permission denied')
+        const error = new Error('Permission denied') as NodeJS.ErrnoException
+        error.code = 'EACCES'
+        throw error
       })
 
       const result = await spawnPty('/not-executable')
@@ -377,8 +379,12 @@ describe('pty-manager', () => {
     })
 
     it('handles non-existent session gracefully', () => {
-      // killSession returns void, so this just shouldn't throw
-      expect(() => killSession(999)).not.toThrow()
+      // killSession returns Result<void>, should return error for non-existent session
+      const result = killSession(999)
+      expect(result.ok).toBe(false)
+      if (!result.ok) {
+        expect(result.error.code).toBe('SESSION_NOT_FOUND')
+      }
     })
   })
 

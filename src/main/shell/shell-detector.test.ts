@@ -75,7 +75,9 @@ describe('shell-detector', () => {
     process.env.SHELL = '/bin/not-executable'
     mockExistsSync.mockReturnValue(true)
     mockAccessSync.mockImplementation(() => {
-      throw new Error('Permission denied')
+      const error = new Error('Permission denied') as NodeJS.ErrnoException
+      error.code = 'EACCES'
+      throw error
     })
 
     const result = detectShells()

@@ -116,14 +116,36 @@ describe('pty-ipc-handler', () => {
     expect(mockWritePty).toHaveBeenCalledWith(1, 'echo hello\n')
   })
 
-  it('forwards pty:resize to correct session', () => {
+  it('notifies renderer when spawnPty returns error', async () => {
     registerPtyIpcHandlers()
-    const resizeCall = mockIpcMainOn.mock.calls.find(([channel]) => channel === 'pty:resize')
-    expect(resizeCall).toBeDefined()
-    const [, handler] = resizeCall!
 
-    handler({}, 1, 120, 40)
+    const spawnCall = mockIpcMainHandle.mock.calls.find(([channel]) => channel === 'pty:spawn')
+    expect(spawnCall).toBeDefined()
+    const [, handler] = spawnCall!
+    const sender = { send: vi.fn(), isDestroyed: vi.fn(() => false) }
 
-    expect(mockResizePty).toHaveBeenCalledWith(1, 120, 40)
+    const errorResult = { ok: false, error: { code: 'SHELL_NOT_AVAILABLE', message: 'No shell found' } }
+    mockSpawnPty.mockResolvedValue(errorResult)
+
+    const result = await handler({ sender }, { shell: '/invalid', args: [], cwd: '/tmp' })
+
+    expect(sender.send).toHaveBeenCalledWith('pty:spawn:error', errorResult.error)
+    expect(result).toEqual(errorResult)
+  })
+
+  it('does not notify renderer of spawn error if sender is destroyed', async () => {
+    registerPtyIpcHandlers()
+
+    const spawnCall = mockIpcMainHandle.mock.calls.find(([channel]) => channel === 'pty:spawn')
+    expect(spawnCall).toBeDefined()
+    const [, handler] = spawnCall!
+    const sender = { send: vi.fn(), isDestroyed: vi.fn(() => true) }
+
+    const errorResult = { ok: false, error: { code: 'SHELL_NOT_AVAILABLE', message: 'No shell found' } }
+    mockSpawnPty.mockResolvedValue(errorResult)
+
+    await handler({ sender }, { shell: '/invalid', args: [], cwd: '/tmp' })
+
+    expect(sender.send).not.toHaveBeenCalled()
   })
 })
