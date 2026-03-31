@@ -1,4 +1,4 @@
-import { existsSync, statSync } from 'node:fs'
+import { existsSync, statSync, accessSync, constants } from 'node:fs'
 import type { Result } from '../../shared/ipc-contract'
 import { getPreferredShell } from '../shell/shell-detector'
 
@@ -10,6 +10,22 @@ export interface PTYSession {
 
 const sessions = new Map<number, PTYSession>()
 let sessionIdCounter = 1
+
+/**
+ * Check if a path is an executable file.
+ * Verifies both file existence and execute permission.
+ */
+function isExecutable(path: string): boolean {
+  if (!existsSync(path)) {
+    return false
+  }
+  try {
+    accessSync(path, constants.X_OK)
+    return true
+  } catch {
+    return false
+  }
+}
 
 /**
  * Validate and resolve the working directory for a PTY session.
@@ -49,7 +65,23 @@ export async function spawnPty(
   shell?: string,
   cwd?: string
 ): Promise<Result<{ sessionId: number; shell: string }>> {
-  const shellToUse = shell ?? getPreferredShell()
+  let shellToUse: string | null
+
+  if (shell) {
+    // Validate explicitly provided shell
+    shellToUse = shell.trim()
+    if (!isExecutable(shellToUse)) {
+      return {
+        ok: false,
+        error: {
+          code: 'SHELL_NOT_AVAILABLE',
+          message: `Provided shell path is not valid or not executable: ${shell}`
+        }
+      }
+    }
+  } else {
+    shellToUse = getPreferredShell()
+  }
 
   if (!shellToUse) {
     return {

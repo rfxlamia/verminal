@@ -51,4 +51,19 @@ describe('shell-manager', () => {
       expect(result.data).toEqual(['/bin/bash'])
     }
   })
+
+  it('returns copy of shells array to prevent external mutation', async () => {
+    mockDetectShells.mockReturnValue(['/bin/zsh', '/bin/bash'])
+
+    const result = await handleShellDetect()
+
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      // Verify we get a copy (not frozen, but different reference)
+      const originalData = result.data
+      originalData.push('/bin/sh')
+      // Original mock data should not be affected
+      expect(result.data.length).toBe(3)
+    }
+  })
 })

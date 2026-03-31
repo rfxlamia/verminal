@@ -26,13 +26,13 @@ function isExecutable(path: string): boolean {
  * All returned paths are verified to exist and be executable.
  */
 export function detectShells(): string[] {
-  const shellFromEnv = process.env.SHELL
+  const shellFromEnv = process.env.SHELL?.trim()
   const platformPaths = platform() === 'darwin' ? MACOS_SHELL_PATHS : LINUX_SHELL_PATHS
 
   const candidates: string[] = []
 
-  // Priority 1: $SHELL environment variable
-  if (shellFromEnv && isExecutable(shellFromEnv)) {
+  // Priority 1: $SHELL environment variable (must be non-empty after trim)
+  if (shellFromEnv && shellFromEnv.length > 0 && isExecutable(shellFromEnv)) {
     candidates.push(shellFromEnv)
   }
 

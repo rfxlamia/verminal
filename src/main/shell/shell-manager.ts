@@ -14,5 +14,6 @@ export async function handleShellDetect(): Promise<Result<string[]>> {
     }
   }
 
-  return { ok: true, data: shells }
+  // Return copy to prevent mutation by caller (IPC will serialize anyway)
+  return { ok: true, data: [...shells] }
 }

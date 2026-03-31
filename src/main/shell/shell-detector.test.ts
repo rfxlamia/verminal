@@ -83,6 +83,27 @@ describe('shell-detector', () => {
     expect(result).toEqual([])
   })
 
+  it('filters out empty string shell paths', () => {
+    process.env.SHELL = ''
+    mockExistsSync.mockImplementation((path: string) => path === '/bin/bash')
+
+    const result = detectShells()
+
+    // Should use fallback paths since $SHELL is empty
+    expect(result.length).toBeGreaterThan(0)
+    expect(result[0]).not.toBe('')
+  })
+
+  it('filters out whitespace-only shell paths', () => {
+    process.env.SHELL = '   '
+    mockExistsSync.mockImplementation((path: string) => path === '/bin/bash')
+
+    const result = detectShells()
+
+    // Should use fallback paths since $SHELL is whitespace-only
+    expect(result.length).toBeGreaterThan(0)
+  })
+
   it('returns empty array when no shells found', () => {
     mockExistsSync.mockReturnValue(false)
 
