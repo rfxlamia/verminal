@@ -22,7 +22,13 @@ export function isExecutable(path: string): boolean {
   try {
     accessSync(path, constants.X_OK)
     return true
-  } catch {
-    return false
+  } catch (error) {
+    // Only return false for permission errors (EACCES, EPERM)
+    // Re-throw other errors (ENOENT, etc.) so caller knows something is wrong
+    const err = error as NodeJS.ErrnoException
+    if (err.code === 'EACCES' || err.code === 'EPERM') {
+      return false
+    }
+    throw error
   }
 }

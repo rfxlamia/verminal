@@ -181,7 +181,7 @@ describe('handleQuitConfirm', () => {
 
   it('kills all active sessions and quits after 2 seconds', () => {
     const mainWindow = createMockWindow()
-    const killSession = vi.fn()
+    const killSession = vi.fn<() => { ok: true; data: undefined }>().mockReturnValue({ ok: true, data: undefined })
 
     handleQuitConfirm(mainWindow as unknown as BrowserWindow, () => [1, 2], killSession)
 
@@ -201,10 +201,11 @@ describe('handleQuitConfirm', () => {
     expect(mockAppQuit).toHaveBeenCalledTimes(1)
   })
 
-  it('still quits after timeout even when kill callback throws', () => {
+  it('still quits after timeout even when kill fails', () => {
     const mainWindow = createMockWindow()
-    const killSession = vi.fn(() => {
-      throw new Error('session already exited')
+    const killSession = vi.fn<() => { ok: false; error: { code: string; message: string } }>().mockReturnValue({
+      ok: false,
+      error: { code: 'SESSION_NOT_FOUND', message: 'session already exited' }
     })
 
     handleQuitConfirm(mainWindow as unknown as BrowserWindow, () => [1], killSession)
@@ -219,7 +220,7 @@ describe('handleQuitConfirm', () => {
 
   it('uses GRACEFUL_EXIT_TIMEOUT_MS constant for timing', () => {
     const mainWindow = createMockWindow()
-    const killSession = vi.fn()
+    const killSession = vi.fn<() => { ok: true; data: undefined }>().mockReturnValue({ ok: true, data: undefined })
 
     handleQuitConfirm(mainWindow as unknown as BrowserWindow, () => [1], killSession)
 

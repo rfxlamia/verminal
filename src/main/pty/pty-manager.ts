@@ -45,9 +45,27 @@ function flushBufferedData(session: PTYSession, hooks?: SpawnPtyHooks): void {
   session.bufferedData = ''
 }
 
+// Environment variables that should not be passed to PTY sessions
+const SENSITIVE_ENV_VARS = new Set([
+  'AWS_ACCESS_KEY_ID',
+  'AWS_SECRET_ACCESS_KEY',
+  'AWS_SESSION_TOKEN',
+  'GITHUB_TOKEN',
+  'GH_TOKEN',
+  'NPM_TOKEN',
+  'NODE_AUTH_TOKEN',
+  'API_KEY',
+  'SECRET_KEY',
+  'PRIVATE_KEY',
+  'PASSWORD',
+  'PASSPHRASE'
+])
+
 function resolveSpawnEnv(): Record<string, string> {
   return Object.fromEntries(
-    Object.entries(process.env).filter((entry): entry is [string, string] => typeof entry[1] === 'string')
+    Object.entries(process.env)
+      .filter((entry): entry is [string, string] => typeof entry[1] === 'string')
+      .filter(([key]) => !SENSITIVE_ENV_VARS.has(key))
   )
 }
 
@@ -123,6 +141,17 @@ export async function spawnPty(
 
   const cwdToUse = resolveCwd(cwd)
 
+  // Validate args array elements are strings
+  if (!Array.isArray(args) || !args.every(arg => typeof arg === 'string')) {
+    return {
+      ok: false,
+      error: {
+        code: 'INVALID_ARGS',
+        message: 'Args must be an array of strings'
+      }
+    }
+  }
+
   try {
     const ptyProcess = spawn(shellToUse, args, {
       name: 'xterm-256color',
@@ -144,9 +173,17 @@ export async function spawnPty(
     }
 
     ptyProcess.onData((chunk: string) => {
+      // Guard: session may have been cleaned up if PTY exited quickly
+      if (!sessions.has(sessionId)) return
       session.bufferedData += chunk
+      // Limit buffer size to prevent memory exhaustion from runaway PTY
+      if (session.bufferedData.length > 100000) {
+        flushBufferedData(session, hooks)
+      }
       if (!session.flushTimer) {
         session.flushTimer = setTimeout(() => {
+          // Guard: check session still exists before flushing
+          if (!sessions.has(sessionId)) return
           session.flushTimer = null
           flushBufferedData(session, hooks)
         }, DATA_BUFFER_INTERVAL_MS)
@@ -155,8 +192,13 @@ export async function spawnPty(
 
     ptyProcess.onExit(({ exitCode }) => {
       flushBufferedData(session, hooks)
+      // Call onExit hook BEFORE cleanup so hook can access session state
+      try {
+        hooks.onExit?.(sessionId, exitCode)
+      } catch {
+        // Hook errors should not interrupt cleanup
+      }
       cleanupSession(sessionId)
-      hooks.onExit?.(sessionId, exitCode)
     })
 
     sessions.set(sessionId, session)
@@ -177,14 +219,54 @@ export function getSession(sessionId: number): PTYSession | undefined {
   return sessions.get(sessionId)
 }
 
-export function writePty(sessionId: number, data: string): void {
+export function writePty(sessionId: number, data: string): Result<void> {
   const session = sessions.get(sessionId)
-  session?.pty.write(data)
+  if (!session) {
+    return {
+      ok: false,
+      error: {
+        code: 'SESSION_NOT_FOUND',
+        message: `Cannot write to session ${sessionId}: not found`
+      }
+    }
+  }
+  try {
+    session.pty.write(data)
+    return { ok: true, data: undefined }
+  } catch (error) {
+    return {
+      ok: false,
+      error: {
+        code: 'PTY_WRITE_ERROR',
+        message: (error as Error).message
+      }
+    }
+  }
 }
 
-export function resizePty(sessionId: number, cols: number, rows: number): void {
+export function resizePty(sessionId: number, cols: number, rows: number): Result<void> {
   const session = sessions.get(sessionId)
-  session?.pty.resize(cols, rows)
+  if (!session) {
+    return {
+      ok: false,
+      error: {
+        code: 'SESSION_NOT_FOUND',
+        message: `Cannot resize session ${sessionId}: not found`
+      }
+    }
+  }
+  try {
+    session.pty.resize(cols, rows)
+    return { ok: true, data: undefined }
+  } catch (error) {
+    return {
+      ok: false,
+      error: {
+        code: 'PTY_RESIZE_ERROR',
+        message: (error as Error).message
+      }
+    }
+  }
 }
 
 export function killPtySession(sessionId: number): Result<void> {
@@ -215,9 +297,9 @@ export function killPtySession(sessionId: number): Result<void> {
   }
 }
 
-// Keep this export for quit-handler compatibility, but delegate to real PTY shutdown.
-export function killSession(sessionId: number): void {
-  void killPtySession(sessionId)
+// Keep this export for quit-handler compatibility, delegates to real PTY shutdown.
+export function killSession(sessionId: number): Result<void> {
+  return killPtySession(sessionId)
 }
 
 export function getActiveSessionIds(): number[] {

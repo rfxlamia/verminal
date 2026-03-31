@@ -1,8 +1,9 @@
 import { app, type BrowserWindow } from 'electron'
 import { logError } from '../logging/crash-log'
+import type { Result } from '../../shared/ipc-contract'
 
 type GetActiveSessionIdsFn = () => number[]
-type KillSessionFn = (sessionId: number) => void
+type KillSessionFn = (sessionId: number) => Result<void>
 
 const GRACEFUL_EXIT_TIMEOUT_MS = 2000
 
@@ -68,12 +69,11 @@ export function handleQuitConfirm(
   }
 
   for (const sessionId of sessionIds) {
-    try {
-      killSession(sessionId)
-    } catch (err) {
+    const result = killSession(sessionId)
+    if (!result.ok) {
       // Session may have already exited while quit flow is in progress.
       // Log for debugging but don't block quit.
-      logError(`Failed to kill session ${sessionId}: ${err}`)
+      logError(`Failed to kill session ${sessionId}: ${result.error.message}`)
     }
   }
 
