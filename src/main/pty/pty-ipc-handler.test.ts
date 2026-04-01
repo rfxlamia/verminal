@@ -160,6 +160,26 @@ describe('pty-ipc-handler', () => {
     mockResizePty.mockClear()
     handler({}, 1, 'invalid', 24)
     expect(mockResizePty).not.toHaveBeenCalled()
+
+    // Invalid: non-numeric rows
+    mockResizePty.mockClear()
+    handler({}, 1, 80, 'invalid')
+    expect(mockResizePty).not.toHaveBeenCalled()
+
+    // Invalid: float sessionId
+    mockResizePty.mockClear()
+    handler({}, 1.5, 80, 24)
+    expect(mockResizePty).not.toHaveBeenCalled()
+
+    // Invalid: NaN cols
+    mockResizePty.mockClear()
+    handler({}, 1, NaN, 24)
+    expect(mockResizePty).not.toHaveBeenCalled()
+
+    // Invalid: Infinity rows
+    mockResizePty.mockClear()
+    handler({}, 1, 80, Infinity)
+    expect(mockResizePty).not.toHaveBeenCalled()
   })
 
   it('notifies renderer when spawnPty returns error', async () => {

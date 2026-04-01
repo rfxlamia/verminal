@@ -108,7 +108,11 @@
         lastSyncedCols = initialCols
         lastSyncedRows = initialRows
         // Send initial resize directly to avoid race condition with terminal.cols/rows
-        window.api.pty.resize(sessionId, initialCols, initialRows)
+        try {
+          window.api.pty.resize(sessionId, initialCols, initialRows)
+        } catch (err) {
+          console.error('[TerminalView] Failed to send initial resize:', err)
+        }
       }
     } catch (err) {
       console.warn('[TerminalView] fitAddon.fit() failed, will retry on resize:', err)

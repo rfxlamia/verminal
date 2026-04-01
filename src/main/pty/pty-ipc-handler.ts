@@ -41,6 +41,16 @@ export function registerPtyIpcHandlers(): void {
       console.warn('[pty:resize] Invalid arguments:', { sessionId, cols, rows })
       return
     }
+    // Validate integers
+    if (!Number.isInteger(sessionId) || !Number.isInteger(cols) || !Number.isInteger(rows)) {
+      console.warn('[pty:resize] Non-integer arguments:', { sessionId, cols, rows })
+      return
+    }
+    // Validate finite numbers (rejects NaN and Infinity)
+    if (!Number.isFinite(sessionId) || !Number.isFinite(cols) || !Number.isFinite(rows)) {
+      console.warn('[pty:resize] Non-finite arguments:', { sessionId, cols, rows })
+      return
+    }
     // Validate dimensions are positive
     if (cols <= 0 || rows <= 0 || cols > 9999 || rows > 9999) {
       console.warn('[pty:resize] Invalid dimensions:', { cols, rows })

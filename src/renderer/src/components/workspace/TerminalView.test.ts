@@ -68,6 +68,8 @@ let mockOnExit: ReturnType<typeof vi.fn>
 // ============================================================================
 
 import { mount, unmount } from 'svelte'
+import { Terminal } from '@xterm/xterm'
+import { FitAddon } from '@xterm/addon-fit'
 
 // ============================================================================
 // Tests
@@ -150,6 +152,8 @@ describe('TerminalView', () => {
     vi.unstubAllGlobals()
     // Restore real timers after each test
     vi.useRealTimers()
+    // Clean up DOM elements created during tests
+    document.body.innerHTML = ''
   })
 
   it('opens the terminal in the container div on mount', async () => {
@@ -351,6 +355,8 @@ describe('TerminalView resize synchronization (Story 2.5)', () => {
   afterEach(() => {
     vi.useRealTimers()
     vi.unstubAllGlobals()
+    // Clean up DOM elements created during tests
+    document.body.innerHTML = ''
   })
 
   it('calls pty:resize after mount with debounce', async () => {
@@ -444,5 +450,82 @@ describe('TerminalView resize synchronization (Story 2.5)', () => {
 
     // Verify cleanup happened
     expect(mockTerminalDispose).toHaveBeenCalled()
+  })
+
+  it('coalesces multiple rapid resize events into single pty:resize call', async () => {
+    // Create a mutable mock terminal that can change dimensions
+    let currentCols = 80
+    const currentRows = 24
+    const mockFitAddonFitDynamic = vi.fn().mockImplementation(() => {
+      // Simulate fit() changing dimensions
+      currentCols += 10
+    })
+
+    // Recreate mock with dynamic dimensions
+    const mockTerminalDynamic = {
+      open: mockTerminalOpen,
+      write: mockTerminalWrite,
+      onData: mockTerminalOnData,
+      dispose: mockTerminalDispose,
+      focus: mockTerminalFocus,
+      loadAddon: mockLoadAddon,
+      unicode: mockUnicode,
+      get cols() {
+        return currentCols
+      },
+      get rows() {
+        return currentRows
+      }
+    }
+
+    vi.mocked(Terminal).mockImplementation(() => mockTerminalDynamic as unknown as Terminal)
+    vi.mocked(FitAddon).mockImplementation(
+      () => ({ fit: mockFitAddonFitDynamic }) as unknown as FitAddon
+    )
+
+    const TerminalView = await getTerminalView()
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    // Track ResizeObserver callbacks
+    let resizeCallback: (() => void) | null = null
+    const originalResizeObserver = globalThis.ResizeObserver
+    globalThis.ResizeObserver = vi.fn().mockImplementation((cb) => {
+      resizeCallback = cb
+      return {
+        observe: vi.fn(),
+        unobserve: vi.fn(),
+        disconnect: vi.fn()
+      }
+    }) as unknown as typeof ResizeObserver
+
+    mount(TerminalView, {
+      target: container,
+      props: { sessionId: 1 }
+    })
+
+    await waitFor(() => mockTerminalOpen.mock.calls.length > 0)
+    await vi.advanceTimersByTimeAsync(50)
+
+    // Clear tracking from initial mount
+    mockPtyResize.mockClear()
+
+    // Simulate rapid resize events (5 events in quick succession)
+    expect(resizeCallback).not.toBeNull()
+    for (let i = 0; i < 5; i++) {
+      resizeCallback!()
+    }
+
+    // Immediately after rapid events - debounce timer is pending
+    expect(mockPtyResize).not.toHaveBeenCalled()
+
+    // Advance timers past debounce period
+    await vi.advanceTimersByTimeAsync(50)
+
+    // Should have been called exactly ONCE (coalesced)
+    expect(mockPtyResize).toHaveBeenCalledTimes(1)
+
+    // Restore original ResizeObserver
+    globalThis.ResizeObserver = originalResizeObserver
   })
 })
