@@ -20,6 +20,8 @@ interface LatencyResult {
 }
 
 const PROBE_CHAR = '\x01' // Ctrl+A — shell will echo back in raw mode
+// Note: Ctrl+A may trigger readline shortcuts in some shell configurations.
+// For CI-safe measurement, consider using `stty raw` setup or printable characters.
 
 /**
  * Measure echo latency for a PTY session by sending probe characters
@@ -81,6 +83,8 @@ export async function measureEchoLatency(
   }
 
   // Compute percentiles
+  // Note: Uses Math.floor() which undershoots true percentile for small sample sizes.
+  // This is intentionally conservative for latency measurement (reported P95 >= actual P95).
   const latencies = results.map((r) => r.latencyMs).sort((a, b) => a - b)
   const p = (pct: number): number => latencies[Math.floor((latencies.length * pct) / 100)] ?? 0
 

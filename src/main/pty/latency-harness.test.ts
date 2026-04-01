@@ -4,6 +4,10 @@ import * as ptyManager from './pty-manager'
 
 // Integration tests - only run when INTEGRATION=true env var is set
 // Run with: INTEGRATION=true npx vitest run src/main/pty/latency-harness.test.ts
+//
+// NOTE: This test requires a real shell and may fail in containerized CI environments
+// due to missing PTY support, high load, or shell configuration differences.
+// Run manually on development hardware for reliable results.
 describe.skipIf(!process.env.INTEGRATION)('PTY Input Latency (Integration)', () => {
   it('achieves P95 echo latency < 16ms on local shell', async () => {
     const { p50, p95 } = await measureEchoLatency(50) // 50 samples for CI speed
