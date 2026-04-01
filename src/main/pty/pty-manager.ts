@@ -7,6 +7,11 @@ import { isExecutable } from '../utils/fs-utils'
 
 const DEFAULT_COLS = 80
 const DEFAULT_ROWS = 24
+
+// DATA_BUFFER_INTERVAL_MS: ~8ms batch window for PTY OUTPUT (PTY → renderer).
+// This timer only fires in ptyProcess.onData (output path from shell).
+// The write path (renderer → PTY via writePty) has NO buffering — direct fd write.
+// Latency budget: write IPC~2ms + pty.write~0ms + shell echo~2ms + buffer~0-8ms + render~2ms ≈ <16ms P95
 const DATA_BUFFER_INTERVAL_MS = 8
 
 export interface SpawnPtyHooks {

@@ -94,6 +94,7 @@
     resizeObserver.observe(containerEl)
 
     // 6. Forward local keyboard input to PTY (AC #5)
+    // write() is fire-and-forget IPC with no buffering — direct fd write
     terminal.onData((data: string) => {
       try {
         window.api.pty.write(sessionId, data)
@@ -103,6 +104,7 @@
     })
 
     // 7. Subscribe to PTY data stream (AC #6) with error handling
+    // terminal.write() uses microtask queue for async processing but stays within same frame
     unsubscribeData = window.api.pty.onData(sessionId, (data: string) => {
       // Race guard: drop data after exit (AC #7)
       if (sessionExited) return
