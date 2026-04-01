@@ -561,5 +561,30 @@ describe('pty-manager', () => {
         expect(result.error.code).toBe('SESSION_NOT_FOUND')
       }
     })
+
+    it('clears pending timer on overflow flush (no double flush)', async () => {
+      const fakePty = createFakePty()
+      const onData = vi.fn()
+      mockPtySpawn.mockReturnValue(fakePty)
+      const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
+
+      const result = await spawnPty('/bin/bash', [], '/tmp', { onData })
+      expect(result.ok).toBe(true)
+
+      // Emit small chunk to start timer
+      fakePty.emitData('small')
+      expect(clearTimeoutSpy).not.toHaveBeenCalled()
+
+      // Emit large chunk to trigger overflow flush
+      const largeChunk = 'a'.repeat(100001)
+      fakePty.emitData(largeChunk)
+
+      // Timer should be cleared during overflow flush
+      expect(clearTimeoutSpy).toHaveBeenCalled()
+
+      // Advance past original timer - should NOT fire again
+      vi.advanceTimersByTime(8)
+      expect(onData).toHaveBeenCalledTimes(1) // Only the overflow flush
+    })
   })
 })

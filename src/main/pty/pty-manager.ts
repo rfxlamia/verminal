@@ -46,6 +46,11 @@ function cleanupSession(sessionId: number): void {
 
 function flushBufferedData(session: PTYSession, hooks?: SpawnPtyHooks): void {
   if (session.bufferedData.length === 0) return
+  // If timer is pending, clear it since we're flushing now (handles overflow flush case)
+  if (session.flushTimer) {
+    clearTimeout(session.flushTimer)
+    session.flushTimer = null
+  }
   hooks?.onData?.(session.sessionId, session.bufferedData)
   session.bufferedData = ''
 }
