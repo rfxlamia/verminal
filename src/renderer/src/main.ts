@@ -1,6 +1,7 @@
 import { mount } from 'svelte'
 
 import './assets/main.css'
+import '@xterm/xterm/css/xterm.css'
 
 import App from './App.svelte'
 
