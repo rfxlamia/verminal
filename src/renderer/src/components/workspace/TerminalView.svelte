@@ -46,14 +46,22 @@
     // Activate Unicode 11 (AC #3)
     terminal.unicode.activeVersion = '11'
 
-    // 3. Open terminal into DOM container
-    terminal.open(containerEl!)
+    // 3. Open terminal into DOM container (with null check)
+    if (!containerEl) {
+      console.error('[TerminalView] Container element not found')
+      return
+    }
+    terminal.open(containerEl)
+
+    // Focus terminal for keyboard input (AC #10)
+    terminal.focus()
 
     // 4. Load WebGL after open (AC #9) — wrap in try/catch for graceful fallback
     try {
       terminal.loadAddon(new WebglAddon())
-    } catch {
+    } catch (err) {
       // WebGL unavailable — xterm falls back to canvas 2D automatically
+      console.debug('[TerminalView] WebGL addon failed to load, using canvas 2D fallback:', err)
     }
 
     // 5. Fit to container immediately (AC #8)
@@ -61,7 +69,11 @@
 
     // 6. Forward local keyboard input to PTY (AC #5)
     terminal.onData((data: string) => {
-      window.api.pty.write(sessionId, data)
+      try {
+        window.api.pty.write(sessionId, data)
+      } catch (err) {
+        console.error('[TerminalView] Failed to write to PTY:', err)
+      }
     })
 
     // 7. Subscribe to PTY data stream (AC #6)

@@ -8,6 +8,7 @@ const mockTerminalOpen = vi.fn()
 const mockTerminalWrite = vi.fn()
 const mockTerminalOnData = vi.fn()
 const mockTerminalDispose = vi.fn()
+const mockTerminalFocus = vi.fn()
 const mockFitAddonFit = vi.fn()
 const mockLoadAddon = vi.fn()
 const mockUnicode = { activeVersion: '' }
@@ -19,17 +20,20 @@ vi.mock('@xterm/xterm', () => ({
     write: mockTerminalWrite,
     onData: mockTerminalOnData,
     dispose: mockTerminalDispose,
+    focus: mockTerminalFocus,
     loadAddon: mockLoadAddon,
     unicode: mockUnicode
   }))
 }))
+
+const mockWebglAddon = vi.fn().mockImplementation(() => ({}))
 
 vi.mock('@xterm/addon-fit', () => ({
   FitAddon: vi.fn().mockImplementation(() => ({ fit: mockFitAddonFit }))
 }))
 
 vi.mock('@xterm/addon-webgl', () => ({
-  WebglAddon: vi.fn().mockImplementation(() => ({}))
+  WebglAddon: mockWebglAddon
 }))
 
 vi.mock('@xterm/addon-unicode11', () => ({
@@ -80,9 +84,15 @@ import { mount, unmount } from 'svelte'
 // Tests
 // ============================================================================
 
-// Helper to wait for component to mount (Svelte 5 $effect runs asynchronously)
-async function waitForMount(): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 50))
+// Helper to wait for condition with polling (avoids arbitrary timeouts)
+async function waitFor(condition: () => boolean, timeout = 1000): Promise<void> {
+  const start = Date.now()
+  while (!condition()) {
+    if (Date.now() - start > timeout) {
+      throw new Error('waitFor timeout')
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10))
+  }
 }
 
 // Dynamically import TerminalView to ensure mocks are applied
@@ -98,14 +108,16 @@ describe('TerminalView', () => {
   })
 
   afterEach(() => {
-    // Don't clear mocks between tests to preserve mock implementations
-    // Just reset the tracked state
+    // Reset all mock state
     mockTerminalOpen.mockClear()
     mockTerminalWrite.mockClear()
     mockTerminalOnData.mockClear()
     mockTerminalDispose.mockClear()
+    mockTerminalFocus.mockClear()
     mockFitAddonFit.mockClear()
     mockLoadAddon.mockClear()
+    mockWebglAddon.mockClear()
+    mockWebglAddon.mockImplementation(() => ({})) // Reset to default implementation
     mockPtyWrite.mockClear()
     mockOnData.mockClear()
     mockOnExit.mockClear()
@@ -126,7 +138,7 @@ describe('TerminalView', () => {
       props: { sessionId: 1 }
     })
 
-    await waitForMount()
+    await waitFor(() => mockTerminalOpen.mock.calls.length > 0)
 
     expect(mockTerminalOpen).toHaveBeenCalled()
     expect(mockTerminalOpen.mock.calls[0][0]).toBeInstanceOf(HTMLDivElement)
@@ -142,7 +154,7 @@ describe('TerminalView', () => {
       props: { sessionId: 1 }
     })
 
-    await waitForMount()
+    await waitFor(() => mockUnicode.activeVersion === '11')
 
     expect(mockUnicode.activeVersion).toBe('11')
   })
@@ -157,9 +169,24 @@ describe('TerminalView', () => {
       props: { sessionId: 1 }
     })
 
-    await waitForMount()
+    await waitFor(() => mockFitAddonFit.mock.calls.length > 0)
 
     expect(mockFitAddonFit).toHaveBeenCalled()
+  })
+
+  it('focuses terminal after opening', async () => {
+    const TerminalView = await getTerminalView()
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    mount(TerminalView, {
+      target: container,
+      props: { sessionId: 1 }
+    })
+
+    await waitFor(() => mockTerminalFocus.mock.calls.length > 0)
+
+    expect(mockTerminalFocus).toHaveBeenCalled()
   })
 
   it('forwards keyboard input to pty.write via onData callback', async () => {
@@ -172,7 +199,7 @@ describe('TerminalView', () => {
       props: { sessionId: 1 }
     })
 
-    await waitForMount()
+    await waitFor(() => mockTerminalOnData.mock.calls.length > 0)
 
     expect(mockTerminalOnData).toHaveBeenCalled()
 
@@ -192,7 +219,7 @@ describe('TerminalView', () => {
       props: { sessionId: 1 }
     })
 
-    await waitForMount()
+    await waitFor(() => mockOnData.mock.calls.length > 0)
 
     expect(mockOnData).toHaveBeenCalledWith(1, expect.any(Function))
 
@@ -212,7 +239,7 @@ describe('TerminalView', () => {
       props: { sessionId: 1 }
     })
 
-    await waitForMount()
+    await waitFor(() => mockOnExit.mock.calls.length > 0 && mockOnData.mock.calls.length > 0)
 
     expect(mockOnExit).toHaveBeenCalledWith(1, expect.any(Function))
     expect(mockOnData).toHaveBeenCalledWith(1, expect.any(Function))
@@ -238,7 +265,7 @@ describe('TerminalView', () => {
       props: { sessionId: 1 }
     })
 
-    await waitForMount()
+    await waitFor(() => mockOnData.mock.calls.length > 0)
 
     unmount(component)
 
@@ -248,8 +275,8 @@ describe('TerminalView', () => {
   })
 
   it('does not crash if WebglAddon throws (graceful fallback)', async () => {
-    const { WebglAddon } = await import('@xterm/addon-webgl')
-    vi.mocked(WebglAddon).mockImplementation(() => {
+    // Override WebglAddon mock to throw for this test only
+    mockWebglAddon.mockImplementation(() => {
       throw new Error('WebGL not supported')
     })
 
@@ -264,7 +291,7 @@ describe('TerminalView', () => {
       })
     }).not.toThrow()
 
-    await waitForMount()
+    await waitFor(() => mockTerminalOpen.mock.calls.length > 0)
 
     expect(mockTerminalOpen).toHaveBeenCalled()
     expect(mockFitAddonFit).toHaveBeenCalled()
