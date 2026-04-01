@@ -587,4 +587,179 @@ describe('pty-manager', () => {
       expect(onData).toHaveBeenCalledTimes(1) // Only the overflow flush
     })
   })
+
+  describe('PTY data buffering (Story 2.6)', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+      clearAllSessions()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('coalesces chunks in 8ms window into single onData call', async () => {
+      const fakePty = createFakePty()
+      const onData = vi.fn()
+      mockPtySpawn.mockReturnValue(fakePty)
+
+      const result = await spawnPty('/bin/bash', [], '/tmp', { onData })
+      expect(result.ok).toBe(true)
+
+      fakePty.emitData('chunk1')
+      fakePty.emitData('chunk2')
+      fakePty.emitData('chunk3')
+      // Not called yet — still in buffer window
+      expect(onData).not.toHaveBeenCalled()
+
+      vi.advanceTimersByTime(8)
+      // Called once with all concatenated data
+      expect(onData).toHaveBeenCalledTimes(1)
+      expect(onData).toHaveBeenCalledWith(1, 'chunk1chunk2chunk3')
+    })
+
+    it('flushes immediately when buffer exceeds 100KB', async () => {
+      const fakePty = createFakePty()
+      const onData = vi.fn()
+      mockPtySpawn.mockReturnValue(fakePty)
+
+      const result = await spawnPty('/bin/bash', [], '/tmp', { onData })
+      expect(result.ok).toBe(true)
+
+      // Emit 100001 bytes of data
+      const largeChunk = 'a'.repeat(100001)
+      fakePty.emitData(largeChunk)
+
+      // Immediate flush — no timer needed
+      expect(onData).toHaveBeenCalledTimes(1)
+      expect(onData).toHaveBeenCalledWith(1, largeChunk)
+    })
+
+    it('does not set multiple timers for rapid chunks in same window', async () => {
+      const fakePty = createFakePty()
+      const onData = vi.fn()
+      mockPtySpawn.mockReturnValue(fakePty)
+      const timerSpy = vi.spyOn(global, 'setTimeout')
+
+      const result = await spawnPty('/bin/bash', [], '/tmp', { onData })
+      expect(result.ok).toBe(true)
+
+      // Emit 10 chunks rapidly
+      for (let i = 0; i < 10; i++) {
+        fakePty.emitData(`chunk${i}`)
+      }
+
+      // Only 1 setTimeout should be set for the buffer window
+      const dataBufferTimers = timerSpy.mock.calls.filter(
+        // setTimeout calls for 8ms (DATA_BUFFER_INTERVAL_MS)
+        ([_fn, delay]) => delay === 8
+      )
+      expect(dataBufferTimers).toHaveLength(1)
+
+      vi.advanceTimersByTime(8)
+      expect(onData).toHaveBeenCalledTimes(1)
+    })
+
+    it('flushes remaining buffer before calling onExit', async () => {
+      const fakePty = createFakePty()
+      const onData = vi.fn()
+      const onExit = vi.fn()
+      const callOrder: string[] = []
+      mockPtySpawn.mockReturnValue(fakePty)
+
+      onData.mockImplementation(() => callOrder.push('onData'))
+      onExit.mockImplementation(() => callOrder.push('onExit'))
+
+      const result = await spawnPty('/bin/bash', [], '/tmp', { onData, onExit })
+      expect(result.ok).toBe(true)
+
+      fakePty.emitData('last-data')
+      fakePty.emitExit(0)
+
+      // Order MUST be: onData (flush) → onExit — architecture rule
+      expect(callOrder).toEqual(['onData', 'onExit'])
+      expect(onData).toHaveBeenCalledWith(1, 'last-data')
+      expect(onExit).toHaveBeenCalledWith(1, 0)
+    })
+
+    it('clears flushTimer when session is killed via killPtySession', async () => {
+      const fakePty = createFakePty()
+      const onData = vi.fn()
+      mockPtySpawn.mockReturnValue(fakePty)
+      const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
+
+      const result = await spawnPty('/bin/bash', [], '/tmp', { onData })
+      expect(result.ok).toBe(true)
+      if (!result.ok) throw new Error('spawn failed')
+
+      // Emit data to start the timer
+      fakePty.emitData('data')
+      expect(onData).not.toHaveBeenCalled() // timer pending
+
+      // Kill before timer fires
+      killPtySession(result.data.sessionId)
+
+      // Timer should be cleared
+      expect(clearTimeoutSpy).toHaveBeenCalled()
+      // Advance time — no callback should fire
+      vi.advanceTimersByTime(8)
+      expect(onData).not.toHaveBeenCalled()
+    })
+
+    it('drops data for session that no longer exists', async () => {
+      const fakePty = createFakePty()
+      const onData = vi.fn()
+      mockPtySpawn.mockReturnValue(fakePty)
+
+      const result = await spawnPty('/bin/bash', [], '/tmp', { onData })
+      expect(result.ok).toBe(true)
+      if (!result.ok) throw new Error('spawn failed')
+
+      // Kill session externally (removes from Map)
+      killPtySession(result.data.sessionId)
+
+      // Simulate late onData callback (race condition — session gone from Map)
+      fakePty.emitData('late-data')
+
+      vi.advanceTimersByTime(8)
+      // onData should NOT be called — session guard `if (!sessions.has(sessionId)) return`
+      expect(onData).not.toHaveBeenCalled()
+    })
+
+    it('starts new buffer window after flush', async () => {
+      const fakePty = createFakePty()
+      const onData = vi.fn()
+      mockPtySpawn.mockReturnValue(fakePty)
+
+      const result = await spawnPty('/bin/bash', [], '/tmp', { onData })
+      expect(result.ok).toBe(true)
+
+      // First window
+      fakePty.emitData('batch1')
+      vi.advanceTimersByTime(8)
+      expect(onData).toHaveBeenCalledTimes(1)
+      expect(onData).toHaveBeenCalledWith(1, 'batch1')
+
+      // Second window — timer should have been reset
+      fakePty.emitData('batch2')
+      vi.advanceTimersByTime(8)
+      expect(onData).toHaveBeenCalledTimes(2)
+      expect(onData).toHaveBeenCalledWith(1, 'batch2')
+    })
+
+    it('handles empty buffer flush gracefully (no-op)', async () => {
+      const fakePty = createFakePty()
+      const onData = vi.fn()
+      mockPtySpawn.mockReturnValue(fakePty)
+
+      const result = await spawnPty('/bin/bash', [], '/tmp', { onData })
+      expect(result.ok).toBe(true)
+
+      // No data emitted, exit fires (empty buffer)
+      fakePty.emitExit(0)
+
+      // onData should NOT be called with empty string
+      expect(onData).not.toHaveBeenCalled()
+    })
+  })
 })
