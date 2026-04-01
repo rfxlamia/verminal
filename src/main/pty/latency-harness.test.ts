@@ -15,6 +15,19 @@ describe.skipIf(!process.env.INTEGRATION)('PTY Input Latency (Integration)', () 
     expect(p95).toBeLessThan(16)
     expect(p50).toBeLessThan(10) // P50 should be well under budget
   }, 30_000) // 30s timeout for shell spawning + 50 samples
+
+  it('handles rapid typing burst (100+ WPM simulation) without drops or delays', async () => {
+    // AC #2: Rapid typing simulation - burst of 20 chars sent in quick succession
+    // 100 WPM = ~500 chars/minute = ~8 chars/second
+    // Burst mode: 20 chars with minimal delay to stress the pipeline
+    const { p95, droppedCount, totalSent } = await measureEchoLatency(20, undefined, {
+      burstMode: true,
+      interCharDelayMs: 1 // 1ms between chars to simulate rapid typing
+    })
+    console.log(`Rapid typing: P95=${p95.toFixed(2)}ms, sent=${totalSent}, dropped=${droppedCount}`)
+    expect(p95).toBeLessThan(16) // Each char should still arrive within 16ms
+    expect(droppedCount).toBe(0) // No characters should be dropped
+  }, 30_000)
 })
 
 // Unit tests - always run

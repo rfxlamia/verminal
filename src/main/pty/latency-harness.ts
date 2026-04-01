@@ -17,11 +17,18 @@ interface LatencyResult {
   p95: number
   p99: number
   max: number
+  droppedCount?: number
+  totalSent?: number
 }
 
-const PROBE_CHAR = '\x01' // Ctrl+A — shell will echo back in raw mode
-// Note: Ctrl+A may trigger readline shortcuts in some shell configurations.
-// For CI-safe measurement, consider using `stty raw` setup or printable characters.
+interface LatencyOptions {
+  burstMode?: boolean
+  interCharDelayMs?: number
+}
+
+const PROBE_CHAR = 'x' // Printable character for reliable echo across all shell configs
+// Note: Using printable 'x' instead of Ctrl+A to avoid readline shortcut conflicts
+// Shells will echo this character back in both raw and cooked mode
 
 /**
  * Measure echo latency for a PTY session by sending probe characters
@@ -29,19 +36,23 @@ const PROBE_CHAR = '\x01' // Ctrl+A — shell will echo back in raw mode
  *
  * @param samples - Number of samples to collect (default: 100)
  * @param shellPath - Shell to use for the test (default: $SHELL or /bin/bash)
- * @returns Latency percentiles (p50, p95, p99, max)
+ * @param options - Additional options for burst mode testing
+ * @returns Latency percentiles (p50, p95, p99, max) and optional drop statistics
  */
 export async function measureEchoLatency(
   samples = 100,
-  shellPath = process.env.SHELL ?? '/bin/bash'
+  shellPath = process.env.SHELL ?? '/bin/bash',
+  options?: LatencyOptions
 ): Promise<LatencyResult> {
   const results: LatencySample[] = []
   let pendingMeasurement: Partial<LatencySample> | null = null
   let resolvePending: (() => void) | null = null
+  let receivedCount = 0
   const hooks: SpawnPtyHooks = {
     onData: (_sessionId: number, data: string) => {
       // Capture echo arrival time — matched to pending measurement
       if (pendingMeasurement && data.includes(PROBE_CHAR)) {
+        receivedCount++
         pendingMeasurement.echoedAt = performance.now()
         pendingMeasurement.latencyMs =
           pendingMeasurement.echoedAt - (pendingMeasurement.sentAt ?? 0)
@@ -79,7 +90,10 @@ export async function measureEchoLatency(
 
     // Timeout guard: if no echo in 100ms, skip sample
     await Promise.race([echoReceived, new Promise((r) => setTimeout(r, 100))])
-    await new Promise((r) => setTimeout(r, 5)) // inter-sample gap
+
+    // In burst mode, use shorter delay between characters
+    const delayMs = options?.burstMode ? (options.interCharDelayMs ?? 1) : 5
+    await new Promise((r) => setTimeout(r, delayMs)) // inter-sample gap
   }
 
   // Compute percentiles
@@ -92,6 +106,8 @@ export async function measureEchoLatency(
     p50: p(50),
     p95: p(95),
     p99: p(99),
-    max: latencies[latencies.length - 1] ?? 0
+    max: latencies[latencies.length - 1] ?? 0,
+    droppedCount: samples - receivedCount,
+    totalSent: samples
   }
 }
