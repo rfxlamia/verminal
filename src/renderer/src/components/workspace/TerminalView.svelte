@@ -35,6 +35,10 @@
   const MIN_COLS = 1
   const MIN_ROWS = 1
 
+  // Maximum dimensions to prevent garbage values (edge case)
+  const MAX_COLS = 9999
+  const MAX_ROWS = 9999
+
   onMount(() => {
     // 0. Validate container element exists before creating terminal
     if (!containerEl) {
@@ -98,12 +102,13 @@
       if (
         initialCols >= MIN_COLS &&
         initialRows >= MIN_ROWS &&
-        initialCols <= 9999 &&
-        initialRows <= 9999
+        initialCols <= MAX_COLS &&
+        initialRows <= MAX_ROWS
       ) {
         lastSyncedCols = initialCols
         lastSyncedRows = initialRows
-        syncTerminalDimensions() // sends initial pty:resize
+        // Send initial resize directly to avoid race condition with terminal.cols/rows
+        window.api.pty.resize(sessionId, initialCols, initialRows)
       }
     } catch (err) {
       console.warn('[TerminalView] fitAddon.fit() failed, will retry on resize:', err)
@@ -204,7 +209,7 @@
       }
 
       // Edge case: skip if dimensions exceed reasonable bounds (prevents garbage values)
-      if (cols > 9999 || rows > 9999) {
+      if (cols > MAX_COLS || rows > MAX_ROWS) {
         console.warn('[TerminalView] Skipping resize: dimensions exceed bounds', { cols, rows })
         return
       }

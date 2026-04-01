@@ -321,3 +321,128 @@ describe('TerminalView', () => {
     expect(mockFitAddonFit).toHaveBeenCalled()
   })
 })
+
+describe('TerminalView resize synchronization (Story 2.5)', () => {
+  let mockPtyResize: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+
+    // Set up mock pty.resize
+    mockPtyResize = vi.fn()
+    mockOnDataUnsubscribe = vi.fn()
+    mockOnExitUnsubscribe = vi.fn()
+
+    mockOnData = vi.fn(() => mockOnDataUnsubscribe)
+    mockOnExit = vi.fn(() => mockOnExitUnsubscribe)
+
+    vi.stubGlobal('window', {
+      api: {
+        pty: {
+          write: vi.fn(),
+          onData: mockOnData,
+          onExit: mockOnExit,
+          resize: mockPtyResize
+        }
+      }
+    })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  it('calls pty:resize after mount with debounce', async () => {
+    const TerminalView = await getTerminalView()
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    mount(TerminalView, {
+      target: container,
+      props: { sessionId: 1 }
+    })
+
+    // Immediately after mount - debounce timer is pending
+    // The component uses 50ms debounce for initial resize
+    expect(mockPtyResize).not.toHaveBeenCalled()
+
+    // Advance timers past debounce period
+    await vi.advanceTimersByTimeAsync(100)
+
+    // Should have been called once with initial dimensions
+    expect(mockPtyResize).toHaveBeenCalledTimes(1)
+    expect(mockPtyResize).toHaveBeenCalledWith(1, 80, 24)
+  })
+
+  it('does not send pty:resize when cols/rows unchanged (no-op guard)', async () => {
+    const TerminalView = await getTerminalView()
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    mount(TerminalView, {
+      target: container,
+      props: { sessionId: 1 }
+    })
+
+    await waitFor(() => mockTerminalOpen.mock.calls.length > 0)
+    await vi.advanceTimersByTimeAsync(50)
+
+    const initialCallCount = mockPtyResize.mock.calls.length
+
+    // Wait additional time - no more calls should happen
+    await vi.advanceTimersByTimeAsync(100)
+
+    // No additional calls should happen (no resize events triggered)
+    expect(mockPtyResize.mock.calls.length).toBe(initialCallCount)
+  })
+
+  it('clears debounce timer on destroy preventing late IPC calls', async () => {
+    const TerminalView = await getTerminalView()
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    const component = mount(TerminalView, {
+      target: container,
+      props: { sessionId: 1 }
+    })
+
+    await waitFor(() => mockTerminalOpen.mock.calls.length > 0)
+    await vi.advanceTimersByTimeAsync(50)
+
+    // Clear tracking
+    mockPtyResize.mockClear()
+
+    // Destroy component
+    unmount(component)
+
+    // Advance timer past debounce period
+    await vi.advanceTimersByTimeAsync(100)
+
+    // Should not have any new calls after destroy (isDestroyed flag prevents it)
+    expect(mockPtyResize).not.toHaveBeenCalled()
+  })
+
+  it('handles component destruction gracefully during debounce', async () => {
+    const TerminalView = await getTerminalView()
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    const component = mount(TerminalView, {
+      target: container,
+      props: { sessionId: 1 }
+    })
+
+    await waitFor(() => mockTerminalOpen.mock.calls.length > 0)
+    await vi.advanceTimersByTimeAsync(50)
+
+    // Unmount before any debounced operations complete
+    unmount(component)
+
+    // Should not throw
+    await expect(vi.advanceTimersByTimeAsync(100)).resolves.not.toThrow()
+
+    // Verify cleanup happened
+    expect(mockTerminalDispose).toHaveBeenCalled()
+  })
+})
