@@ -13,6 +13,13 @@ const mockFitAddonFit = vi.fn()
 const mockLoadAddon = vi.fn()
 const mockUnicode = { activeVersion: '' }
 
+// Mock ResizeObserver for jsdom environment
+globalThis.ResizeObserver = vi.fn().mockImplementation(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn()
+})) as unknown as typeof ResizeObserver
+
 // Mock all xterm modules before any imports
 vi.mock('@xterm/xterm', () => ({
   Terminal: vi.fn().mockImplementation(() => ({
@@ -22,7 +29,9 @@ vi.mock('@xterm/xterm', () => ({
     dispose: mockTerminalDispose,
     focus: mockTerminalFocus,
     loadAddon: mockLoadAddon,
-    unicode: mockUnicode
+    unicode: mockUnicode,
+    cols: 80,
+    rows: 24
   }))
 }))
 
@@ -44,35 +53,15 @@ vi.mock('@xterm/addon-web-links', () => ({
   WebLinksAddon: vi.fn().mockImplementation(() => ({}))
 }))
 
-// Mock window.api
-const mockPtyWrite = vi.fn()
-const mockOnDataUnsubscribe = vi.fn()
-const mockOnExitUnsubscribe = vi.fn()
+// Mock window.api - setup in beforeEach for proper isolation
+let mockPtyWrite: ReturnType<typeof vi.fn>
+let mockOnDataUnsubscribe: ReturnType<typeof vi.fn>
+let mockOnExitUnsubscribe: ReturnType<typeof vi.fn>
 let onDataCallback: ((data: string) => void) | null = null
 let onExitCallback: ((code: number) => void) | null = null
 
-const mockOnData = vi.fn((sessionId: number, cb: (data: string) => void) => {
-  onDataCallback = cb
-  return mockOnDataUnsubscribe
-})
-
-const mockOnExit = vi.fn((sessionId: number, cb: (code: number) => void) => {
-  onExitCallback = cb
-  return mockOnExitUnsubscribe
-})
-
-Object.defineProperty(globalThis, 'window', {
-  value: {
-    api: {
-      pty: {
-        write: mockPtyWrite,
-        onData: mockOnData,
-        onExit: mockOnExit
-      }
-    }
-  },
-  writable: true
-})
+let mockOnData: ReturnType<typeof vi.fn>
+let mockOnExit: ReturnType<typeof vi.fn>
 
 // ============================================================================
 // Imports - after mocks
@@ -107,6 +96,37 @@ describe('TerminalView', () => {
     vi.clearAllMocks()
   })
 
+  beforeEach(() => {
+    // Set up window.api mock fresh for each test to avoid shared state
+    mockPtyWrite = vi.fn()
+    mockOnDataUnsubscribe = vi.fn()
+    mockOnExitUnsubscribe = vi.fn()
+    onDataCallback = null
+    onExitCallback = null
+
+    mockOnData = vi.fn((sessionId: number, cb: (data: string) => void) => {
+      onDataCallback = cb
+      return mockOnDataUnsubscribe
+    })
+
+    mockOnExit = vi.fn((sessionId: number, cb: (code: number) => void) => {
+      onExitCallback = cb
+      return mockOnExitUnsubscribe
+    })
+
+    // Use vi.stubGlobal for proper isolation between tests
+    vi.stubGlobal('window', {
+      api: {
+        pty: {
+          write: mockPtyWrite,
+          onData: mockOnData,
+          onExit: mockOnExit,
+          resize: vi.fn()
+        }
+      }
+    })
+  })
+
   afterEach(() => {
     // Reset all mock state
     mockTerminalOpen.mockClear()
@@ -126,6 +146,8 @@ describe('TerminalView', () => {
     mockUnicode.activeVersion = ''
     onDataCallback = null
     onExitCallback = null
+    // Restore global window
+    vi.unstubAllGlobals()
   })
 
   it('opens the terminal in the container div on mount', async () => {

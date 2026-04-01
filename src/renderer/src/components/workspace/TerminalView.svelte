@@ -16,12 +16,19 @@
   let sessionExited = false
 
   // Terminal instance (module-scoped within component):
-  let terminal: Terminal
-  let fitAddon: FitAddon
+  let terminal: Terminal | undefined
+  let fitAddon: FitAddon | undefined
   let unsubscribeData: (() => void) | undefined
   let unsubscribeExit: (() => void) | undefined
+  let resizeObserver: ResizeObserver | undefined
 
   onMount(() => {
+    // 0. Validate container element exists before creating terminal
+    if (!containerEl) {
+      console.error('[TerminalView] Container element not found')
+      return
+    }
+
     // 1. Create terminal with design token defaults
     terminal = new Terminal({
       cursorBlink: true,
@@ -46,12 +53,13 @@
     // Activate Unicode 11 (AC #3)
     terminal.unicode.activeVersion = '11'
 
-    // 3. Open terminal into DOM container (with null check)
-    if (!containerEl) {
-      console.error('[TerminalView] Container element not found')
+    // 3. Open terminal into DOM container (with error handling)
+    try {
+      terminal.open(containerEl)
+    } catch (err) {
+      console.error('[TerminalView] Failed to open terminal:', err)
       return
     }
-    terminal.open(containerEl)
 
     // Focus terminal for keyboard input (AC #10)
     terminal.focus()
@@ -64,8 +72,26 @@
       console.debug('[TerminalView] WebGL addon failed to load, using canvas 2D fallback:', err)
     }
 
-    // 5. Fit to container immediately (AC #8)
-    fitAddon.fit()
+    // 5. Fit to container immediately (AC #8) with error handling
+    try {
+      fitAddon.fit()
+      // Notify PTY of initial dimensions
+      syncTerminalDimensions()
+    } catch (err) {
+      console.warn('[TerminalView] fitAddon.fit() failed, will retry on resize:', err)
+    }
+
+    // Set up resize observer to handle container dimension changes
+    resizeObserver = new ResizeObserver(() => {
+      if (!terminal || !fitAddon) return
+      try {
+        fitAddon.fit()
+        syncTerminalDimensions()
+      } catch (err) {
+        console.warn('[TerminalView] Resize handling failed:', err)
+      }
+    })
+    resizeObserver.observe(containerEl)
 
     // 6. Forward local keyboard input to PTY (AC #5)
     terminal.onData((data: string) => {
@@ -76,11 +102,16 @@
       }
     })
 
-    // 7. Subscribe to PTY data stream (AC #6)
+    // 7. Subscribe to PTY data stream (AC #6) with error handling
     unsubscribeData = window.api.pty.onData(sessionId, (data: string) => {
       // Race guard: drop data after exit (AC #7)
       if (sessionExited) return
-      terminal.write(data)
+      if (!terminal) return
+      try {
+        terminal.write(data)
+      } catch (err) {
+        console.error('[TerminalView] Failed to write to terminal:', err)
+      }
     })
 
     // 8. Subscribe to exit events — set race guard flag (AC #7)
@@ -93,9 +124,27 @@
     // Clean up IPC listeners (Architecture Rule #2)
     unsubscribeData?.()
     unsubscribeExit?.()
-    // Dispose terminal instance
-    terminal?.dispose()
+    // Clean up resize observer
+    resizeObserver?.disconnect()
+    // Dispose terminal instance with error handling
+    try {
+      terminal?.dispose()
+    } catch (err) {
+      console.error('[TerminalView] Error disposing terminal:', err)
+    }
   })
+
+  // Sync terminal dimensions to PTY via resize IPC
+  function syncTerminalDimensions(): void {
+    if (!terminal) return
+    try {
+      const cols = terminal.cols
+      const rows = terminal.rows
+      window.api.pty.resize(sessionId, cols, rows)
+    } catch (err) {
+      console.error('[TerminalView] Failed to resize PTY:', err)
+    }
+  }
 </script>
 
 <!-- Container div — xterm.js opens into this element -->
