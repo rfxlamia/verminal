@@ -22,12 +22,28 @@
   let unsubscribeExit: (() => void) | undefined
   let resizeObserver: ResizeObserver | undefined
 
+  // Debounce and synchronization state (Story 2.5)
+  let resizeDebounceTimer: ReturnType<typeof setTimeout> | undefined
+  let lastSyncedCols = 0
+  let lastSyncedRows = 0
+  let isDestroyed = false
+
+  // Debounce window (50ms per UX-DR25 architecture spec)
+  const RESIZE_DEBOUNCE_MS = 50
+
+  // Minimum dimensions to prevent sending 0x0 to PTY (edge case)
+  const MIN_COLS = 1
+  const MIN_ROWS = 1
+
   onMount(() => {
     // 0. Validate container element exists before creating terminal
     if (!containerEl) {
       console.error('[TerminalView] Container element not found')
       return
     }
+
+    // Reset destruction flag on mount (for clean remount after destroy)
+    isDestroyed = false
 
     // 1. Create terminal with design token defaults
     terminal = new Terminal({
@@ -73,23 +89,46 @@
     }
 
     // 5. Fit to container immediately (AC #8) with error handling
+    // Edge case: handle container with 0 dimensions (display:none, collapsed pane)
     try {
       fitAddon.fit()
-      // Notify PTY of initial dimensions
-      syncTerminalDimensions()
+      const initialCols = terminal.cols
+      const initialRows = terminal.rows
+      // Only set last synced if dimensions are valid
+      if (
+        initialCols >= MIN_COLS &&
+        initialRows >= MIN_ROWS &&
+        initialCols <= 9999 &&
+        initialRows <= 9999
+      ) {
+        lastSyncedCols = initialCols
+        lastSyncedRows = initialRows
+        syncTerminalDimensions() // sends initial pty:resize
+      }
     } catch (err) {
       console.warn('[TerminalView] fitAddon.fit() failed, will retry on resize:', err)
     }
 
-    // Set up resize observer to handle container dimension changes
+    // Set up resize observer with 50ms debounce (UX-DR25: window resize cascade)
+    // NOTE(Epic 3): Move to Workspace level per UX-DR25. Current: per-TerminalView observer.
     resizeObserver = new ResizeObserver(() => {
       if (!terminal || !fitAddon) return
-      try {
-        fitAddon.fit()
-        syncTerminalDimensions()
-      } catch (err) {
-        console.warn('[TerminalView] Resize handling failed:', err)
+      if (isDestroyed) return // Edge case: ignore callbacks after destruction starts
+      // Clear any pending debounce
+      if (resizeDebounceTimer) {
+        clearTimeout(resizeDebounceTimer)
       }
+      resizeDebounceTimer = setTimeout(() => {
+        resizeDebounceTimer = undefined
+        // Edge case: component may have been destroyed during debounce
+        if (isDestroyed || !terminal || !fitAddon) return
+        try {
+          fitAddon!.fit()
+          syncTerminalDimensions()
+        } catch (err) {
+          console.warn('[TerminalView] Resize handling failed:', err)
+        }
+      }, RESIZE_DEBOUNCE_MS)
     })
     resizeObserver.observe(containerEl)
 
@@ -123,6 +162,14 @@
   })
 
   onDestroy(() => {
+    // Set destruction flag first to prevent any pending callbacks from executing
+    isDestroyed = true
+
+    // Clear pending debounce before disconnect
+    if (resizeDebounceTimer) {
+      clearTimeout(resizeDebounceTimer)
+      resizeDebounceTimer = undefined
+    }
     // Clean up IPC listeners (Architecture Rule #2)
     unsubscribeData?.()
     unsubscribeExit?.()
@@ -134,14 +181,38 @@
     } catch (err) {
       console.error('[TerminalView] Error disposing terminal:', err)
     }
+
+    // Reset last synced dimensions to ensure fresh state on remount
+    lastSyncedCols = 0
+    lastSyncedRows = 0
   })
 
   // Sync terminal dimensions to PTY via resize IPC
+  // No-op guard: only sends pty:resize when cols/rows actually changed
   function syncTerminalDimensions(): void {
     if (!terminal) return
+    // Edge case: prevent IPC after component destruction
+    if (isDestroyed) return
     try {
       const cols = terminal.cols
       const rows = terminal.rows
+
+      // Edge case: skip if dimensions are invalid (0 or negative)
+      if (cols < MIN_COLS || rows < MIN_ROWS) {
+        console.debug('[TerminalView] Skipping resize: dimensions too small', { cols, rows })
+        return
+      }
+
+      // Edge case: skip if dimensions exceed reasonable bounds (prevents garbage values)
+      if (cols > 9999 || rows > 9999) {
+        console.warn('[TerminalView] Skipping resize: dimensions exceed bounds', { cols, rows })
+        return
+      }
+
+      // No-op guard: skip IPC if dimensions haven't changed
+      if (cols === lastSyncedCols && rows === lastSyncedRows) return
+      lastSyncedCols = cols
+      lastSyncedRows = rows
       window.api.pty.resize(sessionId, cols, rows)
     } catch (err) {
       console.error('[TerminalView] Failed to resize PTY:', err)

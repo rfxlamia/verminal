@@ -116,6 +116,52 @@ describe('pty-ipc-handler', () => {
     expect(mockWritePty).toHaveBeenCalledWith(1, 'echo hello\n')
   })
 
+  it('validates pty:resize dimensions and rejects invalid values', () => {
+    registerPtyIpcHandlers()
+    const resizeCall = mockIpcMainOn.mock.calls.find(([channel]) => channel === 'pty:resize')
+    expect(resizeCall).toBeDefined()
+    const [, handler] = resizeCall!
+
+    // Valid call - should forward to resizePty
+    handler({}, 1, 120, 30)
+    expect(mockResizePty).toHaveBeenCalledWith(1, 120, 30)
+
+    // Invalid: zero cols
+    mockResizePty.mockClear()
+    handler({}, 1, 0, 30)
+    expect(mockResizePty).not.toHaveBeenCalled()
+
+    // Invalid: zero rows
+    mockResizePty.mockClear()
+    handler({}, 1, 80, 0)
+    expect(mockResizePty).not.toHaveBeenCalled()
+
+    // Invalid: negative cols
+    mockResizePty.mockClear()
+    handler({}, 1, -1, 30)
+    expect(mockResizePty).not.toHaveBeenCalled()
+
+    // Invalid: cols > 9999
+    mockResizePty.mockClear()
+    handler({}, 1, 10000, 30)
+    expect(mockResizePty).not.toHaveBeenCalled()
+
+    // Invalid: rows > 9999
+    mockResizePty.mockClear()
+    handler({}, 1, 80, 10000)
+    expect(mockResizePty).not.toHaveBeenCalled()
+
+    // Invalid: non-numeric sessionId
+    mockResizePty.mockClear()
+    handler({}, 'invalid', 80, 24)
+    expect(mockResizePty).not.toHaveBeenCalled()
+
+    // Invalid: non-numeric cols
+    mockResizePty.mockClear()
+    handler({}, 1, 'invalid', 24)
+    expect(mockResizePty).not.toHaveBeenCalled()
+  })
+
   it('notifies renderer when spawnPty returns error', async () => {
     registerPtyIpcHandlers()
 

@@ -148,6 +148,8 @@ describe('TerminalView', () => {
     onExitCallback = null
     // Restore global window
     vi.unstubAllGlobals()
+    // Restore real timers after each test
+    vi.useRealTimers()
   })
 
   it('opens the terminal in the container div on mount', async () => {
