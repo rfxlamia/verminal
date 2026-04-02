@@ -51,7 +51,11 @@ function flushBufferedData(session: PTYSession, hooks?: SpawnPtyHooks): void {
     clearTimeout(session.flushTimer)
     session.flushTimer = null
   }
-  hooks?.onData?.(session.sessionId, session.bufferedData)
+  try {
+    hooks?.onData?.(session.sessionId, session.bufferedData)
+  } catch {
+    // Hook errors should not prevent buffer cleanup
+  }
   session.bufferedData = ''
 }
 
@@ -192,9 +196,10 @@ export async function spawnPty(
       }
       if (!session.flushTimer) {
         session.flushTimer = setTimeout(() => {
+          // Always clear timer reference first for consistency
+          session.flushTimer = null
           // Guard: check session still exists before flushing
           if (!sessions.has(sessionId)) return
-          session.flushTimer = null
           flushBufferedData(session, hooks)
         }, DATA_BUFFER_INTERVAL_MS)
       }
