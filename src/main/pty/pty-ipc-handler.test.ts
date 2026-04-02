@@ -220,4 +220,112 @@ describe('pty-ipc-handler', () => {
 
     expect(sender.send).not.toHaveBeenCalled()
   })
+
+  describe('pty:data streaming (Story 2.6)', () => {
+    it('sends data on per-session channel pty:data:${sessionId}', async () => {
+      registerPtyIpcHandlers()
+      const spawnCall = mockIpcMainHandle.mock.calls.find(([channel]) => channel === 'pty:spawn')
+      expect(spawnCall).toBeDefined()
+      const [, handler] = spawnCall!
+
+      const sender = { send: vi.fn(), isDestroyed: vi.fn().mockReturnValue(false) }
+      const event = { sender }
+
+      // Capture hooks to simulate PTY data
+      let capturedOnData: ((sessionId: number, data: string) => void) | undefined
+      mockSpawnPty.mockImplementation(async (_shell, _args, _cwd, hooks) => {
+        capturedOnData = hooks.onData
+        return { ok: true, data: { sessionId: 42 } }
+      })
+
+      await handler(event, { shell: '/bin/bash', args: [], cwd: '/tmp' })
+
+      // Simulate PTY output
+      capturedOnData?.(42, 'hello world')
+
+      // Verify per-session channel format
+      expect(sender.send).toHaveBeenCalledWith('pty:data:42', 'hello world')
+      // Verify NOT using generic channel
+      expect(sender.send).not.toHaveBeenCalledWith('pty:data', expect.anything())
+    })
+
+    it('sends exit on per-session channel pty:exit:${sessionId}', async () => {
+      registerPtyIpcHandlers()
+      const spawnCall = mockIpcMainHandle.mock.calls.find(([channel]) => channel === 'pty:spawn')
+      expect(spawnCall).toBeDefined()
+      const [, handler] = spawnCall!
+
+      const sender = { send: vi.fn(), isDestroyed: vi.fn().mockReturnValue(false) }
+      const event = { sender }
+
+      let capturedOnExit: ((sessionId: number, exitCode: number) => void) | undefined
+      mockSpawnPty.mockImplementation(async (_shell, _args, _cwd, hooks) => {
+        capturedOnExit = hooks.onExit
+        return { ok: true, data: { sessionId: 42 } }
+      })
+
+      await handler(event, { shell: '/bin/bash', args: [], cwd: '/tmp' })
+
+      // Simulate PTY exit
+      capturedOnExit?.(42, 0)
+
+      // Verify per-session channel format
+      expect(sender.send).toHaveBeenCalledWith('pty:exit:42', 0)
+    })
+
+    it('does not send to destroyed WebContents sender (AC #5)', async () => {
+      registerPtyIpcHandlers()
+      const spawnCall = mockIpcMainHandle.mock.calls.find(([channel]) => channel === 'pty:spawn')
+      expect(spawnCall).toBeDefined()
+      const [, handler] = spawnCall!
+
+      const sender = { send: vi.fn(), isDestroyed: vi.fn().mockReturnValue(true) }
+      const event = { sender }
+
+      let capturedOnData: ((sessionId: number, data: string) => void) | undefined
+      mockSpawnPty.mockImplementation(async (_shell, _args, _cwd, hooks) => {
+        capturedOnData = hooks.onData
+        return { ok: true, data: { sessionId: 1 } }
+      })
+
+      await handler(event, { shell: '/bin/bash', args: [], cwd: '/tmp' })
+
+      // Simulate PTY output while sender is destroyed
+      capturedOnData?.(1, 'hello world')
+
+      // sender.send should NOT be called when isDestroyed() returns true
+      expect(sender.send).not.toHaveBeenCalled()
+      // isDestroyed should have been checked
+      expect(sender.isDestroyed).toHaveBeenCalled()
+    })
+
+    it('sends raw data string (not envelope object)', async () => {
+      registerPtyIpcHandlers()
+      const spawnCall = mockIpcMainHandle.mock.calls.find(([channel]) => channel === 'pty:spawn')
+      expect(spawnCall).toBeDefined()
+      const [, handler] = spawnCall!
+
+      const sender = { send: vi.fn(), isDestroyed: vi.fn().mockReturnValue(false) }
+      const event = { sender }
+
+      let capturedOnData: ((sessionId: number, data: string) => void) | undefined
+      mockSpawnPty.mockImplementation(async (_shell, _args, _cwd, hooks) => {
+        capturedOnData = hooks.onData
+        return { ok: true, data: { sessionId: 1 } }
+      })
+
+      await handler(event, { shell: '/bin/bash', args: [], cwd: '/tmp' })
+
+      const rawData = 'terminal output line 1\nline 2\n'
+      capturedOnData?.(1, rawData)
+
+      // Verify raw string sent (not wrapped in object)
+      expect(sender.send).toHaveBeenCalledWith('pty:data:1', rawData)
+      const sendCall = sender.send.mock.calls.find(([channel]) => channel === 'pty:data:1')
+      expect(sendCall).toBeDefined()
+      const [, sentData] = sendCall!
+      expect(typeof sentData).toBe('string')
+      expect(sentData).toBe(rawData)
+    })
+  })
 })
