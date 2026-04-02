@@ -7,7 +7,7 @@
   import { WebLinksAddon } from '@xterm/addon-web-links'
 
   // Props:
-  let { sessionId }: { sessionId: number } = $props()
+  let { sessionId, resizeTick = 0 }: { sessionId: number; resizeTick?: number } = $props()
 
   // Container ref:
   let containerEl: HTMLDivElement | undefined = $state()
@@ -20,16 +20,14 @@
   let fitAddon: FitAddon | undefined
   let unsubscribeData: (() => void) | undefined
   let unsubscribeExit: (() => void) | undefined
-  let resizeObserver: ResizeObserver | undefined
 
-  // Debounce and synchronization state (Story 2.5)
-  let resizeDebounceTimer: ReturnType<typeof setTimeout> | undefined
+  // Previous resizeTick for change detection
+  let lastResizeTick = 0
+
+  // Synchronization state
   let lastSyncedCols = 0
   let lastSyncedRows = 0
   let isDestroyed = false
-
-  // Debounce window (50ms per UX-DR25 architecture spec)
-  const RESIZE_DEBOUNCE_MS = 50
 
   // Minimum dimensions to prevent sending 0x0 to PTY (edge case)
   const MIN_COLS = 1
@@ -38,6 +36,23 @@
   // Maximum dimensions to prevent garbage values (edge case)
   const MAX_COLS = 9999
   const MAX_ROWS = 9999
+
+  // React to resizeTick changes from Workspace
+  $effect(() => {
+    if (isDestroyed) return
+    if (!terminal || !fitAddon) return
+
+    // Only trigger resize if resizeTick actually changed
+    if (resizeTick !== lastResizeTick) {
+      lastResizeTick = resizeTick
+      try {
+        fitAddon.fit()
+        syncTerminalDimensions()
+      } catch (err) {
+        console.warn('[TerminalView] Resize handling failed:', err)
+      }
+    }
+  })
 
   onMount(() => {
     // 0. Validate container element exists before creating terminal
@@ -118,28 +133,8 @@
       console.warn('[TerminalView] fitAddon.fit() failed, will retry on resize:', err)
     }
 
-    // Set up resize observer with 50ms debounce (UX-DR25: window resize cascade)
-    // NOTE(Epic 3): Move to Workspace level per UX-DR25. Current: per-TerminalView observer.
-    resizeObserver = new ResizeObserver(() => {
-      if (!terminal || !fitAddon) return
-      if (isDestroyed) return // Edge case: ignore callbacks after destruction starts
-      // Clear any pending debounce
-      if (resizeDebounceTimer) {
-        clearTimeout(resizeDebounceTimer)
-      }
-      resizeDebounceTimer = setTimeout(() => {
-        resizeDebounceTimer = undefined
-        // Edge case: component may have been destroyed during debounce
-        if (isDestroyed || !terminal || !fitAddon) return
-        try {
-          fitAddon!.fit()
-          syncTerminalDimensions()
-        } catch (err) {
-          console.warn('[TerminalView] Resize handling failed:', err)
-        }
-      }, RESIZE_DEBOUNCE_MS)
-    })
-    resizeObserver.observe(containerEl)
+    // NOTE(Epic 3): ResizeObserver moved to Workspace level per UX-DR25.
+    // TerminalView now receives resizeTick from parent PaneContainer.
 
     // 6. Forward local keyboard input to PTY (AC #5)
     // write() is fire-and-forget IPC with no buffering — direct fd write
@@ -174,16 +169,10 @@
     // Set destruction flag first to prevent any pending callbacks from executing
     isDestroyed = true
 
-    // Clear pending debounce before disconnect
-    if (resizeDebounceTimer) {
-      clearTimeout(resizeDebounceTimer)
-      resizeDebounceTimer = undefined
-    }
     // Clean up IPC listeners (Architecture Rule #2)
     unsubscribeData?.()
     unsubscribeExit?.()
-    // Clean up resize observer
-    resizeObserver?.disconnect()
+    // NOTE(Epic 3): ResizeObserver moved to Workspace - no local observer to clean up
     // Dispose terminal instance with error handling
     try {
       terminal?.dispose()

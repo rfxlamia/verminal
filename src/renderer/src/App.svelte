@@ -2,9 +2,11 @@
   import { onMount } from 'svelte'
   import Versions from './components/Versions.svelte'
   import QuitDialog from './components/workspace/QuitDialog.svelte'
-  import electronLogo from './assets/electron.svg'
+  import Workspace from './components/workspace/Workspace.svelte'
 
-  const ipcHandle = (): void => window.electron.ipcRenderer.send('ping')
+  // Minimal in-memory pane array for initial workspace
+  // Will be replaced with store-backed spawning after layout preset stories
+  const initialPanes = [{ paneId: 1, sessionId: 1 }]
 
   onMount(async () => {
     if (!import.meta.env.DEV) return
@@ -23,23 +25,19 @@
   })
 </script>
 
-<img alt="logo" class="logo" src={electronLogo} />
-<div class="creator">Powered by electron-vite</div>
-<div class="text">
-  Build an Electron app with
-  <span class="svelte">Svelte</span>
-  and
-  <span class="ts">TypeScript</span>
-</div>
-<p class="tip">Please try pressing <code>F12</code> to open the devTool</p>
-<div class="actions">
-  <div class="action">
-    <a href="https://electron-vite.org/" target="_blank" rel="noreferrer">Documentation</a>
-  </div>
-  <div class="action">
-    <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions a11y-missing-attribute-->
-    <a target="_blank" rel="noreferrer" onclick={ipcHandle}>Send IPC</a>
-  </div>
+<!-- Workspace shell - gives Workspace the full viewport area -->
+<div class="app-shell">
+  <Workspace panes={initialPanes} />
 </div>
 <Versions />
 <QuitDialog />
+
+<style>
+  .app-shell {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+</style>
