@@ -652,7 +652,7 @@ describe('pty-manager', () => {
       // Only 1 setTimeout should be set for the buffer window
       const dataBufferTimers = timerSpy.mock.calls.filter(
         // setTimeout calls for 8ms (DATA_BUFFER_INTERVAL_MS)
-        ([_fn, delay]) => delay === 8
+        ([, delay]) => delay === 8
       )
       expect(dataBufferTimers).toHaveLength(1)
 
