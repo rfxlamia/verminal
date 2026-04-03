@@ -2,7 +2,7 @@
   import { onMount } from 'svelte'
   import Workspace from './components/workspace/Workspace.svelte'
   import QuitDialog from './components/workspace/QuitDialog.svelte'
-  import { layoutState, initSinglePaneLayout } from './stores/layout-store.svelte'
+  import { layoutState, initHorizontalSplitLayout } from './stores/layout-store.svelte'
 
   // Error message constants for future i18n support
   const ERROR_MESSAGES = {
@@ -62,24 +62,41 @@
 
     const cwd = homeResult.data.home
 
-    // Step 3: Spawn PTY
-    const spawnResult = await window.api.pty.spawn(shell, [], cwd)
-    if (!spawnResult.ok) {
-      setStartupError(ERROR_MESSAGES.PTY_SPAWN_FAILED(shell), spawnResult.error)
+    // Step 3a: Spawn first PTY
+    const spawnResult1 = await window.api.pty.spawn(shell, [], cwd)
+    if (!spawnResult1.ok) {
+      setStartupError(ERROR_MESSAGES.PTY_SPAWN_FAILED(shell), spawnResult1.error)
       return
     }
-
     if (
-      typeof spawnResult.data !== 'object' ||
-      !spawnResult.data ||
-      typeof spawnResult.data.sessionId !== 'number'
+      typeof spawnResult1.data !== 'object' ||
+      !spawnResult1.data ||
+      typeof spawnResult1.data.sessionId !== 'number'
     ) {
       setStartupError('Failed to initialize session. Please try again.')
       return
     }
 
-    // Step 4: Initialize single pane layout with the session
-    initSinglePaneLayout(spawnResult.data.sessionId)
+    // Step 3b: Spawn second PTY
+    const spawnResult2 = await window.api.pty.spawn(shell, [], cwd)
+    if (!spawnResult2.ok) {
+      // Kill the first session to avoid orphaned PTY — NFR15 compliance
+      window.api.pty.kill(spawnResult1.data.sessionId)
+      setStartupError(ERROR_MESSAGES.PTY_SPAWN_FAILED(shell), spawnResult2.error)
+      return
+    }
+    if (
+      typeof spawnResult2.data !== 'object' ||
+      !spawnResult2.data ||
+      typeof spawnResult2.data.sessionId !== 'number'
+    ) {
+      window.api.pty.kill(spawnResult1.data.sessionId)
+      setStartupError('Failed to initialize session. Please try again.')
+      return
+    }
+
+    // Step 4: Initialize horizontal split layout with both sessions
+    initHorizontalSplitLayout(spawnResult1.data.sessionId, spawnResult2.data.sessionId)
   })
 </script>
 

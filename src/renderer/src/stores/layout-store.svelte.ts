@@ -62,3 +62,12 @@ export function initHorizontalSplitLayout(sessionId1: number, sessionId2: number
   layoutState.layoutName = 'horizontal'
   layoutState.panes = [pane1, pane2]
 }
+
+/**
+ * Resets the layout state for testing purposes.
+ * Clears panes and layout name.
+ */
+export function resetLayoutState(): void {
+  layoutState.panes = []
+  layoutState.layoutName = ''
+}

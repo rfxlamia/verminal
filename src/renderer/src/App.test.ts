@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/svelte'
+import { render, screen, waitFor, cleanup } from '@testing-library/svelte'
+import { resetLayoutState } from './stores/layout-store.svelte'
 import App from './App.svelte'
 
 // Mock ResizeObserver for jsdom
@@ -17,8 +18,11 @@ global.ResizeObserver = MockResizeObserver
 
 describe('App.svelte', () => {
   beforeEach(() => {
-    vi.resetModules()
     vi.resetAllMocks()
+    cleanup()
+    document.body.innerHTML = ''
+    // Reset store state between tests
+    resetLayoutState()
   })
 
   it('renders panes from layoutState instead of a hardcoded array', async () => {
@@ -214,5 +218,172 @@ describe('App.svelte', () => {
     const errorElement = screen.getByRole('alert')
     expect(errorElement.textContent).toContain('Failed to spawn shell')
     expect(errorElement.textContent).toContain(shellPath)
+  })
+
+  describe('2-pane horizontal layout (Story 3.3)', () => {
+    it('spawns 2 PTY sessions and initializes horizontal layout with both sessionIds', async () => {
+      const mockShellDetect = vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] })
+      const mockGetPaths = vi
+        .fn()
+        .mockResolvedValue({ ok: true, data: { home: '/home/test', userData: '', logsDir: '' } })
+      const mockPtySpawn = vi
+        .fn()
+        .mockResolvedValueOnce({ ok: true, data: { sessionId: 1 } })
+        .mockResolvedValueOnce({ ok: true, data: { sessionId: 2 } })
+      const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
+      const mockPtyKill = vi.fn()
+
+      // @ts-expect-error - mocking window.api
+      window.api = {
+        shell: { detect: mockShellDetect },
+        app: { getPaths: mockGetPaths },
+        pty: { spawn: mockPtySpawn, kill: mockPtyKill },
+        quit: { onShowDialog: mockOnShowDialog, confirm: vi.fn(), cancel: vi.fn() }
+      }
+
+      render(App)
+
+      await waitFor(() => {
+        expect(mockPtySpawn).toHaveBeenCalledTimes(2)
+      })
+
+      // Verify workspace is rendered
+      const workspace = document.querySelector('.workspace-container')
+      expect(workspace).toBeTruthy()
+
+      // Verify 2 pane containers are rendered (grid columns should be 1fr 1fr)
+      const paneContainers = document.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(2)
+    })
+
+    it('shows recoverable error and leaves panes empty when second pty.spawn fails', async () => {
+      const mockShellDetect = vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] })
+      const mockGetPaths = vi
+        .fn()
+        .mockResolvedValue({ ok: true, data: { home: '/home/test', userData: '', logsDir: '' } })
+      const mockPtySpawn = vi
+        .fn()
+        .mockResolvedValueOnce({ ok: true, data: { sessionId: 1 } }) // First succeeds
+        .mockResolvedValueOnce({ ok: false, error: { code: 'SPAWN_FAILED', message: 'Spawn error' } }) // Second fails
+      const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
+      const mockPtyKill = vi.fn()
+
+      // @ts-expect-error - mocking window.api
+      window.api = {
+        shell: { detect: mockShellDetect },
+        app: { getPaths: mockGetPaths },
+        pty: { spawn: mockPtySpawn, kill: mockPtyKill },
+        quit: { onShowDialog: mockOnShowDialog, confirm: vi.fn(), cancel: vi.fn() }
+      }
+
+      render(App)
+
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toBeTruthy()
+      })
+
+      // Verify error is shown
+      expect(screen.getByText(/failed to spawn shell/i)).toBeTruthy()
+
+      // Verify no panes are rendered
+      const paneContainers = document.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(0)
+    })
+
+    it('kills first session when second pty.spawn fails (NFR15 no orphan guard)', async () => {
+      const mockShellDetect = vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] })
+      const mockGetPaths = vi
+        .fn()
+        .mockResolvedValue({ ok: true, data: { home: '/home/test', userData: '', logsDir: '' } })
+      const mockPtySpawn = vi
+        .fn()
+        .mockResolvedValueOnce({ ok: true, data: { sessionId: 42 } }) // First succeeds with sessionId 42
+        .mockResolvedValueOnce({ ok: false, error: { code: 'SPAWN_FAILED', message: 'Spawn error' } }) // Second fails
+      const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
+      const mockPtyKill = vi.fn()
+
+      // @ts-expect-error - mocking window.api
+      window.api = {
+        shell: { detect: mockShellDetect },
+        app: { getPaths: mockGetPaths },
+        pty: { spawn: mockPtySpawn, kill: mockPtyKill },
+        quit: { onShowDialog: mockOnShowDialog, confirm: vi.fn(), cancel: vi.fn() }
+      }
+
+      render(App)
+
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toBeTruthy()
+      })
+
+      // Verify first session was killed
+      expect(mockPtyKill).toHaveBeenCalledWith(42)
+    })
+
+    it('kills first session and leaves panes empty when second pty.spawn returns malformed success data', async () => {
+      const mockShellDetect = vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] })
+      const mockGetPaths = vi
+        .fn()
+        .mockResolvedValue({ ok: true, data: { home: '/home/test', userData: '', logsDir: '' } })
+      const mockPtySpawn = vi
+        .fn()
+        .mockResolvedValueOnce({ ok: true, data: { sessionId: 1 } }) // First succeeds
+        .mockResolvedValueOnce({ ok: true, data: null }) // Second returns malformed data
+      const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
+      const mockPtyKill = vi.fn()
+
+      // @ts-expect-error - mocking window.api
+      window.api = {
+        shell: { detect: mockShellDetect },
+        app: { getPaths: mockGetPaths },
+        pty: { spawn: mockPtySpawn, kill: mockPtyKill },
+        quit: { onShowDialog: mockOnShowDialog, confirm: vi.fn(), cancel: vi.fn() }
+      }
+
+      render(App)
+
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toBeTruthy()
+      })
+
+      // Verify first session was killed
+      expect(mockPtyKill).toHaveBeenCalledWith(1)
+
+      // Verify no panes are rendered
+      const paneContainers = document.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(0)
+    })
+
+    it('shows recoverable error when first pty.spawn fails (no second spawn attempted)', async () => {
+      const mockShellDetect = vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] })
+      const mockGetPaths = vi
+        .fn()
+        .mockResolvedValue({ ok: true, data: { home: '/home/test', userData: '', logsDir: '' } })
+      const mockPtySpawn = vi
+        .fn()
+        .mockResolvedValueOnce({ ok: false, error: { code: 'SPAWN_FAILED', message: 'Spawn error' } }) // First fails
+      const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
+      const mockPtyKill = vi.fn()
+
+      // @ts-expect-error - mocking window.api
+      window.api = {
+        shell: { detect: mockShellDetect },
+        app: { getPaths: mockGetPaths },
+        pty: { spawn: mockPtySpawn, kill: mockPtyKill },
+        quit: { onShowDialog: mockOnShowDialog, confirm: vi.fn(), cancel: vi.fn() }
+      }
+
+      render(App)
+
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toBeTruthy()
+      })
+
+      // Verify only one spawn was attempted
+      expect(mockPtySpawn).toHaveBeenCalledTimes(1)
+
+      // Verify error is shown
+      expect(screen.getByText(/failed to spawn shell/i)).toBeTruthy()
+    })
   })
 })
