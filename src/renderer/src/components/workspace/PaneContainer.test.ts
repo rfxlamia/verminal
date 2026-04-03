@@ -30,21 +30,40 @@ describe('PaneContainer', () => {
     return mod.default
   }
 
-  it('renders pane metadata attributes for the current pane', async () => {
+  it('renders data-pane-id attribute correctly', async () => {
     const PaneContainer = await getPaneContainer()
     const target = document.createElement('div')
     document.body.appendChild(target)
 
     const { mount } = await import('svelte')
 
+    const paneId = 42
     mount(PaneContainer, {
       target,
-      props: { paneId: 1, sessionId: 1, resizeTick: 0 }
+      props: { paneId, sessionId: 1, resizeTick: 0 }
     })
 
-    const pane = target.querySelector('[data-pane-id="1"]')
+    const pane = target.querySelector('.pane-container')
     expect(pane).not.toBeNull()
-    expect((pane as HTMLElement).dataset.sessionId).toBe('1')
+    expect((pane as HTMLElement).dataset.paneId).toBe(String(paneId))
+  })
+
+  it('renders data-session-id attribute correctly', async () => {
+    const PaneContainer = await getPaneContainer()
+    const target = document.createElement('div')
+    document.body.appendChild(target)
+
+    const { mount } = await import('svelte')
+
+    const sessionId = 99
+    mount(PaneContainer, {
+      target,
+      props: { paneId: 1, sessionId, resizeTick: 0 }
+    })
+
+    const pane = target.querySelector('.pane-container')
+    expect(pane).not.toBeNull()
+    expect((pane as HTMLElement).dataset.sessionId).toBe(String(sessionId))
   })
 
   it('accepts resizeTick prop without errors', async () => {
