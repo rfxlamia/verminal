@@ -128,9 +128,7 @@ export function initHorizontalSplitLayout(sessionId1: number, sessionId2: number
  */
 function validateSessionId(sessionId: number, name: string): void {
   if (!Number.isInteger(sessionId) || sessionId <= 0) {
-    throw new Error(
-      `${name} must be a positive integer. Got: ${sessionId}`
-    )
+    throw new Error(`${name} must be a positive integer. Got: ${sessionId}`)
   }
 }
 
@@ -156,11 +154,7 @@ export function initMixedSplitLayout(
     validateSessionId(sessionId1, 'sessionId1')
     validateSessionId(sessionId2, 'sessionId2')
     validateSessionId(sessionId3, 'sessionId3')
-    if (
-      sessionId1 === sessionId2 ||
-      sessionId2 === sessionId3 ||
-      sessionId1 === sessionId3
-    ) {
+    if (sessionId1 === sessionId2 || sessionId2 === sessionId3 || sessionId1 === sessionId3) {
       throw new Error(
         `All three sessionIds must be distinct. Got: ${sessionId1}, ${sessionId2}, ${sessionId3}`
       )

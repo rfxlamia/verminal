@@ -144,7 +144,11 @@
     const spawnResult4 = await window.api.pty.spawn(shell, [], cwd)
     if (!spawnResult4.ok) {
       // Kill all three previous sessions — NFR15 no half-spawned state
-      cleanupSessions([spawnResult1.data.sessionId, spawnResult2.data.sessionId, spawnResult3.data.sessionId])
+      cleanupSessions([
+        spawnResult1.data.sessionId,
+        spawnResult2.data.sessionId,
+        spawnResult3.data.sessionId
+      ])
       setStartupError(ERROR_MESSAGES.PTY_SPAWN_FAILED(shell), spawnResult4.error)
       return
     }
@@ -154,7 +158,11 @@
       typeof spawnResult4.data.sessionId !== 'number'
     ) {
       // Kill all three previous sessions on malformed data — NFR15 no half-spawned state
-      cleanupSessions([spawnResult1.data.sessionId, spawnResult2.data.sessionId, spawnResult3.data.sessionId])
+      cleanupSessions([
+        spawnResult1.data.sessionId,
+        spawnResult2.data.sessionId,
+        spawnResult3.data.sessionId
+      ])
       // Attempt to kill session 4 if we can extract any sessionId from malformed data
       const malformedSessionId4 = (spawnResult4.data as { sessionId?: number } | null)?.sessionId
       if (typeof malformedSessionId4 === 'number') {

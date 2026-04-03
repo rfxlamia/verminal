@@ -239,17 +239,23 @@ describe('layout-store', () => {
 
     it('throws if sessionId1 === sessionId2', async () => {
       const { initMixedSplitLayout } = await import('./layout-store.svelte')
-      expect(() => initMixedSplitLayout(42, 42, 43)).toThrow('All three sessionIds must be distinct')
+      expect(() => initMixedSplitLayout(42, 42, 43)).toThrow(
+        'All three sessionIds must be distinct'
+      )
     })
 
     it('throws if sessionId2 === sessionId3', async () => {
       const { initMixedSplitLayout } = await import('./layout-store.svelte')
-      expect(() => initMixedSplitLayout(42, 43, 43)).toThrow('All three sessionIds must be distinct')
+      expect(() => initMixedSplitLayout(42, 43, 43)).toThrow(
+        'All three sessionIds must be distinct'
+      )
     })
 
     it('throws if sessionId1 === sessionId3', async () => {
       const { initMixedSplitLayout } = await import('./layout-store.svelte')
-      expect(() => initMixedSplitLayout(42, 43, 42)).toThrow('All three sessionIds must be distinct')
+      expect(() => initMixedSplitLayout(42, 43, 42)).toThrow(
+        'All three sessionIds must be distinct'
+      )
     })
 
     it('does not throw when all sessionIds are different', async () => {
@@ -258,9 +264,8 @@ describe('layout-store', () => {
     })
 
     it('throws ConcurrentLayoutInitError when called concurrently', async () => {
-      const { ConcurrentLayoutInitError, initMixedSplitLayout } = await import(
-        './layout-store.svelte'
-      )
+      const { ConcurrentLayoutInitError, initMixedSplitLayout } =
+        await import('./layout-store.svelte')
       // The function should exist and ConcurrentLayoutInitError should be available
       expect(ConcurrentLayoutInitError).toBeDefined()
       expect(initMixedSplitLayout).toBeDefined()
