@@ -158,5 +158,17 @@ describe('layout-store', () => {
       const newPane = createPane(3)
       expect(newPane.paneId).toBeGreaterThan(lastPaneId)
     })
+
+    it('throws error when sessionId1 equals sessionId2', async () => {
+      const { initHorizontalSplitLayout } = await import('./layout-store.svelte')
+      expect(() => initHorizontalSplitLayout(42, 42)).toThrow(
+        'sessionId1 and sessionId2 must be different'
+      )
+    })
+
+    it('does not throw when sessionIds are different', async () => {
+      const { initHorizontalSplitLayout } = await import('./layout-store.svelte')
+      expect(() => initHorizontalSplitLayout(1, 2)).not.toThrow()
+    })
   })
 })

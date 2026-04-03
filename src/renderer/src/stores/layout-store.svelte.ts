@@ -57,6 +57,12 @@ export function initSinglePaneLayout(sessionId: number): void {
  * Note: _paneIdCounter is NOT reset — IDs are monotonically increasing.
  */
 export function initHorizontalSplitLayout(sessionId1: number, sessionId2: number): void {
+  if (sessionId1 === sessionId2) {
+    throw new Error(
+      `sessionId1 and sessionId2 must be different (both are ${sessionId1}). ` +
+        'Each pane must control a unique PTY session.'
+    )
+  }
   const pane1 = createPane(sessionId1)
   const pane2 = createPane(sessionId2)
   layoutState.layoutName = 'horizontal'
