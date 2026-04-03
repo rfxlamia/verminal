@@ -81,7 +81,11 @@
     const spawnResult2 = await window.api.pty.spawn(shell, [], cwd)
     if (!spawnResult2.ok) {
       // Kill the first session to avoid orphaned PTY — NFR15 compliance
-      window.api.pty.kill(spawnResult1.data.sessionId)
+      try {
+        window.api.pty.kill(spawnResult1.data.sessionId)
+      } catch (killError) {
+        console.error('[App] Failed to kill orphaned PTY session:', spawnResult1.data.sessionId, killError)
+      }
       setStartupError(ERROR_MESSAGES.PTY_SPAWN_FAILED(shell), spawnResult2.error)
       return
     }
@@ -91,12 +95,20 @@
       typeof spawnResult2.data.sessionId !== 'number'
     ) {
       // NFR15: No orphaned PTY - kill session 1 always
-      window.api.pty.kill(spawnResult1.data.sessionId)
+      try {
+        window.api.pty.kill(spawnResult1.data.sessionId)
+      } catch (killError) {
+        console.error('[App] Failed to kill orphaned PTY session:', spawnResult1.data.sessionId, killError)
+      }
       // Attempt to kill session 2 if we can extract any sessionId from malformed data
       // This handles edge case where spawn succeeded but returned unexpected data shape
       const malformedSessionId = (spawnResult2.data as { sessionId?: number } | null)?.sessionId
       if (typeof malformedSessionId === 'number') {
-        window.api.pty.kill(malformedSessionId)
+        try {
+          window.api.pty.kill(malformedSessionId)
+        } catch (killError) {
+          console.error('[App] Failed to kill malformed PTY session:', malformedSessionId, killError)
+        }
       }
       setStartupError('Failed to initialize session. Please try again.')
       return

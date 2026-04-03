@@ -260,6 +260,95 @@ describe('App.svelte', () => {
       expect(paneContainers.length).toBe(2)
     })
 
+    it('logs error when pty.kill fails for first session during cleanup', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const mockShellDetect = vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] })
+      const mockGetPaths = vi
+        .fn()
+        .mockResolvedValue({ ok: true, data: { home: '/home/test', userData: '', logsDir: '' } })
+      const mockPtySpawn = vi
+        .fn()
+        .mockResolvedValueOnce({ ok: true, data: { sessionId: 1 } }) // First succeeds
+        .mockResolvedValueOnce({
+          ok: false,
+          error: { code: 'SPAWN_FAILED', message: 'Spawn error' }
+        }) // Second fails
+      const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
+      const mockPtyKill = vi.fn().mockImplementation(() => {
+        throw new Error('Kill failed')
+      })
+
+      // @ts-expect-error - mocking window.api
+      window.api = {
+        shell: { detect: mockShellDetect },
+        app: { getPaths: mockGetPaths },
+        pty: { spawn: mockPtySpawn, kill: mockPtyKill },
+        quit: { onShowDialog: mockOnShowDialog, confirm: vi.fn(), cancel: vi.fn() }
+      }
+
+      render(App)
+
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toBeTruthy()
+      })
+
+      // Verify kill was called
+      expect(mockPtyKill).toHaveBeenCalledWith(1)
+
+      // Verify error was logged
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[App] Failed to kill orphaned PTY session:',
+        1,
+        expect.any(Error)
+      )
+
+      consoleErrorSpy.mockRestore()
+    })
+
+    it('logs error when pty.kill fails for malformed session during cleanup', async () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const mockShellDetect = vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] })
+      const mockGetPaths = vi
+        .fn()
+        .mockResolvedValue({ ok: true, data: { home: '/home/test', userData: '', logsDir: '' } })
+      const mockPtySpawn = vi
+        .fn()
+        .mockResolvedValueOnce({ ok: true, data: { sessionId: 1 } }) // First succeeds
+        .mockResolvedValueOnce({ ok: true, data: { sessionId: 2 } }) // Second returns valid data but fails validation
+      const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
+      const mockPtyKill = vi.fn().mockImplementation(() => {
+        throw new Error('Kill failed')
+      })
+
+      // @ts-expect-error - mocking window.api
+      window.api = {
+        shell: { detect: mockShellDetect },
+        app: { getPaths: mockGetPaths },
+        pty: { spawn: mockPtySpawn, kill: mockPtyKill },
+        quit: { onShowDialog: mockOnShowDialog, confirm: vi.fn(), cancel: vi.fn() }
+      }
+
+      render(App)
+
+      await waitFor(() => {
+        expect(screen.getByRole('alert')).toBeTruthy()
+      })
+
+      // Verify errors were logged for both kill attempts
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[App] Failed to kill orphaned PTY session:',
+        1,
+        expect.any(Error)
+      )
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[App] Failed to kill malformed PTY session:',
+        2,
+        expect.any(Error)
+      )
+
+      consoleErrorSpy.mockRestore()
+    })
+
     it('shows recoverable error and leaves panes empty when second pty.spawn fails', async () => {
       const mockShellDetect = vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] })
       const mockGetPaths = vi
