@@ -2,7 +2,7 @@
   import { onMount } from 'svelte'
   import Workspace from './components/workspace/Workspace.svelte'
   import QuitDialog from './components/workspace/QuitDialog.svelte'
-  import { layoutState, initMixedSplitLayout } from './stores/layout-store.svelte'
+  import { layoutState, initGridLayout } from './stores/layout-store.svelte'
 
   // Error message constants for future i18n support
   const ERROR_MESSAGES = {
@@ -140,11 +140,37 @@
       return
     }
 
-    // Step 4: Initialize mixed split layout with all three sessions
-    initMixedSplitLayout(
+    // Step 3d: Spawn fourth PTY
+    const spawnResult4 = await window.api.pty.spawn(shell, [], cwd)
+    if (!spawnResult4.ok) {
+      // Kill all three previous sessions — NFR15 no half-spawned state
+      cleanupSessions([spawnResult1.data.sessionId, spawnResult2.data.sessionId, spawnResult3.data.sessionId])
+      setStartupError(ERROR_MESSAGES.PTY_SPAWN_FAILED(shell), spawnResult4.error)
+      return
+    }
+    if (
+      typeof spawnResult4.data !== 'object' ||
+      !spawnResult4.data ||
+      typeof spawnResult4.data.sessionId !== 'number'
+    ) {
+      // Kill all three previous sessions on malformed data — NFR15 no half-spawned state
+      cleanupSessions([spawnResult1.data.sessionId, spawnResult2.data.sessionId, spawnResult3.data.sessionId])
+      // Attempt to kill session 4 if we can extract any sessionId from malformed data
+      const malformedSessionId4 = (spawnResult4.data as { sessionId?: number } | null)?.sessionId
+      if (typeof malformedSessionId4 === 'number') {
+        cleanupSessions([malformedSessionId4])
+      }
+      setStartupError('Failed to initialize session. Please try again.')
+      return
+    }
+
+    // Step 4: Initialize grid layout with all four sessions
+    // TODO(Epic 4): This 4-pane hardwiring is temporary until Command Center drives layout selection
+    initGridLayout(
       spawnResult1.data.sessionId,
       spawnResult2.data.sessionId,
-      spawnResult3.data.sessionId
+      spawnResult3.data.sessionId,
+      spawnResult4.data.sessionId
     )
   })
 </script>
