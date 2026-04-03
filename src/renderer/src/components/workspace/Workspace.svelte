@@ -1,9 +1,10 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte'
   import PaneContainer from './PaneContainer.svelte'
+  import type { PaneState } from '../../stores/layout-store.svelte'
 
   // Props:
-  let { panes = [] }: { panes: Array<{ paneId: number; sessionId: number }> } = $props()
+  let { panes = [] }: { panes: PaneState[] } = $props()
 
   // Container ref for workspace-level resize orchestration
   let containerEl: HTMLDivElement | undefined = $state()
