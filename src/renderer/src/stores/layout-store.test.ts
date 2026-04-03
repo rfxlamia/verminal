@@ -136,7 +136,8 @@ describe('layout-store', () => {
     })
 
     it('paneIds are distinct and incrementing from previous createPane calls', async () => {
-      const { createPane, layoutState, initHorizontalSplitLayout } = await import('./layout-store.svelte')
+      const { createPane, layoutState, initHorizontalSplitLayout } =
+        await import('./layout-store.svelte')
       // First create a pane manually
       const manualPane = createPane(999)
       // Then init horizontal layout
@@ -149,7 +150,8 @@ describe('layout-store', () => {
     })
 
     it('_paneIdCounter continues incrementing after initHorizontalSplitLayout (counter not reset)', async () => {
-      const { layoutState, initHorizontalSplitLayout, createPane } = await import('./layout-store.svelte')
+      const { layoutState, initHorizontalSplitLayout, createPane } =
+        await import('./layout-store.svelte')
       initHorizontalSplitLayout(1, 2)
       const lastPaneId = layoutState.panes[1].paneId
       // Create another pane after - should continue from where we left off

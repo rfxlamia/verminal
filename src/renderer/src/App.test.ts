@@ -264,7 +264,10 @@ describe('App.svelte', () => {
       const mockPtySpawn = vi
         .fn()
         .mockResolvedValueOnce({ ok: true, data: { sessionId: 1 } }) // First succeeds
-        .mockResolvedValueOnce({ ok: false, error: { code: 'SPAWN_FAILED', message: 'Spawn error' } }) // Second fails
+        .mockResolvedValueOnce({
+          ok: false,
+          error: { code: 'SPAWN_FAILED', message: 'Spawn error' }
+        }) // Second fails
       const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
       const mockPtyKill = vi.fn()
 
@@ -298,7 +301,10 @@ describe('App.svelte', () => {
       const mockPtySpawn = vi
         .fn()
         .mockResolvedValueOnce({ ok: true, data: { sessionId: 42 } }) // First succeeds with sessionId 42
-        .mockResolvedValueOnce({ ok: false, error: { code: 'SPAWN_FAILED', message: 'Spawn error' } }) // Second fails
+        .mockResolvedValueOnce({
+          ok: false,
+          error: { code: 'SPAWN_FAILED', message: 'Spawn error' }
+        }) // Second fails
       const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
       const mockPtyKill = vi.fn()
 
@@ -359,9 +365,10 @@ describe('App.svelte', () => {
       const mockGetPaths = vi
         .fn()
         .mockResolvedValue({ ok: true, data: { home: '/home/test', userData: '', logsDir: '' } })
-      const mockPtySpawn = vi
-        .fn()
-        .mockResolvedValueOnce({ ok: false, error: { code: 'SPAWN_FAILED', message: 'Spawn error' } }) // First fails
+      const mockPtySpawn = vi.fn().mockResolvedValueOnce({
+        ok: false,
+        error: { code: 'SPAWN_FAILED', message: 'Spawn error' }
+      }) // First fails
       const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
       const mockPtyKill = vi.fn()
 

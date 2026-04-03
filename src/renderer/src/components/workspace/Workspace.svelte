@@ -60,7 +60,11 @@
 </script>
 
 <!-- Workspace container - fills the parent shell -->
-<div class="workspace-container" bind:this={containerEl} style="grid-template-columns: {gridColumns};">
+<div
+  class="workspace-container"
+  bind:this={containerEl}
+  style="grid-template-columns: {gridColumns};"
+>
   {#each panes ?? [] as pane (pane.paneId)}
     <PaneContainer paneId={pane.paneId} sessionId={pane.sessionId} {resizeTick} />
   {/each}
