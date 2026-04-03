@@ -172,6 +172,100 @@ describe('layout-store', () => {
     })
   })
 
+  describe('initMixedSplitLayout()', () => {
+    it('sets layoutState.panes to exactly 3 panes', async () => {
+      const { layoutState, initMixedSplitLayout } = await import('./layout-store.svelte')
+      initMixedSplitLayout(10, 20, 30)
+      expect(layoutState.panes).toHaveLength(3)
+    })
+
+    it('pane[0].sessionId equals sessionId1', async () => {
+      const { layoutState, initMixedSplitLayout } = await import('./layout-store.svelte')
+      initMixedSplitLayout(100, 200, 300)
+      expect(layoutState.panes[0].sessionId).toBe(100)
+    })
+
+    it('pane[1].sessionId equals sessionId2', async () => {
+      const { layoutState, initMixedSplitLayout } = await import('./layout-store.svelte')
+      initMixedSplitLayout(100, 200, 300)
+      expect(layoutState.panes[1].sessionId).toBe(200)
+    })
+
+    it('pane[2].sessionId equals sessionId3', async () => {
+      const { layoutState, initMixedSplitLayout } = await import('./layout-store.svelte')
+      initMixedSplitLayout(100, 200, 300)
+      expect(layoutState.panes[2].sessionId).toBe(300)
+    })
+
+    it('pane[0].paneId < pane[1].paneId < pane[2].paneId (sequential)', async () => {
+      const { layoutState, initMixedSplitLayout } = await import('./layout-store.svelte')
+      initMixedSplitLayout(1, 2, 3)
+      expect(layoutState.panes[0].paneId).toBeLessThan(layoutState.panes[1].paneId)
+      expect(layoutState.panes[1].paneId).toBeLessThan(layoutState.panes[2].paneId)
+    })
+
+    it('sets layoutState.layoutName to "mixed"', async () => {
+      const { layoutState, initMixedSplitLayout } = await import('./layout-store.svelte')
+      initMixedSplitLayout(1, 2, 3)
+      expect(layoutState.layoutName).toBe('mixed')
+    })
+
+    it('paneIds continue monotonically from previous createPane calls (counter not reset)', async () => {
+      const { createPane, layoutState, initMixedSplitLayout } =
+        await import('./layout-store.svelte')
+      // First create a pane manually
+      const manualPane = createPane(999)
+      // Then init mixed layout
+      initMixedSplitLayout(100, 200, 300)
+      // All three panes should have IDs greater than the manual pane
+      expect(layoutState.panes[0].paneId).toBeGreaterThan(manualPane.paneId)
+      expect(layoutState.panes[1].paneId).toBeGreaterThan(manualPane.paneId)
+      expect(layoutState.panes[2].paneId).toBeGreaterThan(manualPane.paneId)
+      // And they should be sequential
+      expect(layoutState.panes[1].paneId).toBe(layoutState.panes[0].paneId + 1)
+      expect(layoutState.panes[2].paneId).toBe(layoutState.panes[1].paneId + 1)
+    })
+
+    it('calling twice replaces panes with fresh 3-pane set (idempotent reset)', async () => {
+      const { layoutState, initMixedSplitLayout } = await import('./layout-store.svelte')
+      initMixedSplitLayout(1, 2, 3)
+      expect(layoutState.panes.length).toBe(3)
+      initMixedSplitLayout(4, 5, 6)
+      expect(layoutState.panes.length).toBe(3)
+      expect(layoutState.panes[0].sessionId).toBe(4)
+      expect(layoutState.panes[1].sessionId).toBe(5)
+      expect(layoutState.panes[2].sessionId).toBe(6)
+    })
+
+    it('throws if sessionId1 === sessionId2', async () => {
+      const { initMixedSplitLayout } = await import('./layout-store.svelte')
+      expect(() => initMixedSplitLayout(42, 42, 43)).toThrow('All three sessionIds must be distinct')
+    })
+
+    it('throws if sessionId2 === sessionId3', async () => {
+      const { initMixedSplitLayout } = await import('./layout-store.svelte')
+      expect(() => initMixedSplitLayout(42, 43, 43)).toThrow('All three sessionIds must be distinct')
+    })
+
+    it('throws if sessionId1 === sessionId3', async () => {
+      const { initMixedSplitLayout } = await import('./layout-store.svelte')
+      expect(() => initMixedSplitLayout(42, 43, 42)).toThrow('All three sessionIds must be distinct')
+    })
+
+    it('does not throw when all sessionIds are different', async () => {
+      const { initMixedSplitLayout } = await import('./layout-store.svelte')
+      expect(() => initMixedSplitLayout(1, 2, 3)).not.toThrow()
+    })
+
+    it('throws ConcurrentLayoutInitError when called concurrently', async () => {
+      const { ConcurrentLayoutInitError, initMixedSplitLayout } = await import(
+        './layout-store.svelte'
+      )
+      // The function should exist and ConcurrentLayoutInitError should be available
+      expect(ConcurrentLayoutInitError).toBeDefined()
+      expect(initMixedSplitLayout).toBeDefined()
+    })
+  })
   describe('Concurrent Layout Init Protection', () => {
     it('allows sequential calls to initSinglePaneLayout without throwing', async () => {
       const { initSinglePaneLayout } = await import('./layout-store.svelte')

@@ -120,6 +120,44 @@ export function initHorizontalSplitLayout(sessionId1: number, sessionId2: number
 }
 
 /**
+ * Initializes the layout with mixed split: 1 top pane (full width) + 2 bottom panes (FR15).
+ * Resets panes array to [3 panes]:
+ *   panes[0] = top pane (will span full width via grid-column: 1 / -1)
+ *   panes[1] = bottom-left pane
+ *   panes[2] = bottom-right pane
+ * Note: _paneIdCounter is NOT reset — IDs are monotonically increasing.
+ * @throws {ConcurrentLayoutInitError} If another layout initialization is in progress
+ */
+export function initMixedSplitLayout(
+  sessionId1: number,
+  sessionId2: number,
+  sessionId3: number
+): void {
+  if (!acquireLayoutInitLock()) {
+    throw new ConcurrentLayoutInitError()
+  }
+
+  try {
+    if (
+      sessionId1 === sessionId2 ||
+      sessionId2 === sessionId3 ||
+      sessionId1 === sessionId3
+    ) {
+      throw new Error(
+        `All three sessionIds must be distinct. Got: ${sessionId1}, ${sessionId2}, ${sessionId3}`
+      )
+    }
+    const pane1 = createPane(sessionId1)
+    const pane2 = createPane(sessionId2)
+    const pane3 = createPane(sessionId3)
+    layoutState.layoutName = 'mixed'
+    layoutState.panes = [pane1, pane2, pane3]
+  } finally {
+    releaseLayoutInitLock()
+  }
+}
+
+/**
  * Resets the layout state for testing purposes.
  * Clears panes and layout name.
  * Also resets the layout initialization lock.
