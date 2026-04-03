@@ -303,7 +303,7 @@ describe('App.svelte', () => {
 
       // Verify error was logged
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[App] Failed to kill orphaned PTY session:',
+        '[App] Failed to kill PTY session:',
         1,
         expect.any(Error)
       )
@@ -342,7 +342,7 @@ describe('App.svelte', () => {
 
       // Verify error was logged for first session kill attempt
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[App] Failed to kill orphaned PTY session:',
+        '[App] Failed to kill PTY session:',
         1,
         expect.any(Error)
       )

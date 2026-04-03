@@ -22,6 +22,20 @@
     console.error('[App] startup failure:', message, details)
   }
 
+  /**
+   * Cleans up PTY sessions on spawn failure.
+   * NFR15: No half-spawned state - kill all sessions that were successfully created.
+   */
+  function cleanupSessions(sessionIds: number[]): void {
+    for (const sessionId of sessionIds) {
+      try {
+        window.api.pty.kill(sessionId)
+      } catch (e) {
+        console.error('[App] Failed to kill PTY session:', sessionId, e)
+      }
+    }
+  }
+
   onMount(async () => {
     startupError = ''
 
@@ -81,15 +95,7 @@
     const spawnResult2 = await window.api.pty.spawn(shell, [], cwd)
     if (!spawnResult2.ok) {
       // Kill the first session to avoid orphaned PTY — NFR15 compliance
-      try {
-        window.api.pty.kill(spawnResult1.data.sessionId)
-      } catch (killError) {
-        console.error(
-          '[App] Failed to kill orphaned PTY session:',
-          spawnResult1.data.sessionId,
-          killError
-        )
-      }
+      cleanupSessions([spawnResult1.data.sessionId])
       setStartupError(ERROR_MESSAGES.PTY_SPAWN_FAILED(shell), spawnResult2.error)
       return
     }
@@ -99,28 +105,12 @@
       typeof spawnResult2.data.sessionId !== 'number'
     ) {
       // NFR15: No orphaned PTY - kill session 1 always
-      try {
-        window.api.pty.kill(spawnResult1.data.sessionId)
-      } catch (killError) {
-        console.error(
-          '[App] Failed to kill orphaned PTY session:',
-          spawnResult1.data.sessionId,
-          killError
-        )
-      }
+      cleanupSessions([spawnResult1.data.sessionId])
       // Attempt to kill session 2 if we can extract any sessionId from malformed data
       // This handles edge case where spawn succeeded but returned unexpected data shape
       const malformedSessionId = (spawnResult2.data as { sessionId?: number } | null)?.sessionId
       if (typeof malformedSessionId === 'number') {
-        try {
-          window.api.pty.kill(malformedSessionId)
-        } catch (killError) {
-          console.error(
-            '[App] Failed to kill malformed PTY session:',
-            malformedSessionId,
-            killError
-          )
-        }
+        cleanupSessions([malformedSessionId])
       }
       setStartupError('Failed to initialize session. Please try again.')
       return
@@ -130,16 +120,7 @@
     const spawnResult3 = await window.api.pty.spawn(shell, [], cwd)
     if (!spawnResult3.ok) {
       // Kill both previous sessions — NFR15 no half-spawned state
-      try {
-        window.api.pty.kill(spawnResult1.data.sessionId)
-      } catch (e) {
-        console.error('[App] Failed to kill session 1:', e)
-      }
-      try {
-        window.api.pty.kill(spawnResult2.data.sessionId)
-      } catch (e) {
-        console.error('[App] Failed to kill session 2:', e)
-      }
+      cleanupSessions([spawnResult1.data.sessionId, spawnResult2.data.sessionId])
       setStartupError(ERROR_MESSAGES.PTY_SPAWN_FAILED(shell), spawnResult3.error)
       return
     }
@@ -148,16 +129,8 @@
       !spawnResult3.data ||
       typeof spawnResult3.data.sessionId !== 'number'
     ) {
-      try {
-        window.api.pty.kill(spawnResult1.data.sessionId)
-      } catch (e) {
-        console.error('[App] Failed to kill session 1:', e)
-      }
-      try {
-        window.api.pty.kill(spawnResult2.data.sessionId)
-      } catch (e) {
-        console.error('[App] Failed to kill session 2:', e)
-      }
+      // Kill both previous sessions on malformed data — NFR15 no half-spawned state
+      cleanupSessions([spawnResult1.data.sessionId, spawnResult2.data.sessionId])
       setStartupError('Failed to initialize session. Please try again.')
       return
     }
