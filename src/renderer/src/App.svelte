@@ -2,7 +2,7 @@
   import { onMount } from 'svelte'
   import Workspace from './components/workspace/Workspace.svelte'
   import QuitDialog from './components/workspace/QuitDialog.svelte'
-  import { layoutState, initHorizontalSplitLayout } from './stores/layout-store.svelte'
+  import { layoutState, initMixedSplitLayout } from './stores/layout-store.svelte'
 
   // Error message constants for future i18n support
   const ERROR_MESSAGES = {
@@ -126,8 +126,48 @@
       return
     }
 
-    // Step 4: Initialize horizontal split layout with both sessions
-    initHorizontalSplitLayout(spawnResult1.data.sessionId, spawnResult2.data.sessionId)
+    // Step 3c: Spawn third PTY
+    const spawnResult3 = await window.api.pty.spawn(shell, [], cwd)
+    if (!spawnResult3.ok) {
+      // Kill both previous sessions — NFR15 no half-spawned state
+      try {
+        window.api.pty.kill(spawnResult1.data.sessionId)
+      } catch (e) {
+        console.error('[App] Failed to kill session 1:', e)
+      }
+      try {
+        window.api.pty.kill(spawnResult2.data.sessionId)
+      } catch (e) {
+        console.error('[App] Failed to kill session 2:', e)
+      }
+      setStartupError(ERROR_MESSAGES.PTY_SPAWN_FAILED(shell), spawnResult3.error)
+      return
+    }
+    if (
+      typeof spawnResult3.data !== 'object' ||
+      !spawnResult3.data ||
+      typeof spawnResult3.data.sessionId !== 'number'
+    ) {
+      try {
+        window.api.pty.kill(spawnResult1.data.sessionId)
+      } catch (e) {
+        console.error('[App] Failed to kill session 1:', e)
+      }
+      try {
+        window.api.pty.kill(spawnResult2.data.sessionId)
+      } catch (e) {
+        console.error('[App] Failed to kill session 2:', e)
+      }
+      setStartupError('Failed to initialize session. Please try again.')
+      return
+    }
+
+    // Step 4: Initialize mixed split layout with all three sessions
+    initMixedSplitLayout(
+      spawnResult1.data.sessionId,
+      spawnResult2.data.sessionId,
+      spawnResult3.data.sessionId
+    )
   })
 </script>
 
