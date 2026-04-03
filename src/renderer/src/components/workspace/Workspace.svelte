@@ -8,6 +8,13 @@
   // Container ref for workspace-level resize orchestration
   let containerEl: HTMLDivElement | undefined = $state()
 
+  // Guard: ensure containerEl exists before observing
+  $effect(() => {
+    if (containerEl && resizeObserver) {
+      resizeObserver.observe(containerEl)
+    }
+  })
+
   // Resize state
   let resizeObserver: ResizeObserver | undefined
   let resizeDebounceTimer: ReturnType<typeof setTimeout> | undefined
@@ -32,10 +39,7 @@
         resizeTick++
       }, RESIZE_DEBOUNCE_MS)
     })
-
-    if (containerEl) {
-      resizeObserver.observe(containerEl)
-    }
+    // NOTE: observation moved to $effect to handle containerEl binding
   })
 
   onDestroy(() => {
@@ -52,7 +56,7 @@
 
 <!-- Workspace container - fills the parent shell -->
 <div class="workspace-container" bind:this={containerEl}>
-  {#each panes as pane (pane.paneId)}
+  {#each panes ?? [] as pane (pane.paneId)}
     <PaneContainer paneId={pane.paneId} sessionId={pane.sessionId} {resizeTick} />
   {/each}
 </div>

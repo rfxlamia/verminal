@@ -40,6 +40,7 @@
   // React to resizeTick changes from Workspace
   $effect(() => {
     if (isDestroyed) return
+    if (sessionExited) return
     if (!terminal || !fitAddon) return
 
     // Only trigger resize if resizeTick actually changed
@@ -55,6 +56,12 @@
   })
 
   onMount(() => {
+    // Guard: ensure window.api is available
+    if (!window.api?.pty) {
+      console.error('[TerminalView] window.api.pty is not available')
+      return
+    }
+
     // 0. Validate container element exists before creating terminal
     if (!containerEl) {
       console.error('[TerminalView] Container element not found')
@@ -123,10 +130,15 @@
         lastSyncedCols = initialCols
         lastSyncedRows = initialRows
         // Send initial resize directly to avoid race condition with terminal.cols/rows
-        try {
-          window.api.pty.resize(sessionId, initialCols, initialRows)
-        } catch (err) {
-          console.error('[TerminalView] Failed to send initial resize:', err)
+        // Guard: ensure window.api.pty is available
+        if (!window.api?.pty) {
+          console.error('[TerminalView] window.api.pty is not available for initial resize')
+        } else {
+          try {
+            window.api.pty.resize(sessionId, initialCols, initialRows)
+          } catch (err) {
+            console.error('[TerminalView] Failed to send initial resize:', err)
+          }
         }
       }
     } catch (err) {
@@ -139,6 +151,10 @@
     // 6. Forward local keyboard input to PTY (AC #5)
     // write() is fire-and-forget IPC with no buffering — direct fd write
     terminal.onData((data: string) => {
+      if (!window.api?.pty) {
+        console.error('[TerminalView] window.api.pty is not available for writing')
+        return
+      }
       try {
         window.api.pty.write(sessionId, data)
       } catch (err) {
@@ -211,6 +227,11 @@
       if (cols === lastSyncedCols && rows === lastSyncedRows) return
       lastSyncedCols = cols
       lastSyncedRows = rows
+      // Guard: ensure window.api.pty is available
+      if (!window.api?.pty) {
+        console.error('[TerminalView] window.api.pty is not available for resize')
+        return
+      }
       window.api.pty.resize(sessionId, cols, rows)
     } catch (err) {
       console.error('[TerminalView] Failed to resize PTY:', err)

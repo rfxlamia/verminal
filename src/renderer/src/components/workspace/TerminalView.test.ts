@@ -13,12 +13,28 @@ const mockFitAddonFit = vi.fn()
 const mockLoadAddon = vi.fn()
 const mockUnicode = { activeVersion: '' }
 
+// Track ResizeObserver callbacks - support multiple instances
+const resizeObserverCallbacks: Array<() => void> = []
+
 // Mock ResizeObserver for jsdom environment
-globalThis.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn()
-})) as unknown as typeof ResizeObserver
+globalThis.ResizeObserver = vi.fn().mockImplementation((callback: ResizeObserverCallback) => {
+  // Store callback with proper type for ResizeObserverEntry array
+  const callbackFn = (): void => {
+    const mockEntries: ResizeObserverEntry[] = []
+    const mockObserver: ResizeObserver = {
+      observe: vi.fn(),
+      unobserve: vi.fn(),
+      disconnect: vi.fn()
+    }
+    callback(mockEntries, mockObserver)
+  }
+  resizeObserverCallbacks.push(callbackFn)
+  return {
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+    disconnect: vi.fn()
+  }
+}) as unknown as typeof ResizeObserver
 
 // Mock all xterm modules before any imports
 vi.mock('@xterm/xterm', () => ({
@@ -131,6 +147,7 @@ describe('TerminalView', () => {
 
   afterEach(() => {
     // Reset all mock state
+    resizeObserverCallbacks.length = 0
     mockTerminalOpen.mockClear()
     mockTerminalWrite.mockClear()
     mockTerminalOnData.mockClear()
