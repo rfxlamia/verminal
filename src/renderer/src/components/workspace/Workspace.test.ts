@@ -227,6 +227,44 @@ describe('Workspace', () => {
       // Unmount should not throw and should clean up properly
       expect(() => unmount(component)).not.toThrow()
     })
+
+    it('maintains equal width 1fr 1fr grid after resize for 2-pane layout', async () => {
+      vi.useFakeTimers()
+
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 }
+          ]
+        }
+      })
+
+      // Wait for component to mount
+      await vi.runAllTimersAsync()
+
+      // Verify initial grid-template-columns is "1fr 1fr"
+      const workspace = target.querySelector('.workspace-container') as HTMLElement
+      expect(workspace).not.toBeNull()
+      expect(workspace.style.gridTemplateColumns).toBe('1fr 1fr')
+
+      // Trigger resize via ResizeObserver mock
+      resizeObserverCallbacks.forEach((cb) => cb())
+      // Advance timers past debounce period
+      await vi.advanceTimersByTimeAsync(50)
+
+      // Verify grid-template-columns is still "1fr 1fr" after resize
+      expect(workspace.style.gridTemplateColumns).toBe('1fr 1fr')
+    })
   })
 
   describe('single pane fullscreen (Story 3.2)', () => {
