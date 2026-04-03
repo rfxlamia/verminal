@@ -80,7 +80,8 @@
         background: '#1C1C1C', // UX-DR2 dark surface
         foreground: '#F7F7F7'
       },
-      allowTransparency: false
+      allowTransparency: false,
+      allowProposedApi: true // Required for Unicode11Addon (AC #3)
     })
 
     // 2. Load addons (order matters: fit → unicode11 → weblinks → open → webgl)
