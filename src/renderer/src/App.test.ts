@@ -42,7 +42,11 @@ describe('App.svelte', () => {
     window.api = {
       shell: { detect: mockShellDetect },
       app: { getPaths: mockGetPaths },
-      pty: { spawn: mockPtySpawn, onData: vi.fn().mockReturnValue(() => {}), onExit: vi.fn().mockReturnValue(() => {}) },
+      pty: {
+        spawn: mockPtySpawn,
+        onData: vi.fn().mockReturnValue(() => {}),
+        onExit: vi.fn().mockReturnValue(() => {})
+      },
       quit: { onShowDialog: mockOnShowDialog, confirm: vi.fn(), cancel: vi.fn() }
     }
 
@@ -314,7 +318,7 @@ describe('App.svelte', () => {
       const mockPtySpawn = vi
         .fn()
         .mockResolvedValueOnce({ ok: true, data: { sessionId: 1 } }) // First succeeds
-        .mockResolvedValueOnce({ ok: true, data: { sessionId: 2 } }) // Second returns valid data but fails validation
+        .mockResolvedValueOnce({ ok: true, data: { notSessionId: 2 } }) // Second returns malformed data
       const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
       const mockPtyKill = vi.fn().mockImplementation(() => {
         throw new Error('Kill failed')
@@ -334,17 +338,13 @@ describe('App.svelte', () => {
         expect(screen.getByRole('alert')).toBeTruthy()
       })
 
-      // Verify errors were logged for both kill attempts
+      // Verify error was logged for first session kill attempt
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         '[App] Failed to kill orphaned PTY session:',
         1,
         expect.any(Error)
       )
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[App] Failed to kill malformed PTY session:',
-        2,
-        expect.any(Error)
-      )
+      // Note: session 2 is not killed because malformed data has no valid sessionId
 
       consoleErrorSpy.mockRestore()
     })

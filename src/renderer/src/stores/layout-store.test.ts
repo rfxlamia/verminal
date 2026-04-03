@@ -173,10 +173,8 @@ describe('layout-store', () => {
   })
 
   describe('Concurrent Layout Init Protection', () => {
-    it('throws ConcurrentLayoutInitError when initSinglePaneLayout is called while another init is in progress', async () => {
-      const { initSinglePaneLayout, ConcurrentLayoutInitError } = await import(
-        './layout-store.svelte'
-      )
+    it('allows sequential calls to initSinglePaneLayout without throwing', async () => {
+      const { initSinglePaneLayout } = await import('./layout-store.svelte')
 
       // Start first init - this will complete but we test the lock behavior
       initSinglePaneLayout(1)
@@ -185,10 +183,8 @@ describe('layout-store', () => {
       expect(() => initSinglePaneLayout(2)).not.toThrow()
     })
 
-    it('throws ConcurrentLayoutInitError when initHorizontalSplitLayout is called while another init is in progress', async () => {
-      const { initHorizontalSplitLayout, ConcurrentLayoutInitError } = await import(
-        './layout-store.svelte'
-      )
+    it('allows sequential calls to initHorizontalSplitLayout without throwing', async () => {
+      const { initHorizontalSplitLayout } = await import('./layout-store.svelte')
 
       // First call should succeed
       initHorizontalSplitLayout(1, 2)
@@ -208,9 +204,8 @@ describe('layout-store', () => {
     })
 
     it('pane counter increments correctly even after concurrent init attempts', async () => {
-      const { layoutState, initSinglePaneLayout, initHorizontalSplitLayout } = await import(
-        './layout-store.svelte'
-      )
+      const { layoutState, initSinglePaneLayout, initHorizontalSplitLayout } =
+        await import('./layout-store.svelte')
 
       // Sequence of normal calls should all work
       initSinglePaneLayout(1)

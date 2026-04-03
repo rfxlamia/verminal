@@ -84,7 +84,11 @@
       try {
         window.api.pty.kill(spawnResult1.data.sessionId)
       } catch (killError) {
-        console.error('[App] Failed to kill orphaned PTY session:', spawnResult1.data.sessionId, killError)
+        console.error(
+          '[App] Failed to kill orphaned PTY session:',
+          spawnResult1.data.sessionId,
+          killError
+        )
       }
       setStartupError(ERROR_MESSAGES.PTY_SPAWN_FAILED(shell), spawnResult2.error)
       return
@@ -98,7 +102,11 @@
       try {
         window.api.pty.kill(spawnResult1.data.sessionId)
       } catch (killError) {
-        console.error('[App] Failed to kill orphaned PTY session:', spawnResult1.data.sessionId, killError)
+        console.error(
+          '[App] Failed to kill orphaned PTY session:',
+          spawnResult1.data.sessionId,
+          killError
+        )
       }
       // Attempt to kill session 2 if we can extract any sessionId from malformed data
       // This handles edge case where spawn succeeded but returned unexpected data shape
@@ -107,7 +115,11 @@
         try {
           window.api.pty.kill(malformedSessionId)
         } catch (killError) {
-          console.error('[App] Failed to kill malformed PTY session:', malformedSessionId, killError)
+          console.error(
+            '[App] Failed to kill malformed PTY session:',
+            malformedSessionId,
+            killError
+          )
         }
       }
       setStartupError('Failed to initialize session. Please try again.')
