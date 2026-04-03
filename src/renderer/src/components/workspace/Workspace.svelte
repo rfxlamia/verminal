@@ -11,9 +11,8 @@
   let gridColumns = $derived(panes.length >= 2 ? '1fr 1fr' : '1fr')
 
   // Derive grid rows from pane count
-  // 1 pane: 1fr | 2 panes: 1fr | 3 panes: 1fr 1fr (two equal rows for mixed layout)
-  // Note: 4+ panes fall back to single row (handled in Story 3.5)
-  let gridRows = $derived(panes.length === 3 ? '1fr 1fr' : '1fr')
+  // 1 pane: 1fr | 2 panes: 1fr | 3 panes: 1fr 1fr | 4+ panes: 1fr 1fr (two rows for grid layout)
+  let gridRows = $derived(panes.length >= 3 ? '1fr 1fr' : '1fr')
 
   // Container ref for workspace-level resize orchestration
   let containerEl: HTMLDivElement | undefined = $state()

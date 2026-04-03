@@ -892,4 +892,217 @@ describe('Workspace', () => {
       expect(paneContainers.length).toBe(3)
     })
   })
+
+  describe('4-pane grid layout (Story 3.5)', () => {
+    it('renders grid-template-columns as "1fr 1fr" when 4 panes are passed', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 },
+            { paneId: 3, sessionId: 3 },
+            { paneId: 4, sessionId: 4 }
+          ]
+        }
+      })
+
+      const workspace = target.querySelector('.workspace-container') as HTMLElement
+      expect(workspace).not.toBeNull()
+      expect(workspace.style.gridTemplateColumns).toBe('1fr 1fr')
+    })
+
+    it('renders grid-template-rows as "1fr 1fr" when 4 panes are passed', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 },
+            { paneId: 3, sessionId: 3 },
+            { paneId: 4, sessionId: 4 }
+          ]
+        }
+      })
+
+      const workspace = target.querySelector('.workspace-container') as HTMLElement
+      expect(workspace).not.toBeNull()
+      expect(workspace.style.gridTemplateRows).toBe('1fr 1fr')
+    })
+
+    it('renders exactly 4 PaneContainer elements when 4 panes are passed', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 },
+            { paneId: 3, sessionId: 3 },
+            { paneId: 4, sessionId: 4 }
+          ]
+        }
+      })
+
+      const paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(4)
+    })
+
+    it('no pane wrapper has grid-column span when 4 panes (all auto-placed)', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 },
+            { paneId: 3, sessionId: 3 },
+            { paneId: 4, sessionId: 4 }
+          ]
+        }
+      })
+
+      const workspace = target.querySelector('.workspace-container') as HTMLElement
+      expect(workspace).not.toBeNull()
+
+      // All pane wrappers should NOT have grid-column span
+      const paneWrappers = workspace.querySelectorAll('.pane-wrapper')
+      expect(paneWrappers.length).toBe(4)
+      paneWrappers.forEach((wrapper, i) => {
+        const el = wrapper as HTMLElement
+        expect(el.style.gridColumn).toBe('')
+      })
+    })
+
+    it('resizeTick is propagated to all four panes after resize event', async () => {
+      vi.useFakeTimers()
+
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 },
+            { paneId: 3, sessionId: 3 },
+            { paneId: 4, sessionId: 4 }
+          ]
+        }
+      })
+
+      // Wait for mount
+      await vi.runAllTimersAsync()
+
+      // Verify all four panes exist before resize
+      let paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(4)
+
+      // Trigger resize
+      const mockEntry = createMockEntry(mockContentRect)
+      resizeObserverCallbacks.forEach((cb) => cb([mockEntry]))
+      await vi.advanceTimersByTimeAsync(50)
+
+      // Verify all four panes still exist after resize
+      paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(4)
+    })
+
+    // Table-driven test for pane count grid expectations
+    it.each([
+      [1, '1fr', '1fr', 'single pane'],
+      [2, '1fr 1fr', '1fr', 'two panes'],
+      [3, '1fr 1fr', '1fr 1fr', 'three panes (mixed)'],
+      [4, '1fr 1fr', '1fr 1fr', 'four panes (grid)']
+    ])(
+      'renders grid-template-columns "%s" and grid-template-rows "%s" when %s are passed',
+      async (paneCount, expectedCols, expectedRows, description) => {
+        const Workspace = await getWorkspace()
+        const target = document.createElement('div')
+        target.style.width = '1280px'
+        target.style.height = '720px'
+        document.body.appendChild(target)
+
+        const { mount } = await import('svelte')
+
+        const panes = Array.from({ length: paneCount }, (_, i) => ({
+          paneId: i + 1,
+          sessionId: i + 1
+        }))
+
+        mount(Workspace, {
+          target,
+          props: { panes }
+        })
+
+        const workspace = target.querySelector('.workspace-container') as HTMLElement
+        expect(workspace).not.toBeNull()
+        expect(workspace.style.gridTemplateColumns).toBe(expectedCols)
+        expect(workspace.style.gridTemplateRows).toBe(expectedRows)
+      }
+    )
+
+    it('3-pane: first pane wrapper still spans both grid columns (regression guard)', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 },
+            { paneId: 3, sessionId: 3 }
+          ]
+        }
+      })
+
+      const workspace = target.querySelector('.workspace-container') as HTMLElement
+      expect(workspace).not.toBeNull()
+
+      // First pane wrapper should still span both columns
+      const firstPaneWrapper = workspace.children[0] as HTMLElement
+      expect(firstPaneWrapper.classList.contains('pane-wrapper')).toBe(true)
+      expect(firstPaneWrapper.style.gridColumn).toBe('1 / -1')
+    })
+  })
 })
