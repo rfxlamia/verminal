@@ -6,6 +6,10 @@
   // Props:
   let { panes = [] }: { panes: PaneState[] } = $props()
 
+  // Derive grid columns from pane count
+  // 1 pane: 1fr | 2 panes: 1fr 1fr | (3-4 panes handled in Stories 3.4-3.5)
+  let gridColumns = $derived(panes.length === 2 ? '1fr 1fr' : '1fr')
+
   // Container ref for workspace-level resize orchestration
   let containerEl: HTMLDivElement | undefined = $state()
 
@@ -56,7 +60,7 @@
 </script>
 
 <!-- Workspace container - fills the parent shell -->
-<div class="workspace-container" bind:this={containerEl}>
+<div class="workspace-container" bind:this={containerEl} style="grid-template-columns: {gridColumns};">
   {#each panes ?? [] as pane (pane.paneId)}
     <PaneContainer paneId={pane.paneId} sessionId={pane.sessionId} {resizeTick} />
   {/each}
@@ -69,8 +73,7 @@
     min-height: 0;
     position: relative;
     display: grid;
-    /* Grid layout foundation for pane tiling */
-    grid-template-columns: 1fr;
+    /* grid-template-columns now set via inline style — driven by panes.length */
     grid-template-rows: 1fr;
   }
 </style>

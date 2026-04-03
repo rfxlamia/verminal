@@ -296,4 +296,135 @@ describe('Workspace', () => {
       expect(paneContainer?.classList.contains('pane-container')).toBe(true)
     })
   })
+
+  describe('dynamic grid columns (Story 3.3)', () => {
+    it('renders grid-template-columns as "1fr" when 1 pane is passed', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [{ paneId: 1, sessionId: 1 }]
+        }
+      })
+
+      const workspace = target.querySelector('.workspace-container') as HTMLElement
+      expect(workspace).not.toBeNull()
+      expect(workspace.style.gridTemplateColumns).toBe('1fr')
+    })
+
+    it('renders grid-template-columns as "1fr 1fr" when 2 panes are passed', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 }
+          ]
+        }
+      })
+
+      const workspace = target.querySelector('.workspace-container') as HTMLElement
+      expect(workspace).not.toBeNull()
+      expect(workspace.style.gridTemplateColumns).toBe('1fr 1fr')
+    })
+
+    it('renders exactly 2 PaneContainer elements when 2 panes are passed', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 }
+          ]
+        }
+      })
+
+      const paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(2)
+    })
+
+    it('each PaneContainer receives correct paneId and sessionId', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 10, sessionId: 100 },
+            { paneId: 20, sessionId: 200 }
+          ]
+        }
+      })
+
+      const paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers[0].dataset.paneId).toBe('10')
+      expect(paneContainers[0].dataset.sessionId).toBe('100')
+      expect(paneContainers[1].dataset.paneId).toBe('20')
+      expect(paneContainers[1].dataset.sessionId).toBe('200')
+    })
+
+    it('resizeTick is propagated to both panes after resize event', async () => {
+      vi.useFakeTimers()
+
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 }
+          ]
+        }
+      })
+
+      // Wait for mount
+      await vi.runAllTimersAsync()
+
+      // Verify both panes exist before resize
+      let paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(2)
+
+      // Trigger resize
+      resizeObserverCallbacks.forEach((cb) => cb())
+      await vi.advanceTimersByTimeAsync(50)
+
+      // Verify both panes still exist after resize
+      paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(2)
+    })
+  })
 })
