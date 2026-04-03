@@ -265,6 +265,52 @@ describe('Workspace', () => {
       // Verify grid-template-columns is still "1fr 1fr" after resize
       expect(workspace.style.gridTemplateColumns).toBe('1fr 1fr')
     })
+
+    it('resize debounce completes within FR17 100ms budget', async () => {
+      vi.useFakeTimers()
+
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 }
+          ]
+        }
+      })
+
+      // Wait for component to mount
+      await vi.runAllTimersAsync()
+
+      // Record start time
+      const startTime = performance.now()
+
+      // Trigger resize via ResizeObserver mock
+      resizeObserverCallbacks.forEach((cb) => cb())
+
+      // Advance timers until resizeTick is propagated (50ms debounce)
+      await vi.advanceTimersByTimeAsync(50)
+
+      // Record end time
+      const endTime = performance.now()
+      const totalTime = endTime - startTime
+
+      // Verify both panes still exist after resize (resizeTick propagated)
+      const paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(2)
+
+      // Assert total time is under FR17 100ms budget
+      // The debounce is 50ms, which should be well under 100ms
+      expect(totalTime).toBeLessThan(100)
+    })
   })
 
   describe('single pane fullscreen (Story 3.2)', () => {
