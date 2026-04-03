@@ -17,7 +17,7 @@ export interface LayoutState {
 let _paneIdCounter = 0
 
 // Reactive layout state using Svelte 5 runes
-export let layoutState = $state<LayoutState>({
+export const layoutState = $state<LayoutState>({
   layoutName: '',
   panes: []
 })

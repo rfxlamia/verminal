@@ -23,7 +23,7 @@ This file provides guidance to Gemini agents when working with code in this repo
 | Testing           | Vitest (unit) + Playwright (E2E)                                 |
 | Packaging         | electron-builder                                                 |
 
-```
+````
 
 ## Architecture Decisions
 
@@ -56,7 +56,7 @@ All invoke responses use discriminated union:
 type Result<T> =
   | { ok: true; data: T }
   | { ok: false; error: { code: string; message: string; details?: unknown } };
-```
+````
 
 ### State Ownership
 
@@ -85,15 +85,15 @@ type Result<T> =
 
 ## Naming Conventions
 
-| Category            | Pattern                                                             |
-| ------------------- | ------------------------------------------------------------------- |
+| Category            | Pattern                                                       |
+| ------------------- | ------------------------------------------------------------- |
 | IPC channels        | `domain:action` (kebab-case) e.g., `pty:spawn`, `layout:save` |
-| Types/Interfaces    | PascalCase (`PaneState`, `PTYManager`)                          |
-| Functions/Variables | camelCase (`spawnPty`, `focusedPaneId`)                         |
-| Constants           | UPPER_SNAKE_CASE (`MAX_PANES`)                                    |
-| Svelte components   | PascalCase (`PaneContainer.svelte`)                               |
-| TS modules          | kebab-case (`pty-manager.ts`)                                     |
-| TOML keys           | snake_case                                                          |
+| Types/Interfaces    | PascalCase (`PaneState`, `PTYManager`)                        |
+| Functions/Variables | camelCase (`spawnPty`, `focusedPaneId`)                       |
+| Constants           | UPPER_SNAKE_CASE (`MAX_PANES`)                                |
+| Svelte components   | PascalCase (`PaneContainer.svelte`)                           |
+| TS modules          | kebab-case (`pty-manager.ts`)                                 |
+| TOML keys           | snake_case                                                    |
 
 ## Critical Implementation Rules
 

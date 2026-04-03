@@ -12,18 +12,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Technology Stack
 
-| Layer | Technology |
-|-------|------------|
-| Desktop Runtime | Electron + electron-vite |
-| Frontend | Svelte 5 (runes-based) + TypeScript |
-| PTY Engine | node-pty |
+| Layer             | Technology                                                       |
+| ----------------- | ---------------------------------------------------------------- |
+| Desktop Runtime   | Electron + electron-vite                                         |
+| Frontend          | Svelte 5 (runes-based) + TypeScript                              |
+| PTY Engine        | node-pty                                                         |
 | Terminal Renderer | @xterm/xterm + addons (fit, webgl, search, web-links, unicode11) |
-| Config/Layout | smol-toml (deterministic TOML) |
-| UI Components | bits-ui (shadcn-svelte foundation) |
-| Testing | Vitest (unit) + Playwright (E2E) |
-| Packaging | electron-builder |
+| Config/Layout     | smol-toml (deterministic TOML)                                   |
+| UI Components     | bits-ui (shadcn-svelte foundation)                               |
+| Testing           | Vitest (unit) + Playwright (E2E)                                 |
+| Packaging         | electron-builder                                                 |
 
-```
+````
 
 ## Architecture Decisions
 
@@ -56,41 +56,44 @@ All invoke responses use discriminated union:
 type Result<T> =
   | { ok: true; data: T }
   | { ok: false; error: { code: string; message: string; details?: unknown } };
-```
+````
 
 ### State Ownership
+
 - **Renderer** is source-of-truth for workspace state
 - **Split state model**:
   - `LayoutState` (serializable): layout name, panes array
   - `WorkspaceUIState` (ephemeral): focused pane ID, focus mode flag
 
 ### Session Identity
+
 - Sequential integer IDs (not UUID) for sessions and panes
 - Pane ID counter lives in `layout-store.ts`, only `createPane()` can increment
 
 ### Security Boundary
+
 - `contextIsolation: true`
 - `nodeIntegration: false` in renderer
 - All OS/file/PTY access via preload contextBridge only
 - Renderer never touches Node API directly
 
 ### Persistence Rules
+
 - Config location: `~/.verminal/` (resolved via `app.getPath('home')`, never literal `~`)
 - Atomic writes: write to temp → flush → atomic rename
 - TOML format only, deterministic ordering for git-friendly diffs
 
 ## Naming Conventions
 
-| Category | Pattern |
-|----------|---------|
-| IPC channels | `domain:action` (kebab-case) e.g., `pty:spawn`, `layout:save` |
-| Types/Interfaces | PascalCase (`PaneState`, `PTYManager`) |
-| Functions/Variables | camelCase (`spawnPty`, `focusedPaneId`) |
-| Constants | UPPER_SNAKE_CASE (`MAX_PANES`) |
-| Svelte components | PascalCase (`PaneContainer.svelte`) |
-| TS modules | kebab-case (`pty-manager.ts`) |
-| TOML keys | snake_case |
-
+| Category            | Pattern                                                       |
+| ------------------- | ------------------------------------------------------------- |
+| IPC channels        | `domain:action` (kebab-case) e.g., `pty:spawn`, `layout:save` |
+| Types/Interfaces    | PascalCase (`PaneState`, `PTYManager`)                        |
+| Functions/Variables | camelCase (`spawnPty`, `focusedPaneId`)                       |
+| Constants           | UPPER_SNAKE_CASE (`MAX_PANES`)                                |
+| Svelte components   | PascalCase (`PaneContainer.svelte`)                           |
+| TS modules          | kebab-case (`pty-manager.ts`)                                 |
+| TOML keys           | snake_case                                                    |
 
 ## Critical Implementation Rules
 
@@ -120,42 +123,49 @@ type Result<T> =
 ## Workflow Orchestration
 
 ### 1. Plan Mode Default
+
 - Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
 - If something goes sideways, STOP and re-plan immediately - don't keep pushing
 - Use plan mode for verification steps, not just building
 - Write detailed specs upfront to reduce ambiguity
 
 ### 2. Subagent Strategy to keep main context window clean
+
 - **ALWAYS** load delegate skill before spawn any subagents
 - Offload research, exploration, and parallel analysis to subagents
 - For complex problems, throw more compute at it via subagents
 - One task per subagent for focused execution
 
 ### 3. Self-Improvement Loop
+
 - After ANY correction from the user: update 'tasks/lessons.md' with the pattern
 - Write rules for yourself that prevent the same mistake
 - Ruthlessly iterate on these lessons until mistake rate drops
 - Review lessons at session start for relevant project
 
 ### 4. Verification Before Done
+
 - Never mark a task complete without proving it works
 - Diff behavior between main and your changes when relevant
 - Ask yourself: "Would a staff engineer approve this?"
 - Run tests, check logs, demonstrate correctness
 
 ### 5. Demand Elegance (Balanced)
+
 - For non-trivial changes: pause and ask "is there a more elegant way?"
 - If a fix feels hacky: "Knowing everything I know now, implement the elegant solution"
 - Skip this for simple, obvious fixes - don't over-engineer
 - Challenge your own work before presenting it
 
 ### 6. Autonomous Bug Fixing
+
 - When given a bug report: just fix it. Don't ask for hand-holding
 - Point at logs, errors, failing tests -> then resolve them
 - Zero context switching required from the user
 - Go fix failing CI tests without being told how
 
 ## Task Management
+
 1. **Plan First**: Write plan to 'tasks/todo.md' with checkable items
 2. **Verify Plan**: Check in before starting implementation
 3. **Track Progress**: Mark items complete as you go
@@ -164,6 +174,7 @@ type Result<T> =
 6. **Capture Lessons**: Update 'tasks/lessons.md' after corrections
 
 ## Core Principles
+
 - **Simplicity First**: Make every change as simple as possible. Impact minimal code.
 - **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
 - **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.

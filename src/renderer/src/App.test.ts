@@ -4,9 +4,12 @@ import App from './App.svelte'
 
 // Mock ResizeObserver for jsdom
 class MockResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  observe(): void {}
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  unobserve(): void {}
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  disconnect(): void {}
 }
 
 // @ts-expect-error - adding ResizeObserver to window
@@ -21,7 +24,9 @@ describe('App.svelte', () => {
   it('renders panes from layoutState instead of a hardcoded array', async () => {
     // Mock successful API calls
     const mockShellDetect = vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] })
-    const mockGetPaths = vi.fn().mockResolvedValue({ ok: true, data: { home: '/home/test', userData: '', logsDir: '' } })
+    const mockGetPaths = vi
+      .fn()
+      .mockResolvedValue({ ok: true, data: { home: '/home/test', userData: '', logsDir: '' } })
     const mockPtySpawn = vi.fn().mockResolvedValue({ ok: true, data: { sessionId: 1 } })
     const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
 
@@ -47,7 +52,10 @@ describe('App.svelte', () => {
   })
 
   it('shows inline recoverable error when shell.detect fails', async () => {
-    const mockShellDetect = vi.fn().mockResolvedValue({ ok: false, error: { code: 'DETECT_FAILED', message: 'Detection error' } })
+    const mockShellDetect = vi.fn().mockResolvedValue({
+      ok: false,
+      error: { code: 'DETECT_FAILED', message: 'Detection error' }
+    })
     const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
 
     // @ts-expect-error - mocking window.api
@@ -86,7 +94,9 @@ describe('App.svelte', () => {
 
   it('shows inline recoverable error when app.getPaths fails and does not call pty.spawn', async () => {
     const mockShellDetect = vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] })
-    const mockGetPaths = vi.fn().mockResolvedValue({ ok: false, error: { code: 'PATHS_FAILED', message: 'Paths error' } })
+    const mockGetPaths = vi
+      .fn()
+      .mockResolvedValue({ ok: false, error: { code: 'PATHS_FAILED', message: 'Paths error' } })
     const mockPtySpawn = vi.fn()
     const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
 
@@ -111,8 +121,12 @@ describe('App.svelte', () => {
   it('shows inline recoverable error when pty.spawn fails and includes the shell path', async () => {
     const shellPath = '/bin/zsh'
     const mockShellDetect = vi.fn().mockResolvedValue({ ok: true, data: [shellPath] })
-    const mockGetPaths = vi.fn().mockResolvedValue({ ok: true, data: { home: '/home/test', userData: '', logsDir: '' } })
-    const mockPtySpawn = vi.fn().mockResolvedValue({ ok: false, error: { code: 'SPAWN_FAILED', message: 'Spawn error' } })
+    const mockGetPaths = vi
+      .fn()
+      .mockResolvedValue({ ok: true, data: { home: '/home/test', userData: '', logsDir: '' } })
+    const mockPtySpawn = vi
+      .fn()
+      .mockResolvedValue({ ok: false, error: { code: 'SPAWN_FAILED', message: 'Spawn error' } })
     const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
 
     // @ts-expect-error - mocking window.api
