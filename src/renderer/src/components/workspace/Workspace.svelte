@@ -31,8 +31,15 @@
 
   onMount(() => {
     // Set up ResizeObserver at workspace container level
-    resizeObserver = new ResizeObserver(() => {
+    resizeObserver = new ResizeObserver((entries) => {
       if (isDestroyed) return
+
+      // Check for valid dimensions - guard against zero-width/height containers
+      const entry = entries[0]
+      if (!entry) return
+      const { width, height } = entry.contentRect
+      if (width === 0 || height === 0) return
+
       // Clear any pending debounce
       if (resizeDebounceTimer) {
         clearTimeout(resizeDebounceTimer)

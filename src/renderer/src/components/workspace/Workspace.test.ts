@@ -5,19 +5,41 @@ import { describe, it, expect, vi, beforeAll, afterEach, beforeEach } from 'vite
 // ============================================================================
 
 // Track ResizeObserver callbacks - support multiple instances
-const resizeObserverCallbacks: Array<() => void> = []
+const resizeObserverCallbacks: Array<(entries: ResizeObserverEntry[]) => void> = []
+
+// Default mock dimensions - can be overridden per test
+let mockContentRect: DOMRectReadOnly = {
+  width: 1280,
+  height: 720,
+  x: 0,
+  y: 0,
+  top: 0,
+  left: 0,
+  bottom: 720,
+  right: 1280
+} as DOMRectReadOnly
+
+// Helper to create mock ResizeObserverEntry
+function createMockEntry(rect: DOMRectReadOnly): ResizeObserverEntry {
+  return {
+    target: document.createElement('div'),
+    contentRect: rect,
+    borderBoxSize: [],
+    contentBoxSize: [],
+    devicePixelContentBoxSize: []
+  } as ResizeObserverEntry
+}
 
 // Mock ResizeObserver for jsdom environment
 globalThis.ResizeObserver = vi.fn().mockImplementation((callback: ResizeObserverCallback) => {
   // Store callback with proper type for ResizeObserverEntry array
-  const callbackFn = (): void => {
-    const mockEntries: ResizeObserverEntry[] = []
+  const callbackFn = (entries: ResizeObserverEntry[]): void => {
     const mockObserver: ResizeObserver = {
       observe: vi.fn(),
       unobserve: vi.fn(),
       disconnect: vi.fn()
     }
-    callback(mockEntries, mockObserver)
+    callback(entries, mockObserver)
   }
   resizeObserverCallbacks.push(callbackFn)
   return {
@@ -35,6 +57,17 @@ describe('Workspace', () => {
   beforeEach(() => {
     resizeObserverCallbacks.length = 0
     vi.useFakeTimers()
+    // Reset mock dimensions to default
+    mockContentRect = {
+      width: 1280,
+      height: 720,
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      bottom: 720,
+      right: 1280
+    } as DOMRectReadOnly
 
     // Mock window.api
     vi.stubGlobal('window', {
@@ -153,9 +186,10 @@ describe('Workspace', () => {
       expect(globalThis.ResizeObserver).toHaveBeenCalled()
 
       // Trigger multiple resize callbacks rapidly (within debounce window)
-      resizeObserverCallbacks.forEach((cb) => cb())
-      resizeObserverCallbacks.forEach((cb) => cb())
-      resizeObserverCallbacks.forEach((cb) => cb())
+      const mockEntry = createMockEntry(mockContentRect)
+      resizeObserverCallbacks.forEach((cb) => cb([mockEntry]))
+      resizeObserverCallbacks.forEach((cb) => cb([mockEntry]))
+      resizeObserverCallbacks.forEach((cb) => cb([mockEntry]))
 
       // Immediately after triggers, resizeTick should still be 0 (debounce active)
       // Advance timers but not past debounce
@@ -198,7 +232,8 @@ describe('Workspace', () => {
       expect(paneContainers.length).toBe(2)
 
       // Trigger resize if callback was captured
-      resizeObserverCallbacks.forEach((cb) => cb())
+      const mockEntry = createMockEntry(mockContentRect)
+      resizeObserverCallbacks.forEach((cb) => cb([mockEntry]))
       // Advance timers past debounce period
       await vi.advanceTimersByTimeAsync(50)
 
@@ -258,7 +293,8 @@ describe('Workspace', () => {
       expect(workspace.style.gridTemplateColumns).toBe('1fr 1fr')
 
       // Trigger resize via ResizeObserver mock
-      resizeObserverCallbacks.forEach((cb) => cb())
+      const mockEntry = createMockEntry(mockContentRect)
+      resizeObserverCallbacks.forEach((cb) => cb([mockEntry]))
       // Advance timers past debounce period
       await vi.advanceTimersByTimeAsync(50)
 
@@ -294,7 +330,8 @@ describe('Workspace', () => {
       const startTime = performance.now()
 
       // Trigger resize via ResizeObserver mock
-      resizeObserverCallbacks.forEach((cb) => cb())
+      const mockEntry = createMockEntry(mockContentRect)
+      resizeObserverCallbacks.forEach((cb) => cb([mockEntry]))
 
       // Advance timers until resizeTick is propagated (50ms debounce)
       await vi.advanceTimersByTimeAsync(50)
@@ -310,6 +347,117 @@ describe('Workspace', () => {
       // Assert total time is under FR17 100ms budget
       // The debounce is 50ms, which should be well under 100ms
       expect(totalTime).toBeLessThan(100)
+    })
+
+    it('does not propagate resizeTick when container has zero dimensions', async () => {
+      vi.useFakeTimers()
+
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 }
+          ]
+        }
+      })
+
+      // Wait for component to mount
+      await vi.runAllTimersAsync()
+
+      // Verify both panes exist
+      let paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(2)
+
+      // Create zero-width entry
+      const zeroWidthEntry = createMockEntry({
+        width: 0,
+        height: 720,
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        bottom: 720,
+        right: 0
+      } as DOMRectReadOnly)
+
+      // Trigger resize with zero width
+      resizeObserverCallbacks.forEach((cb) => cb([zeroWidthEntry]))
+      await vi.advanceTimersByTimeAsync(50)
+
+      // Verify panes still exist (resize should have been skipped)
+      paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(2)
+
+      // Create zero-height entry
+      const zeroHeightEntry = createMockEntry({
+        width: 1280,
+        height: 0,
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        bottom: 0,
+        right: 1280
+      } as DOMRectReadOnly)
+
+      // Trigger resize with zero height
+      resizeObserverCallbacks.forEach((cb) => cb([zeroHeightEntry]))
+      await vi.advanceTimersByTimeAsync(50)
+
+      // Verify panes still exist (resize should have been skipped)
+      paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(2)
+    })
+
+    it('does not propagate resizeTick when both dimensions are zero', async () => {
+      vi.useFakeTimers()
+
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [{ paneId: 1, sessionId: 1 }]
+        }
+      })
+
+      // Wait for component to mount
+      await vi.runAllTimersAsync()
+
+      // Create zero-dimensions entry
+      const zeroEntry = createMockEntry({
+        width: 0,
+        height: 0,
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        bottom: 0,
+        right: 0
+      } as DOMRectReadOnly)
+
+      // Trigger resize with zero dimensions
+      resizeObserverCallbacks.forEach((cb) => cb([zeroEntry]))
+      await vi.advanceTimersByTimeAsync(50)
+
+      // Verify pane still exists (resize should have been skipped)
+      const paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(1)
     })
   })
 
@@ -503,7 +651,8 @@ describe('Workspace', () => {
       expect(paneContainers.length).toBe(2)
 
       // Trigger resize
-      resizeObserverCallbacks.forEach((cb) => cb())
+      const mockEntry = createMockEntry(mockContentRect)
+      resizeObserverCallbacks.forEach((cb) => cb([mockEntry]))
       await vi.advanceTimersByTimeAsync(50)
 
       // Verify both panes still exist after resize
