@@ -181,6 +181,10 @@ type Result<T> =
 
 ## Additional Project Preferences
 
+- **[CODE REVIEW]**: Treat every code review finding as valuable advice that must be investigated. No minor suggestion is dismissed - minor suggestions are valuable edge cases. Investigate and verify every finding seriously.
+  - Ditambahkan: 2026-04-03
+  - Konteks: Code review untuk Story 3.2 - awalnya men-dismiss temuan sebagai "defer", tapi ternyata ada bug fungsional serius (preload path salah)
+
 - **[QUALITY-GATES]**: Saat mengerjakan project ini, WAJIB zero regresi (test suite lulus), strict TypeScript harus zero warning dan zero error, serta DILARANG melakukan push atau create PR sebelum quality gates terpenuhi (termasuk lolos CI/CD).
 
 - **WAJIB** lolos lint, typecheck, test, dan build sebelum commit.
