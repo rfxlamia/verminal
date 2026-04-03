@@ -56,4 +56,41 @@ describe('layout-store', () => {
       expect(layoutState.panes).toEqual([])
     })
   })
+
+  describe('initSinglePaneLayout()', () => {
+    it('sets layoutState.panes to exactly 1 pane', async () => {
+      const { layoutState, initSinglePaneLayout } = await import('./layout-store.svelte')
+      initSinglePaneLayout(42)
+      expect(layoutState.panes.length).toBe(1)
+    })
+
+    it('pane in layout has the provided sessionId', async () => {
+      const { layoutState, initSinglePaneLayout } = await import('./layout-store.svelte')
+      initSinglePaneLayout(999)
+      expect(layoutState.panes[0].sessionId).toBe(999)
+    })
+
+    it('sets layoutState.layoutName to "single"', async () => {
+      const { layoutState, initSinglePaneLayout } = await import('./layout-store.svelte')
+      initSinglePaneLayout(1)
+      expect(layoutState.layoutName).toBe('single')
+    })
+
+    it('calling twice replaces panes (idempotent reset to 1 pane)', async () => {
+      const { layoutState, initSinglePaneLayout } = await import('./layout-store.svelte')
+      initSinglePaneLayout(1)
+      initSinglePaneLayout(2)
+      expect(layoutState.panes.length).toBe(1)
+      expect(layoutState.panes[0].sessionId).toBe(2)
+    })
+
+    it('paneId in second call is higher than first (counter not reset)', async () => {
+      const { layoutState, initSinglePaneLayout } = await import('./layout-store.svelte')
+      initSinglePaneLayout(1)
+      const firstPaneId = layoutState.panes[0].paneId
+      initSinglePaneLayout(2)
+      const secondPaneId = layoutState.panes[0].paneId
+      expect(secondPaneId).toBeGreaterThan(firstPaneId)
+    })
+  })
 })
