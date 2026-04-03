@@ -12,7 +12,7 @@
   let resizeObserver: ResizeObserver | undefined
   let resizeDebounceTimer: ReturnType<typeof setTimeout> | undefined
   let resizeTick = $state(0)
-  let isDestroyed = false
+  let isDestroyed = $state(false)
 
   // Debounce window (50ms per UX-DR25 architecture spec)
   const RESIZE_DEBOUNCE_MS = 50

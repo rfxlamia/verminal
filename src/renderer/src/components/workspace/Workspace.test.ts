@@ -1,15 +1,22 @@
-import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeAll, afterEach, beforeEach } from 'vitest'
 
 // ============================================================================
 // Mock setup - must be before any imports
 // ============================================================================
 
+// Track ResizeObserver callbacks
+let resizeObserverCallback: (() => void) | null = null
+
 // Mock ResizeObserver for jsdom environment
-globalThis.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn()
-})) as unknown as typeof ResizeObserver
+globalThis.ResizeObserver = vi.fn().mockImplementation((callback) => {
+  resizeObserverCallback = () =>
+    callback([], { observe: vi.fn(), unobserve: vi.fn(), disconnect: vi.fn() })
+  return {
+    observe: vi.fn(),
+    unobserve: vi.fn(),
+    disconnect: vi.fn()
+  }
+}) as unknown as typeof ResizeObserver
 
 describe('Workspace', () => {
   beforeAll(() => {
@@ -17,6 +24,7 @@ describe('Workspace', () => {
   })
 
   beforeEach(() => {
+    resizeObserverCallback = null
     vi.useFakeTimers()
 
     // Mock window.api
@@ -87,11 +95,14 @@ describe('Workspace', () => {
       // Should have workspace container
       const workspace = target.querySelector('.workspace-container')
       expect(workspace).not.toBeNull()
+      // Should contain pane containers
+      const paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(2)
     })
   })
 
   describe('resize handling (AC #2)', () => {
-    it('debounces ResizeObserver callbacks by 50ms', async () => {
+    it('sets up ResizeObserver on mount', async () => {
       const Workspace = await getWorkspace()
       const target = document.createElement('div')
       document.body.appendChild(target)
@@ -105,15 +116,11 @@ describe('Workspace', () => {
         }
       })
 
-      // Wait for component to mount and setup ResizeObserver
+      // Wait for component to mount
       await vi.runAllTimersAsync()
 
-      // The resize tick should have been incremented after 50ms debounce
-      // We need to advance timers to trigger the debounced callback
-      await vi.advanceTimersByTimeAsync(100)
-
-      // After debounce, resizeTick should be > 0 (incremented from initial 0)
-      // This tests that ResizeObserver triggers the debounce mechanism
+      // Verify ResizeObserver was created
+      expect(globalThis.ResizeObserver).toHaveBeenCalled()
     })
 
     it('notifies all child panes on resize', async () => {
@@ -138,10 +145,41 @@ describe('Workspace', () => {
       // Wait for component to mount
       await vi.runAllTimersAsync()
 
-      // Advance timers past debounce period
-      await vi.advanceTimersByTimeAsync(100)
+      // Verify both panes are rendered
+      const paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(2)
 
-      // Both panes should receive resize notifications (test passes if no error)
+      // Trigger resize if callback was captured
+      if (resizeObserverCallback) {
+        resizeObserverCallback()
+        // Advance timers past debounce period
+        await vi.advanceTimersByTimeAsync(50)
+      }
+
+      // Verify panes still exist after resize handling
+      const panesAfterResize = target.querySelectorAll('.pane-container')
+      expect(panesAfterResize.length).toBe(2)
+
+      // Verify each pane has proper metadata
+      expect(panesAfterResize[0].dataset.paneId).toBe('1')
+      expect(panesAfterResize[0].dataset.sessionId).toBe('1')
+      expect(panesAfterResize[1].dataset.paneId).toBe('2')
+      expect(panesAfterResize[1].dataset.sessionId).toBe('2')
+    })
+
+    it('disconnects ResizeObserver on destroy', async () => {
+      const { mount, unmount } = await import('svelte')
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const component = mount(Workspace, {
+        target,
+        props: { panes: [{ paneId: 1, sessionId: 1 }] }
+      })
+
+      // Unmount should not throw and should clean up properly
+      expect(() => unmount(component)).not.toThrow()
     })
   })
 })

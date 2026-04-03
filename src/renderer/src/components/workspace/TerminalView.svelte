@@ -13,7 +13,7 @@
   let containerEl: HTMLDivElement | undefined = $state()
 
   // Track exit to implement the PTY exit race guard (AC #7):
-  let sessionExited = false
+  let sessionExited = $state(false)
 
   // Terminal instance (module-scoped within component):
   let terminal: Terminal | undefined
@@ -22,12 +22,12 @@
   let unsubscribeExit: (() => void) | undefined
 
   // Previous resizeTick for change detection
-  let lastResizeTick = 0
+  let lastResizeTick = $state(0)
 
   // Synchronization state
-  let lastSyncedCols = 0
-  let lastSyncedRows = 0
-  let isDestroyed = false
+  let lastSyncedCols = $state(0)
+  let lastSyncedRows = $state(0)
+  let isDestroyed = $state(false)
 
   // Minimum dimensions to prevent sending 0x0 to PTY (edge case)
   const MIN_COLS = 1
