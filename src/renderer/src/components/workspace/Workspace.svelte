@@ -7,8 +7,12 @@
   let { panes = [] }: { panes: PaneState[] } = $props()
 
   // Derive grid columns from pane count
-  // 1 pane: 1fr | 2 panes: 1fr 1fr | (3-4 panes handled in Stories 3.4-3.5)
-  let gridColumns = $derived(panes.length === 2 ? '1fr 1fr' : '1fr')
+  // 1 pane: 1fr | 2 panes: 1fr 1fr | 3 panes: 1fr 1fr (2 columns for mixed layout)
+  let gridColumns = $derived(panes.length >= 2 ? '1fr 1fr' : '1fr')
+
+  // Derive grid rows from pane count
+  // 1 pane: 1fr | 2 panes: 1fr | 3 panes: 1fr 1fr (two equal rows for mixed layout)
+  let gridRows = $derived(panes.length === 3 ? '1fr 1fr' : '1fr')
 
   // Container ref for workspace-level resize orchestration
   let containerEl: HTMLDivElement | undefined = $state()
@@ -70,10 +74,15 @@
 <div
   class="workspace-container"
   bind:this={containerEl}
-  style="grid-template-columns: {gridColumns};"
+  style="grid-template-columns: {gridColumns}; grid-template-rows: {gridRows};"
 >
-  {#each panes ?? [] as pane (pane.paneId)}
-    <PaneContainer paneId={pane.paneId} sessionId={pane.sessionId} {resizeTick} />
+  {#each panes ?? [] as pane, i (pane.paneId)}
+    <div
+      class="pane-wrapper"
+      style:grid-column={panes.length === 3 && i === 0 ? '1 / -1' : undefined}
+    >
+      <PaneContainer paneId={pane.paneId} sessionId={pane.sessionId} {resizeTick} />
+    </div>
   {/each}
 </div>
 
@@ -84,7 +93,11 @@
     min-height: 0;
     position: relative;
     display: grid;
-    /* grid-template-columns now set via inline style — driven by panes.length */
-    grid-template-rows: 1fr;
+    /* grid-template-columns and grid-template-rows are now set via inline style */
+  }
+
+  .pane-wrapper {
+    min-width: 0;
+    min-height: 0;
   }
 </style>

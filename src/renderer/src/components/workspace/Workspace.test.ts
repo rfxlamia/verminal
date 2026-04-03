@@ -660,4 +660,236 @@ describe('Workspace', () => {
       expect(paneContainers.length).toBe(2)
     })
   })
+
+  describe('mixed split 3-pane grid (Story 3.4)', () => {
+    it('renders grid-template-columns as "1fr 1fr" when 3 panes are passed', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 },
+            { paneId: 3, sessionId: 3 }
+          ]
+        }
+      })
+
+      const workspace = target.querySelector('.workspace-container') as HTMLElement
+      expect(workspace).not.toBeNull()
+      expect(workspace.style.gridTemplateColumns).toBe('1fr 1fr')
+    })
+
+    it('renders grid-template-rows as "1fr" when 1 pane is passed', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [{ paneId: 1, sessionId: 1 }]
+        }
+      })
+
+      const workspace = target.querySelector('.workspace-container') as HTMLElement
+      expect(workspace).not.toBeNull()
+      expect(workspace.style.gridTemplateRows).toBe('1fr')
+    })
+
+    it('renders grid-template-rows as "1fr" when 2 panes are passed', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 }
+          ]
+        }
+      })
+
+      const workspace = target.querySelector('.workspace-container') as HTMLElement
+      expect(workspace).not.toBeNull()
+      expect(workspace.style.gridTemplateRows).toBe('1fr')
+    })
+
+    it('renders grid-template-rows as "1fr 1fr" when 3 panes are passed', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 },
+            { paneId: 3, sessionId: 3 }
+          ]
+        }
+      })
+
+      const workspace = target.querySelector('.workspace-container') as HTMLElement
+      expect(workspace).not.toBeNull()
+      expect(workspace.style.gridTemplateRows).toBe('1fr 1fr')
+    })
+
+    it('renders exactly 3 PaneContainer elements when 3 panes are passed', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 },
+            { paneId: 3, sessionId: 3 }
+          ]
+        }
+      })
+
+      const paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(3)
+    })
+
+    it('the first rendered pane wrapper spans both grid columns when 3 panes', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 },
+            { paneId: 3, sessionId: 3 }
+          ]
+        }
+      })
+
+      // The first pane should be wrapped in a div with pane-wrapper class
+      // and grid-column: 1 / -1 inline style
+      const workspace = target.querySelector('.workspace-container') as HTMLElement
+      expect(workspace).not.toBeNull()
+
+      // First child should have the pane-wrapper class
+      const firstPaneWrapper = workspace.children[0] as HTMLElement
+      expect(firstPaneWrapper.classList.contains('pane-wrapper')).toBe(true)
+
+      // Verify the grid-column style is applied
+      expect(firstPaneWrapper.style.gridColumn).toBe('1 / -1')
+    })
+
+    it('resizeTick is propagated to all three panes after resize event', async () => {
+      vi.useFakeTimers()
+
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 },
+            { paneId: 3, sessionId: 3 }
+          ]
+        }
+      })
+
+      // Wait for mount
+      await vi.runAllTimersAsync()
+
+      // Verify all three panes exist before resize
+      let paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(3)
+
+      // Trigger resize
+      const mockEntry = createMockEntry(mockContentRect)
+      resizeObserverCallbacks.forEach((cb) => cb([mockEntry]))
+      await vi.advanceTimersByTimeAsync(50)
+
+      // Verify all three panes still exist after resize
+      paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(3)
+    })
+
+    it('preserves the existing 50ms workspace debounce path for mixed-layout reflow', async () => {
+      vi.useFakeTimers()
+
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 },
+            { paneId: 3, sessionId: 3 }
+          ]
+        }
+      })
+
+      // Wait for mount
+      await vi.runAllTimersAsync()
+
+      // Trigger multiple rapid resize events
+      const mockEntry = createMockEntry(mockContentRect)
+      resizeObserverCallbacks.forEach((cb) => cb([mockEntry]))
+      resizeObserverCallbacks.forEach((cb) => cb([mockEntry]))
+      resizeObserverCallbacks.forEach((cb) => cb([mockEntry]))
+
+      // Immediately check - panes should still exist
+      let paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(3)
+
+      // Advance past debounce
+      await vi.advanceTimersByTimeAsync(50)
+
+      // Verify all panes still exist after debounce
+      paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(3)
+    })
+  })
 })
