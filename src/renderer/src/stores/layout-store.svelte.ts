@@ -50,3 +50,15 @@ export function initSinglePaneLayout(sessionId: number): void {
   layoutState.layoutName = 'single'
   layoutState.panes = [pane]
 }
+
+/**
+ * Initializes the layout with two side-by-side panes (FR14).
+ * Resets panes array to [2 panes] in horizontal split.
+ * Note: _paneIdCounter is NOT reset — IDs are monotonically increasing.
+ */
+export function initHorizontalSplitLayout(sessionId1: number, sessionId2: number): void {
+  const pane1 = createPane(sessionId1)
+  const pane2 = createPane(sessionId2)
+  layoutState.layoutName = 'horizontal'
+  layoutState.panes = [pane1, pane2]
+}

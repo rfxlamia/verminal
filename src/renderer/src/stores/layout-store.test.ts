@@ -93,4 +93,68 @@ describe('layout-store', () => {
       expect(secondPaneId).toBeGreaterThan(firstPaneId)
     })
   })
+
+  describe('initHorizontalSplitLayout()', () => {
+    it('sets layoutState.panes to exactly 2 panes', async () => {
+      const { layoutState, initHorizontalSplitLayout } = await import('./layout-store.svelte')
+      initHorizontalSplitLayout(42, 43)
+      expect(layoutState.panes.length).toBe(2)
+    })
+
+    it('pane[0].sessionId equals sessionId1', async () => {
+      const { layoutState, initHorizontalSplitLayout } = await import('./layout-store.svelte')
+      initHorizontalSplitLayout(100, 200)
+      expect(layoutState.panes[0].sessionId).toBe(100)
+    })
+
+    it('pane[1].sessionId equals sessionId2', async () => {
+      const { layoutState, initHorizontalSplitLayout } = await import('./layout-store.svelte')
+      initHorizontalSplitLayout(100, 200)
+      expect(layoutState.panes[1].sessionId).toBe(200)
+    })
+
+    it('pane[0].paneId < pane[1].paneId (sequential)', async () => {
+      const { layoutState, initHorizontalSplitLayout } = await import('./layout-store.svelte')
+      initHorizontalSplitLayout(1, 2)
+      expect(layoutState.panes[0].paneId).toBeLessThan(layoutState.panes[1].paneId)
+    })
+
+    it('sets layoutState.layoutName to "horizontal"', async () => {
+      const { layoutState, initHorizontalSplitLayout } = await import('./layout-store.svelte')
+      initHorizontalSplitLayout(1, 2)
+      expect(layoutState.layoutName).toBe('horizontal')
+    })
+
+    it('calling twice replaces panes with fresh 2-pane set (idempotent reset)', async () => {
+      const { layoutState, initHorizontalSplitLayout } = await import('./layout-store.svelte')
+      initHorizontalSplitLayout(1, 2)
+      expect(layoutState.panes.length).toBe(2)
+      initHorizontalSplitLayout(3, 4)
+      expect(layoutState.panes.length).toBe(2)
+      expect(layoutState.panes[0].sessionId).toBe(3)
+      expect(layoutState.panes[1].sessionId).toBe(4)
+    })
+
+    it('paneIds are distinct and incrementing from previous createPane calls', async () => {
+      const { createPane, layoutState, initHorizontalSplitLayout } = await import('./layout-store.svelte')
+      // First create a pane manually
+      const manualPane = createPane(999)
+      // Then init horizontal layout
+      initHorizontalSplitLayout(100, 200)
+      // Both panes should have IDs greater than the manual pane
+      expect(layoutState.panes[0].paneId).toBeGreaterThan(manualPane.paneId)
+      expect(layoutState.panes[1].paneId).toBeGreaterThan(manualPane.paneId)
+      // And they should be sequential
+      expect(layoutState.panes[1].paneId).toBe(layoutState.panes[0].paneId + 1)
+    })
+
+    it('_paneIdCounter continues incrementing after initHorizontalSplitLayout (counter not reset)', async () => {
+      const { layoutState, initHorizontalSplitLayout, createPane } = await import('./layout-store.svelte')
+      initHorizontalSplitLayout(1, 2)
+      const lastPaneId = layoutState.panes[1].paneId
+      // Create another pane after - should continue from where we left off
+      const newPane = createPane(3)
+      expect(newPane.paneId).toBeGreaterThan(lastPaneId)
+    })
+  })
 })
