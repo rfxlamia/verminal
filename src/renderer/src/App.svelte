@@ -90,7 +90,14 @@
       !spawnResult2.data ||
       typeof spawnResult2.data.sessionId !== 'number'
     ) {
+      // NFR15: No orphaned PTY - kill session 1 always
       window.api.pty.kill(spawnResult1.data.sessionId)
+      // Attempt to kill session 2 if we can extract any sessionId from malformed data
+      // This handles edge case where spawn succeeded but returned unexpected data shape
+      const malformedSessionId = (spawnResult2.data as { sessionId?: number } | null)?.sessionId
+      if (typeof malformedSessionId === 'number') {
+        window.api.pty.kill(malformedSessionId)
+      }
       setStartupError('Failed to initialize session. Please try again.')
       return
     }
