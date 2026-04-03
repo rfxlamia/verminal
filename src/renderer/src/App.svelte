@@ -29,7 +29,7 @@
   function cleanupSessions(sessionIds: number[]): void {
     for (const sessionId of sessionIds) {
       try {
-        window.api.pty.kill(sessionId)
+        window.api?.pty?.kill(sessionId)
       } catch (e) {
         console.error('[App] Failed to kill PTY session:', sessionId, e)
       }
@@ -131,6 +131,11 @@
     ) {
       // Kill both previous sessions on malformed data — NFR15 no half-spawned state
       cleanupSessions([spawnResult1.data.sessionId, spawnResult2.data.sessionId])
+      // Attempt to kill session 3 if we can extract any sessionId from malformed data
+      const malformedSessionId3 = (spawnResult3.data as { sessionId?: number } | null)?.sessionId
+      if (typeof malformedSessionId3 === 'number') {
+        cleanupSessions([malformedSessionId3])
+      }
       setStartupError('Failed to initialize session. Please try again.')
       return
     }

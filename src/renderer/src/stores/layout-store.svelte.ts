@@ -84,6 +84,7 @@ export function initSinglePaneLayout(sessionId: number): void {
   }
 
   try {
+    validateSessionId(sessionId, 'sessionId')
     const pane = createPane(sessionId)
     layoutState.layoutName = 'single'
     layoutState.panes = [pane]
@@ -104,6 +105,8 @@ export function initHorizontalSplitLayout(sessionId1: number, sessionId2: number
   }
 
   try {
+    validateSessionId(sessionId1, 'sessionId1')
+    validateSessionId(sessionId2, 'sessionId2')
     if (sessionId1 === sessionId2) {
       throw new Error(
         `sessionId1 and sessionId2 must be different (both are ${sessionId1}). ` +
@@ -116,6 +119,18 @@ export function initHorizontalSplitLayout(sessionId1: number, sessionId2: number
     layoutState.panes = [pane1, pane2]
   } finally {
     releaseLayoutInitLock()
+  }
+}
+
+/**
+ * Validates that a session ID is a positive integer.
+ * @throws {Error} If sessionId is not a positive integer
+ */
+function validateSessionId(sessionId: number, name: string): void {
+  if (!Number.isInteger(sessionId) || sessionId <= 0) {
+    throw new Error(
+      `${name} must be a positive integer. Got: ${sessionId}`
+    )
   }
 }
 
@@ -138,6 +153,9 @@ export function initMixedSplitLayout(
   }
 
   try {
+    validateSessionId(sessionId1, 'sessionId1')
+    validateSessionId(sessionId2, 'sessionId2')
+    validateSessionId(sessionId3, 'sessionId3')
     if (
       sessionId1 === sessionId2 ||
       sessionId2 === sessionId3 ||
