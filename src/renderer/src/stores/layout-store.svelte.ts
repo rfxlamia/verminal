@@ -176,6 +176,54 @@ export function initMixedSplitLayout(
 }
 
 /**
+ * Initializes the layout with a 2×2 grid: 4 equal panes (FR16).
+ * Resets panes array to [4 panes]:
+ *   panes[0] = top-left (auto-placed)
+ *   panes[1] = top-right (auto-placed)
+ *   panes[2] = bottom-left (auto-placed)
+ *   panes[3] = bottom-right (auto-placed)
+ * Note: _paneIdCounter is NOT reset — IDs are monotonically increasing.
+ * @throws {ConcurrentLayoutInitError} If another layout initialization is in progress
+ */
+export function initGridLayout(
+  sessionId1: number,
+  sessionId2: number,
+  sessionId3: number,
+  sessionId4: number
+): void {
+  if (!acquireLayoutInitLock()) {
+    throw new ConcurrentLayoutInitError()
+  }
+
+  try {
+    validateSessionId(sessionId1, 'sessionId1')
+    validateSessionId(sessionId2, 'sessionId2')
+    validateSessionId(sessionId3, 'sessionId3')
+    validateSessionId(sessionId4, 'sessionId4')
+    if (
+      sessionId1 === sessionId2 ||
+      sessionId1 === sessionId3 ||
+      sessionId1 === sessionId4 ||
+      sessionId2 === sessionId3 ||
+      sessionId2 === sessionId4 ||
+      sessionId3 === sessionId4
+    ) {
+      throw new Error(
+        `All four sessionIds must be distinct. Got: ${sessionId1}, ${sessionId2}, ${sessionId3}, ${sessionId4}`
+      )
+    }
+    const pane1 = createPane(sessionId1)
+    const pane2 = createPane(sessionId2)
+    const pane3 = createPane(sessionId3)
+    const pane4 = createPane(sessionId4)
+    layoutState.layoutName = 'grid'
+    layoutState.panes = [pane1, pane2, pane3, pane4]
+  } finally {
+    releaseLayoutInitLock()
+  }
+}
+
+/**
  * Resets the layout state for testing purposes.
  * Clears panes and layout name.
  * Also resets the layout initialization lock.
