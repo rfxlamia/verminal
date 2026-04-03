@@ -21,6 +21,9 @@ export interface LayoutState {
 // Sequential integer IDs starting from 1
 let _paneIdCounter = 0
 
+// Guard flag to prevent concurrent layout initialization
+let _layoutInitLock = false
+
 // Reactive layout state using Svelte 5 runes
 export const layoutState = $state<LayoutState>({
   layoutName: '',
@@ -41,39 +44,88 @@ export function createPane(sessionId: number, name = ''): PaneState {
 }
 
 /**
+ * Error thrown when a layout initialization is attempted while another is in progress.
+ */
+export class ConcurrentLayoutInitError extends Error {
+  constructor() {
+    super('Layout initialization already in progress. Cannot start another layout init.')
+    this.name = 'ConcurrentLayoutInitError'
+  }
+}
+
+/**
+ * Acquires the layout initialization lock.
+ * Returns true if lock acquired, false otherwise.
+ */
+function acquireLayoutInitLock(): boolean {
+  if (_layoutInitLock) {
+    return false
+  }
+  _layoutInitLock = true
+  return true
+}
+
+/**
+ * Releases the layout initialization lock.
+ */
+function releaseLayoutInitLock(): void {
+  _layoutInitLock = false
+}
+
+/**
  * Initializes the layout with a single pane (FR13).
  * Resets panes array to [1 pane].
  * Note: _paneIdCounter is NOT reset - IDs are monotonically increasing.
+ * @throws {ConcurrentLayoutInitError} If another layout initialization is in progress
  */
 export function initSinglePaneLayout(sessionId: number): void {
-  const pane = createPane(sessionId)
-  layoutState.layoutName = 'single'
-  layoutState.panes = [pane]
+  if (!acquireLayoutInitLock()) {
+    throw new ConcurrentLayoutInitError()
+  }
+
+  try {
+    const pane = createPane(sessionId)
+    layoutState.layoutName = 'single'
+    layoutState.panes = [pane]
+  } finally {
+    releaseLayoutInitLock()
+  }
 }
 
 /**
  * Initializes the layout with two side-by-side panes (FR14).
  * Resets panes array to [2 panes] in horizontal split.
  * Note: _paneIdCounter is NOT reset — IDs are monotonically increasing.
+ * @throws {ConcurrentLayoutInitError} If another layout initialization is in progress
  */
 export function initHorizontalSplitLayout(sessionId1: number, sessionId2: number): void {
-  if (sessionId1 === sessionId2) {
-    throw new Error(
-      `sessionId1 and sessionId2 must be different (both are ${sessionId1}). ` +
-        'Each pane must control a unique PTY session.'
-    )
+  if (!acquireLayoutInitLock()) {
+    throw new ConcurrentLayoutInitError()
   }
-  const pane1 = createPane(sessionId1)
-  const pane2 = createPane(sessionId2)
-  layoutState.layoutName = 'horizontal'
-  layoutState.panes = [pane1, pane2]
+
+  try {
+    if (sessionId1 === sessionId2) {
+      throw new Error(
+        `sessionId1 and sessionId2 must be different (both are ${sessionId1}). ` +
+          'Each pane must control a unique PTY session.'
+      )
+    }
+    const pane1 = createPane(sessionId1)
+    const pane2 = createPane(sessionId2)
+    layoutState.layoutName = 'horizontal'
+    layoutState.panes = [pane1, pane2]
+  } finally {
+    releaseLayoutInitLock()
+  }
 }
 
 /**
  * Resets the layout state for testing purposes.
  * Clears panes and layout name.
+ * Also resets the layout initialization lock.
  */
 export function resetLayoutState(): void {
   layoutState.panes = []
   layoutState.layoutName = ''
+  _layoutInitLock = false
 }
