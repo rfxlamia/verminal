@@ -7,14 +7,14 @@ describe('layout-store', () => {
   })
 
   describe('createPane()', () => {
-    it('returns pane with given sessionId and incrementing paneId', async () => {
+    it('returns pane with given sessionId and incrementing paneId starting at 1', async () => {
       const { createPane } = await import('./layout-store.svelte')
       const pane = createPane(42)
       expect(pane.sessionId).toBe(42)
       expect(pane.paneId).toBe(1)
     })
 
-    it('paneId starts at 1 and increments monotonically', async () => {
+    it('paneId increments monotonically across multiple calls', async () => {
       const { createPane } = await import('./layout-store.svelte')
       const pane1 = createPane(100)
       const pane2 = createPane(101)
@@ -25,7 +25,7 @@ describe('layout-store', () => {
       expect(pane3.paneId).toBe(3)
     })
 
-    it('name defaults to "Pane N" when not specified', async () => {
+    it('name defaults to "Pane {N}" format when not specified', async () => {
       const { createPane } = await import('./layout-store.svelte')
       const pane1 = createPane(1)
       const pane2 = createPane(2)
@@ -34,14 +34,14 @@ describe('layout-store', () => {
       expect(pane2.name).toBe('Pane 2')
     })
 
-    it('name uses provided name when specified', async () => {
+    it('uses provided name when specified', async () => {
       const { createPane } = await import('./layout-store.svelte')
       const pane = createPane(1, 'My Custom Pane')
 
       expect(pane.name).toBe('My Custom Pane')
     })
 
-    it('does not generate the same paneId twice in a row', async () => {
+    it('generates unique paneId for each call', async () => {
       const { createPane } = await import('./layout-store.svelte')
       const pane1 = createPane(1)
       const pane2 = createPane(2)

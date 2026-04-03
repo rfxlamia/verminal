@@ -1,5 +1,10 @@
-// Layout Store - Svelte 5 runes-based state management
-// Defines pane state and layout configuration
+/**
+ * Copyright 2026 V
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Layout Store - Svelte 5 runes-based state management
+ * Defines pane state and layout configuration
+ */
 
 export interface PaneState {
   paneId: number
