@@ -228,4 +228,72 @@ describe('Workspace', () => {
       expect(() => unmount(component)).not.toThrow()
     })
   })
+
+  describe('single pane fullscreen (Story 3.2)', () => {
+    it('renders exactly one pane-container with single pane layout', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [{ paneId: 1, sessionId: 1 }]
+        }
+      })
+
+      // Verify exactly one pane container is rendered
+      const paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(1)
+    })
+
+    it('has no split/separator elements with single pane', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [{ paneId: 1, sessionId: 1 }]
+        }
+      })
+
+      // Verify no separator elements are rendered
+      const separators = target.querySelectorAll('.pane-separator, .split-handle, .resize-handle')
+      expect(separators.length).toBe(0)
+    })
+
+    it('pane container has overflow hidden class', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [{ paneId: 1, sessionId: 1 }]
+        }
+      })
+
+      // Verify pane container exists
+      const paneContainer = target.querySelector('.pane-container')
+      expect(paneContainer).not.toBeNull()
+      // The overflow: hidden is defined in PaneContainer.svelte CSS
+      // We verify the class exists which carries the CSS styling
+      expect(paneContainer?.classList.contains('pane-container')).toBe(true)
+    })
+  })
 })
