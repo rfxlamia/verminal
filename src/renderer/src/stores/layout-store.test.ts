@@ -353,7 +353,7 @@ describe('layout-store', () => {
       [1, 2, 2, 3, 'sessionId2 equals sessionId3'],
       [1, 2, 3, 2, 'sessionId2 equals sessionId4'],
       [1, 2, 3, 3, 'sessionId3 equals sessionId4']
-    ])('throws when %s', async (s1, s2, s3, s4, description) => {
+    ])('throws when %s', async (s1, s2, s3, s4, _description) => {
       const { initGridLayout } = await import('./layout-store.svelte')
       expect(() => initGridLayout(s1, s2, s3, s4)).toThrow('All four sessionIds must be distinct')
     })
@@ -372,7 +372,7 @@ describe('layout-store', () => {
       [1, 2, 3, 0, 'sessionId4 is zero'],
       [1, 2, 3, -1, 'sessionId4 is negative'],
       [1, 2, 3, 1.5, 'sessionId4 is float']
-    ])('throws when %s', async (s1, s2, s3, s4, description) => {
+    ])('throws when %s', async (s1, s2, s3, s4, _description) => {
       const { initGridLayout } = await import('./layout-store.svelte')
       expect(() => initGridLayout(s1, s2, s3, s4)).toThrow()
     })

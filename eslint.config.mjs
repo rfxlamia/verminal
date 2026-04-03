@@ -21,5 +21,18 @@ export default defineConfig(
       'svelte/no-unused-svelte-ignore': 'off'
     }
   },
+  {
+    files: ['**/*.test.ts'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_'
+        }
+      ]
+    }
+  },
   eslintConfigPrettier
 )

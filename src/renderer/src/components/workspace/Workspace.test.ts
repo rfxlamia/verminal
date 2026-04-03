@@ -998,7 +998,7 @@ describe('Workspace', () => {
       // All pane wrappers should NOT have grid-column span
       const paneWrappers = workspace.querySelectorAll('.pane-wrapper')
       expect(paneWrappers.length).toBe(4)
-      paneWrappers.forEach((wrapper, i) => {
+      paneWrappers.forEach((wrapper) => {
         const el = wrapper as HTMLElement
         expect(el.style.gridColumn).toBe('')
       })
@@ -1049,8 +1049,9 @@ describe('Workspace', () => {
       [3, '1fr 1fr', '1fr 1fr', 'three panes (mixed)'],
       [4, '1fr 1fr', '1fr 1fr', 'four panes (grid)']
     ])(
-      'renders grid-template-columns "%s" and grid-template-rows "%s" when %s are passed',
-      async (paneCount, expectedCols, expectedRows, description) => {
+      'renders grid-template-columns "%s" and grid-template-rows "%s" for %s layout',
+      async (_paneCount, expectedCols, expectedRows, _description) => {
+        const paneCount = _paneCount as number
         const Workspace = await getWorkspace()
         const target = document.createElement('div')
         target.style.width = '1280px'
@@ -1059,9 +1060,9 @@ describe('Workspace', () => {
 
         const { mount } = await import('svelte')
 
-        const panes = Array.from({ length: paneCount }, (_, i) => ({
-          paneId: i + 1,
-          sessionId: i + 1
+        const panes = Array.from({ length: paneCount }, (_i, idx) => ({
+          paneId: idx + 1,
+          sessionId: idx + 1
         }))
 
         mount(Workspace, {
