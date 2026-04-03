@@ -51,6 +51,74 @@ describe('App.svelte', () => {
     expect(document.querySelector('.workspace-container')).toBeTruthy()
   })
 
+  it('shows error when shell is empty string', async () => {
+    const mockShellDetect = vi.fn().mockResolvedValue({ ok: true, data: [''] })
+    const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
+
+    // @ts-expect-error - mocking window.api
+    window.api = {
+      shell: { detect: mockShellDetect },
+      quit: { onShowDialog: mockOnShowDialog, confirm: vi.fn(), cancel: vi.fn() }
+    }
+
+    render(App)
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeTruthy()
+    })
+
+    expect(screen.getByText(/no shell was detected/i)).toBeTruthy()
+  })
+
+  it('shows error when homeResult.data is not a valid object', async () => {
+    const mockShellDetect = vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] })
+    const mockGetPaths = vi.fn().mockResolvedValue({ ok: true, data: null })
+    const mockPtySpawn = vi.fn()
+    const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
+
+    // @ts-expect-error - mocking window.api
+    window.api = {
+      shell: { detect: mockShellDetect },
+      app: { getPaths: mockGetPaths },
+      pty: { spawn: mockPtySpawn },
+      quit: { onShowDialog: mockOnShowDialog, confirm: vi.fn(), cancel: vi.fn() }
+    }
+
+    render(App)
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeTruthy()
+    })
+
+    expect(screen.getByText(/home path could not be resolved/i)).toBeTruthy()
+    expect(mockPtySpawn).not.toHaveBeenCalled()
+  })
+
+  it('shows error when spawnResult.data is not a valid object', async () => {
+    const mockShellDetect = vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] })
+    const mockGetPaths = vi
+      .fn()
+      .mockResolvedValue({ ok: true, data: { home: '/home/test', userData: '', logsDir: '' } })
+    const mockPtySpawn = vi.fn().mockResolvedValue({ ok: true, data: null })
+    const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
+
+    // @ts-expect-error - mocking window.api
+    window.api = {
+      shell: { detect: mockShellDetect },
+      app: { getPaths: mockGetPaths },
+      pty: { spawn: mockPtySpawn },
+      quit: { onShowDialog: mockOnShowDialog, confirm: vi.fn(), cancel: vi.fn() }
+    }
+
+    render(App)
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeTruthy()
+    })
+
+    expect(screen.getByText(/failed to initialize session/i)).toBeTruthy()
+  })
+
   it('shows inline recoverable error when shell.detect fails', async () => {
     const mockShellDetect = vi.fn().mockResolvedValue({
       ok: false,

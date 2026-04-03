@@ -25,6 +25,12 @@
   onMount(async () => {
     startupError = ''
 
+    // Guard: IPC bridge must be available
+    if (!window.api) {
+      setStartupError('IPC bridge not available. Please restart Verminal.')
+      return
+    }
+
     // Step 1: Detect shell
     const shellResult = await window.api.shell.detect()
     if (!shellResult.ok) {
@@ -33,7 +39,7 @@
     }
 
     const shell = shellResult.data[0]
-    if (!shell) {
+    if (!shell || typeof shell !== 'string' || shell.trim() === '') {
       setStartupError(ERROR_MESSAGES.NO_SHELL_DETECTED)
       return
     }
@@ -45,12 +51,30 @@
       return
     }
 
+    if (
+      typeof homeResult.data !== 'object' ||
+      !homeResult.data ||
+      typeof homeResult.data.home !== 'string'
+    ) {
+      setStartupError(ERROR_MESSAGES.HOME_PATH_FAILED)
+      return
+    }
+
     const cwd = homeResult.data.home
 
     // Step 3: Spawn PTY
     const spawnResult = await window.api.pty.spawn(shell, [], cwd)
     if (!spawnResult.ok) {
       setStartupError(ERROR_MESSAGES.PTY_SPAWN_FAILED(shell), spawnResult.error)
+      return
+    }
+
+    if (
+      typeof spawnResult.data !== 'object' ||
+      !spawnResult.data ||
+      typeof spawnResult.data.sessionId !== 'number'
+    ) {
+      setStartupError('Failed to initialize session. Please try again.')
       return
     }
 
