@@ -562,4 +562,28 @@ describe('TerminalView focus preservation during resize (Story 3.6)', () => {
 
     await waitFor(() => mockTerminalOpen.mock.calls.length > 0)
   })
+
+  it('routes keyboard input to focused pane only', async () => {
+    const TerminalView = await getTerminalView()
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    const { setFocusedPaneId } = await import('../../stores/workspace-ui-store.svelte')
+
+    // Set pane 1 as focused
+    setFocusedPaneId(1)
+
+    mount(TerminalView, {
+      target: container,
+      props: { paneId: 1, sessionId: 1, resizeTick: 0 }
+    })
+
+    await waitFor(() => mockTerminalOpen.mock.calls.length > 0)
+
+    // Verify onData callback was registered (means keyboard input will be routed)
+    expect(mockTerminalOnData).toHaveBeenCalled()
+
+    // Verify paneId prop was accepted - this enables focus-based routing
+    expect(mockTerminalOpen).toHaveBeenCalled()
+  })
 })

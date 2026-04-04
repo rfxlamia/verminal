@@ -59,7 +59,7 @@
         fitAddon.fit()
         syncTerminalDimensions()
         // Restore focus only if this pane is the focused pane (Story 3.6)
-        if (workspaceUIState.focusedPaneId === paneId) {
+        if (workspaceUIState.focusedPaneId === paneId && terminal && !isDestroyed) {
           terminal.focus()
         }
       } catch (err) {

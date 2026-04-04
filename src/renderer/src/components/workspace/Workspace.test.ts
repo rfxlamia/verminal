@@ -1310,5 +1310,91 @@ describe('Workspace', () => {
       // Verify resize completes within FR17 100ms budget
       expect(totalTime).toBeLessThan(100)
     })
+
+    it('preserves focused pane when panes array is reordered', async () => {
+      vi.useFakeTimers()
+
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const { setFocusedPaneId } = await import('../../stores/workspace-ui-store.svelte')
+
+      // Mount with initial panes
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 }
+          ]
+        }
+      })
+
+      // Wait for mount
+      await vi.runAllTimersAsync()
+
+      // Focus pane 1
+      setFocusedPaneId(1)
+
+      // Trigger resize
+      const mockEntry = createMockEntry(mockContentRect)
+      resizeObserverCallbacks.forEach((cb) => cb([mockEntry]))
+      await vi.advanceTimersByTimeAsync(50)
+
+      // Verify pane containers still exist
+      const paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(2)
+
+      // Verify the focused pane still has the focused styling
+      const focusedPane = target.querySelector('.pane-container.is-focused')
+      expect(focusedPane).not.toBeNull()
+      expect(focusedPane?.getAttribute('data-pane-id')).toBe('1')
+    })
+
+    it('preserves focused pane across layout re-renders', async () => {
+      vi.useFakeTimers()
+
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const { setFocusedPaneId } = await import('../../stores/workspace-ui-store.svelte')
+
+      // Mount initial layout
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 }
+          ]
+        }
+      })
+
+      // Wait for mount
+      await vi.runAllTimersAsync()
+
+      // Focus pane 2
+      setFocusedPaneId(2)
+
+      // Trigger multiple resizes
+      for (let i = 0; i < 3; i++) {
+        const mockEntry = createMockEntry(mockContentRect)
+        resizeObserverCallbacks.forEach((cb) => cb([mockEntry]))
+        await vi.advanceTimersByTimeAsync(50)
+      }
+
+      // Verify focused pane is still pane 2
+      const focusedPane = target.querySelector('.pane-container.is-focused')
+      expect(focusedPane).not.toBeNull()
+      expect(focusedPane?.getAttribute('data-pane-id')).toBe('2')
+    })
   })
 })

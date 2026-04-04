@@ -25,6 +25,12 @@
   data-session-id={sessionId}
   data-focused={isFocused}
   onclick={() => setFocusedPaneId(paneId)}
+  onkeydown={(e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      setFocusedPaneId(paneId)
+    }
+  }}
   role="button"
   tabindex="0"
   aria-label="Terminal pane {paneId}"
@@ -46,10 +52,5 @@
      * Using CSS custom property allows theming */
     outline: 2px solid var(--color-focus, #62c6ff);
     outline-offset: -2px;
-  }
-
-  /* Ensure the pane container can receive focus for keyboard navigation */
-  .pane-container:focus {
-    outline: none;
   }
 </style>
