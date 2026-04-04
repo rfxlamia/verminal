@@ -40,4 +40,7 @@ export interface IpcContract {
     cancel: () => void
     onShowDialog: (cb: (data: { sessionCount: number }) => void) => UnsubscribeFn
   }
+  commandCenter: {
+    onOpen: (cb: () => void) => UnsubscribeFn  // push: main → renderer
+  }
 }

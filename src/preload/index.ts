@@ -61,6 +61,15 @@ const api = {
         ipcRenderer.removeListener('quit:show-dialog', handler)
       }
     }
+  },
+  commandCenter: {
+    onOpen: (cb: () => void): (() => void) => {
+      const handler = (_event: Electron.IpcRendererEvent): void => cb()
+      ipcRenderer.on('command-center:open', handler)
+      return (): void => {
+        ipcRenderer.removeListener('command-center:open', handler)
+      }
+    }
   }
 }
 

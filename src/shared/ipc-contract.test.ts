@@ -85,4 +85,10 @@ describe('IpcContract', () => {
       (cb: (data: { sessionCount: number }) => void) => () => void
     >()
   })
+
+  it('has commandCenter namespace with onOpen returning UnsubscribeFn', () => {
+    expectTypeOf<IpcContract['commandCenter']['onOpen']>().toMatchTypeOf<
+      (cb: () => void) => () => void
+    >()
+  })
 })

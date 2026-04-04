@@ -102,4 +102,22 @@ describe('preload bridge wiring', () => {
     unsubscribe()
     expect(mockRemoveListener).toHaveBeenCalledWith('quit:show-dialog', expect.any(Function))
   })
+
+  it('returns unsubscribe function that removes matching command-center:open listener', async () => {
+    await import('./index')
+
+    const apiExposeCall = mockExposeInMainWorld.mock.calls.find((call) => call[0] === 'api')
+    const api = apiExposeCall?.[1] as {
+      commandCenter: { onOpen: (cb: () => void) => () => void }
+    }
+
+    const callback = vi.fn()
+    const unsubscribe = api.commandCenter.onOpen(callback)
+
+    expect(typeof unsubscribe).toBe('function')
+    expect(mockOn).toHaveBeenCalledWith('command-center:open', expect.any(Function))
+
+    unsubscribe()
+    expect(mockRemoveListener).toHaveBeenCalledWith('command-center:open', expect.any(Function))
+  })
 })
