@@ -2,7 +2,7 @@
   import TerminalView from './TerminalView.svelte'
   import PaneHeader from './PaneHeader.svelte'
   import { workspaceUIState, setFocusedPaneId } from '../../stores/workspace-ui-store.svelte'
-  import { layoutState } from '../../stores/layout-store.svelte'
+  import { layoutState, renamePaneInLayout } from '../../stores/layout-store.svelte'
 
   // Props:
   let {
@@ -23,9 +23,11 @@
     (layoutState.panes ?? []).find((p) => p.paneId === paneId)?.name ?? `Pane ${paneId}`
   )
 
-  function handleEditRequest(): void {
-    // Story 5.1: reserved integration point only.
-    // Actual inline rename behavior lives in Story 5.2.
+  // Reference to PaneHeader untuk F2-triggered edit mode
+  let paneHeaderRef: { startEditExternally: () => void } | undefined = $state()
+
+  function handleRename(newName: string): void {
+    renamePaneInLayout(paneId, newName)
   }
 </script>
 
@@ -41,13 +43,16 @@
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
       setFocusedPaneId(paneId)
+    } else if (e.key === 'F2') {
+      e.preventDefault()
+      paneHeaderRef?.startEditExternally()
     }
   }}
   role="button"
   tabindex="0"
   aria-label="Terminal pane {paneId}"
 >
-  <PaneHeader {paneId} name={paneName} {isFocused} onEditRequest={handleEditRequest} />
+  <PaneHeader {paneId} name={paneName} {isFocused} {handleRename} bind:this={paneHeaderRef} />
   <div class="pane-terminal-area">
     <TerminalView {paneId} {sessionId} {resizeTick} />
   </div>

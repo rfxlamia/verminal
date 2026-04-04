@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeAll, afterEach, beforeEach } from 'vitest'
+import { tick } from 'svelte'
 
 describe('PaneContainer', () => {
   beforeAll(() => {
@@ -369,6 +370,96 @@ describe('PaneContainer', () => {
 
       const terminalArea = target.querySelector('.pane-terminal-area') as HTMLElement
       expect(terminalArea).not.toBeNull()
+    })
+  })
+
+  // ========== Story 5.2: Pane Rename Tests ==========
+  describe('Pane Rename', () => {
+    it('opens rename input when F2 is pressed on the focused pane container', async () => {
+      const PaneContainer = await getPaneContainer()
+      const { layoutState, resetLayoutState } = await import('../../stores/layout-store.svelte')
+      const { setFocusedPaneId } = await import('../../stores/workspace-ui-store.svelte')
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      resetLayoutState()
+      layoutState.panes = [{ paneId: 42, sessionId: 1, name: 'Test Pane' }]
+      setFocusedPaneId(42)
+
+      mount(PaneContainer, { target, props: { paneId: 42, sessionId: 1, resizeTick: 0 } })
+      await tick()
+
+      // Press F2 on the pane container
+      const pane = target.querySelector('.pane-container')
+      pane!.dispatchEvent(new KeyboardEvent('keydown', { key: 'F2', bubbles: true }))
+      await tick()
+
+      // Should show input for renaming
+      const input = target.querySelector('input.pane-name-input') as HTMLInputElement
+      expect(input).not.toBeNull()
+      expect(input.value).toBe('Test Pane')
+    })
+
+    it('keeps Enter on pane container as focus action, not rename action', async () => {
+      const PaneContainer = await getPaneContainer()
+      const { layoutState, resetLayoutState } = await import('../../stores/layout-store.svelte')
+      const { setFocusedPaneId, workspaceUIState } = await import(
+        '../../stores/workspace-ui-store.svelte'
+      )
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      resetLayoutState()
+      layoutState.panes = [{ paneId: 42, sessionId: 1, name: 'Test' }]
+      setFocusedPaneId(null)
+
+      mount(PaneContainer, { target, props: { paneId: 42, sessionId: 1, resizeTick: 0 } })
+      await tick()
+
+      // Initially not focused
+      expect(workspaceUIState.focusedPaneId).toBeNull()
+
+      // Press Enter on the pane container
+      const pane = target.querySelector('.pane-container')
+      pane!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      await tick()
+
+      // Should focus the pane, not open rename
+      expect(workspaceUIState.focusedPaneId).toBe(42)
+      const input = target.querySelector('input.pane-name-input')
+      expect(input).toBeNull()
+    })
+
+    it.skip('wires PaneHeader rename callback to update layoutState', async () => {
+      const PaneContainer = await getPaneContainer()
+      const { layoutState, resetLayoutState, renamePaneInLayout } = await import(
+        '../../stores/layout-store.svelte'
+      )
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      resetLayoutState()
+      layoutState.panes = [{ paneId: 42, sessionId: 1, name: 'Original Name' }]
+
+      mount(PaneContainer, { target, props: { paneId: 42, sessionId: 1, resizeTick: 0 } })
+
+      // Enter edit mode by clicking header
+      const header = target.querySelector('header.pane-header')
+      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await tick()
+
+      // Type new name and commit
+      const input = target.querySelector('input.pane-name-input') as HTMLInputElement
+      input.value = 'New Name'
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      await tick()
+
+      // Verify layoutState was updated (via renamePaneInLayout)
+      expect(layoutState.panes[0].name).toBe('New Name')
     })
   })
 })

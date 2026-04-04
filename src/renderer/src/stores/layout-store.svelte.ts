@@ -230,3 +230,14 @@ export function resetLayoutState(): void {
   layoutState.layoutName = ''
   _layoutInitLock = false
 }
+
+/**
+ * Renames a pane by its paneId.
+ * No-op if pane not found or newName is empty/whitespace.
+ */
+export function renamePaneInLayout(paneId: number, newName: string): void {
+  const pane = layoutState.panes.find((p) => p.paneId === paneId)
+  if (pane && newName.trim()) {
+    pane.name = newName.trim()
+  }
+}
