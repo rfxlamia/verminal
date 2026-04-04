@@ -9,6 +9,7 @@
   // Local state for inline recoverable errors
   let startupError = $state('')
   let unsubCommandCenter: (() => void) | undefined
+  let isMounted = false
 
   function setStartupError(message: string, details?: unknown): void {
     startupError = message
@@ -16,6 +17,7 @@
   }
 
   onMount(() => {
+    isMounted = true
     startupError = ''
 
     // Guard: IPC bridge must be available
@@ -24,13 +26,22 @@
       return
     }
 
+    // Clean up any previous listener (defensive for HMR/remount scenarios)
+    if (unsubCommandCenter) {
+      unsubCommandCenter()
+    }
+
     // Listen for command-center:open IPC event from main process (global shortcut)
     unsubCommandCenter = window.api.commandCenter.onOpen(() => {
-      openCommandCenter()
+      // Guard: only open if component is still mounted
+      if (isMounted) {
+        openCommandCenter()
+      }
     })
   })
 
   onDestroy(() => {
+    isMounted = false
     unsubCommandCenter?.()
   })
 </script>

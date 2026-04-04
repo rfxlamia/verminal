@@ -5,10 +5,16 @@
   Command Center Overlay - Launcher-style overlay for workspace selection
 -->
 <script lang="ts">
+  import { onDestroy } from 'svelte'
   import { commandCenterState, closeCommandCenter } from '../../stores/command-center-store.svelte'
   import { workspaceUIState } from '../../stores/workspace-ui-store.svelte'
 
   let backdropEl: HTMLDivElement | null = $state(null)
+  let isMounted = true
+
+  onDestroy(() => {
+    isMounted = false
+  })
 
   function handleKeydown(event: KeyboardEvent): void {
     if (event.key === 'Escape') {
@@ -21,30 +27,47 @@
     }
   }
 
+  function isFocusable(element: HTMLElement): boolean {
+    return (
+      element.tabIndex >= 0 &&
+      !element.hasAttribute('disabled') &&
+      !element.hasAttribute('hidden') &&
+      getComputedStyle(element).display !== 'none'
+    )
+  }
+
   function closeAndRestoreFocus(): void {
     // Capture focusedPaneId BEFORE closing (state may change)
     const focusedPaneId = workspaceUIState.focusedPaneId
     closeCommandCenter()
     // Use queueMicrotask to ensure DOM updates before restoring focus
     queueMicrotask(() => {
-      if (focusedPaneId !== null) {
-        const paneEl = document.querySelector<HTMLElement>(`[data-pane-id="${focusedPaneId}"]`)
-        // Defensive: only focus if element exists and is still in DOM
-        if (paneEl && document.contains(paneEl)) {
+      // Guard: component may have unmounted
+      if (!isMounted) return
+
+      if (focusedPaneId !== null && Number.isFinite(focusedPaneId)) {
+        // Sanitize paneId for CSS selector safety
+        const sanitizedId = String(focusedPaneId).replace(/[^a-zA-Z0-9_-]/g, '')
+        const paneEl = document.querySelector<HTMLElement>(`[data-pane-id="${sanitizedId}"]`)
+        // Defensive: only focus if element exists, is in DOM, and is focusable
+        if (paneEl && document.contains(paneEl) && isFocusable(paneEl)) {
           paneEl.focus()
           return
         }
       }
 
       // Fallback to workspace container if no pane is focused or pane no longer exists
-      document.querySelector<HTMLElement>('.workspace-container')?.focus()
+      const workspaceEl = document.querySelector<HTMLElement>('.workspace-container')
+      if (workspaceEl) {
+        workspaceEl.focus()
+      }
     })
   }
 
   // Auto-focus backdrop when opened
   $effect(() => {
-    if (commandCenterState.isOpen) {
-      backdropEl?.focus()
+    if (commandCenterState.isOpen && backdropEl) {
+      backdropEl.focus()
     }
   })
 </script>

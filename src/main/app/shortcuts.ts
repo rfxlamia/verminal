@@ -17,10 +17,18 @@ const COMMAND_CENTER_SHORTCUT = 'CommandOrControl+Alt+T'
  * @param mainWindow - The main BrowserWindow to send events to
  */
 export function registerGlobalShortcuts(mainWindow: BrowserWindow): void {
+  // Guard: mainWindow must be valid
+  if (!mainWindow) {
+    console.error('[shortcuts] mainWindow is required')
+    return
+  }
+
   // Unregister first to avoid stale bindings when window is recreated (macOS activate)
   globalShortcut.unregister(COMMAND_CENTER_SHORTCUT)
   const registered = globalShortcut.register(COMMAND_CENTER_SHORTCUT, () => {
+    // Guard: window and webContents must not be destroyed
     if (mainWindow.isDestroyed()) return
+    if (mainWindow.webContents.isDestroyed()) return
     mainWindow.webContents.send('command-center:open')
   })
   if (!registered) {

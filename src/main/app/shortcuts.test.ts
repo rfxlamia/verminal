@@ -11,10 +11,12 @@ import type { BrowserWindow } from 'electron'
 // Track registered shortcuts and their handlers
 const registeredShortcuts = new Map<string, () => void>()
 let isDestroyedValue = false
+let webContentsIsDestroyedValue = false
 let shouldRegisterFail = false
 
 const mockSend = vi.fn()
 const mockIsDestroyed = vi.fn(() => isDestroyedValue)
+const mockWebContentsIsDestroyed = vi.fn(() => webContentsIsDestroyedValue)
 
 // Mock electron globalShortcut
 vi.mock('electron', () => ({
@@ -40,16 +42,19 @@ describe('shortcuts', () => {
   beforeEach(() => {
     registeredShortcuts.clear()
     isDestroyedValue = false
+    webContentsIsDestroyedValue = false
     shouldRegisterFail = false
     vi.clearAllMocks()
   })
 
-  function createMockWindow(destroyed = false): BrowserWindow {
+  function createMockWindow(destroyed = false, webContentsDestroyed = false): BrowserWindow {
     isDestroyedValue = destroyed
+    webContentsIsDestroyedValue = webContentsDestroyed
     return {
       isDestroyed: mockIsDestroyed,
       webContents: {
-        send: mockSend
+        send: mockSend,
+        isDestroyed: mockWebContentsIsDestroyed
       }
     } as unknown as BrowserWindow
   }
@@ -125,6 +130,46 @@ describe('shortcuts', () => {
       )
 
       consoleWarnSpy.mockRestore()
+    })
+
+    it('handles global shortcut collision gracefully', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      shouldRegisterFail = true
+
+      const mainWindow = createMockWindow()
+      // This simulates the shortcut already being registered by another app
+      registerGlobalShortcuts(mainWindow)
+
+      // App should not crash, just log warning
+      expect(consoleWarnSpy).toHaveBeenCalled()
+      // Shortcut should not be in registered map since registration failed
+      expect(registeredShortcuts.has('CommandOrControl+Alt+T')).toBe(false)
+
+      consoleWarnSpy.mockRestore()
+    })
+
+    it('logs error when mainWindow is null', () => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+      // @ts-expect-error Testing null window case
+      registerGlobalShortcuts(null)
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('mainWindow is required')
+      )
+
+      consoleErrorSpy.mockRestore()
+    })
+
+    it('does not send when webContents is destroyed', () => {
+      const mainWindow = createMockWindow(false, true) // webContents destroyed
+      registerGlobalShortcuts(mainWindow)
+
+      const handler = registeredShortcuts.get('CommandOrControl+Alt+T')
+      expect(handler).toBeDefined()
+      handler!()
+
+      expect(mockSend).not.toHaveBeenCalled()
     })
   })
 

@@ -28,7 +28,7 @@
   --cc-text-primary: #f7f7f7;
   --cc-text-muted: #888888;
   --cc-backdrop: rgba(0, 0, 0, 0.6);
-  --cc-shadow: rgba(0, 0, 0, 0.6);
+  --cc-shadow: rgba(0, 0, 0, 0.4);
 }
 
 :root {
