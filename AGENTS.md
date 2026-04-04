@@ -7,6 +7,7 @@ This file provides guidance to general agents when working with code in this rep
 - Current execution status lives in `docs/implementation-artifacts/sprint-status.yaml`
 - Before any non-trivial work, read AGENTS.md, CLAUDE.md, and GEMINI.md from the repo root even if they were not injected into session header context
 - Run `npm run repo:context` to see current branch, worktrees, active lane guidance, and required docs
+- Lane rules are documented in `repo-config/active-lanes.md`
 - If you are on `main`, only continue the in-progress epic from `sprint-status.yaml`
 - Do not start worktree-scoped parallel epic work on `main`
 
