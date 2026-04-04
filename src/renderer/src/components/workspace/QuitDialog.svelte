@@ -1,6 +1,10 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte'
-  import { workspaceReplaceState, cancelWorkspaceReplace, confirmWorkspaceReplace } from '../../stores/workspace-replace-confirmation-store.svelte'
+  import {
+    workspaceReplaceState,
+    cancelWorkspaceReplace,
+    confirmWorkspaceReplace
+  } from '../../stores/workspace-replace-confirmation-store.svelte'
 
   // App quit mode state
   let quitVisible = $state(false)
@@ -101,7 +105,8 @@
       </h2>
       <p id="quit-dialog-desc" class="quit-dialog-desc">
         {#if isReplaceMode}
-          {sessionCount} active terminal session{sessionCount !== 1 ? 's' : ''} will be terminated and replaced by the selected preset.
+          {sessionCount} active terminal session{sessionCount !== 1 ? 's' : ''} will be terminated and
+          replaced by the selected preset.
         {:else}
           {sessionCount} active terminal session{sessionCount !== 1 ? 's' : ''} will be terminated.
         {/if}

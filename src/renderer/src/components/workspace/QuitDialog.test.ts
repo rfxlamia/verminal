@@ -20,9 +20,8 @@ describe('QuitDialog', () => {
   describe('workspace replace mode', () => {
     it('shows dialog with replace-specific copy when workspace replace is requested', async () => {
       const QuitDialog = await getQuitDialog()
-      const { workspaceReplaceState, requestWorkspaceReplace } = await import(
-        '../../stores/workspace-replace-confirmation-store.svelte'
-      )
+      const { workspaceReplaceState: _, requestWorkspaceReplace } =
+        await import('../../stores/workspace-replace-confirmation-store.svelte')
 
       const target = document.createElement('div')
       document.body.appendChild(target)
@@ -57,7 +56,7 @@ describe('QuitDialog', () => {
     it('Cancel button cancels replace and does not call confirm callback', async () => {
       const QuitDialog = await getQuitDialog()
       const {
-        workspaceReplaceState,
+        workspaceReplaceState: _,
         requestWorkspaceReplace,
         onWorkspaceReplaceConfirm
       } = await import('../../stores/workspace-replace-confirmation-store.svelte')
@@ -96,7 +95,7 @@ describe('QuitDialog', () => {
     it('Replace button calls confirm callback once and closes dialog', async () => {
       const QuitDialog = await getQuitDialog()
       const {
-        workspaceReplaceState,
+        workspaceReplaceState: _,
         requestWorkspaceReplace,
         onWorkspaceReplaceConfirm
       } = await import('../../stores/workspace-replace-confirmation-store.svelte')

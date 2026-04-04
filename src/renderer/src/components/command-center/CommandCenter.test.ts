@@ -210,8 +210,11 @@ describe('CommandCenter', () => {
     it('submits preset 2 without active panes calls API and sets horizontal layout', async () => {
       // Stub window.api before importing component
       const mockShellDetect = vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] })
-      const mockGetPaths = vi.fn().mockResolvedValue({ ok: true, data: { home: '/home/test', userData: '', logsDir: '' } })
-      const mockPtySpawn = vi.fn()
+      const mockGetPaths = vi
+        .fn()
+        .mockResolvedValue({ ok: true, data: { home: '/home/test', userData: '', logsDir: '' } })
+      const mockPtySpawn = vi
+        .fn()
         .mockResolvedValueOnce({ ok: true, data: { sessionId: 101 } })
         .mockResolvedValueOnce({ ok: true, data: { sessionId: 102 } })
 
@@ -227,7 +230,8 @@ describe('CommandCenter', () => {
       })
 
       const CommandCenter = await getCommandCenter()
-      const { openCommandCenter, commandCenterState } = await import('../../stores/command-center-store.svelte')
+      const { openCommandCenter, commandCenterState } =
+        await import('../../stores/command-center-store.svelte')
       const { layoutState, resetLayoutState } = await import('../../stores/layout-store.svelte')
 
       // Reset to clean state
@@ -279,7 +283,10 @@ describe('CommandCenter', () => {
 
     it('shows inline error when shell detection fails', async () => {
       // Stub window.api with failing shell detection
-      const mockShellDetect = vi.fn().mockResolvedValue({ ok: false, error: { code: 'DETECT_ERROR', message: 'No shell found' } })
+      const mockShellDetect = vi.fn().mockResolvedValue({
+        ok: false,
+        error: { code: 'DETECT_ERROR', message: 'No shell found' }
+      })
 
       vi.stubGlobal('window', {
         api: {
@@ -290,7 +297,8 @@ describe('CommandCenter', () => {
       })
 
       const CommandCenter = await getCommandCenter()
-      const { openCommandCenter, commandCenterState } = await import('../../stores/command-center-store.svelte')
+      const { openCommandCenter, commandCenterState } =
+        await import('../../stores/command-center-store.svelte')
       const { resetLayoutState } = await import('../../stores/layout-store.svelte')
 
       resetLayoutState()
@@ -330,8 +338,10 @@ describe('CommandCenter', () => {
     it('requests workspace replace confirmation when active sessions exist', async () => {
       const CommandCenter = await getCommandCenter()
       const { openCommandCenter } = await import('../../stores/command-center-store.svelte')
-      const { layoutState, initSinglePaneLayout, resetLayoutState } = await import('../../stores/layout-store.svelte')
-      const { workspaceReplaceState } = await import('../../stores/workspace-replace-confirmation-store.svelte')
+      const { layoutState, initSinglePaneLayout, resetLayoutState } =
+        await import('../../stores/layout-store.svelte')
+      const { workspaceReplaceState } =
+        await import('../../stores/workspace-replace-confirmation-store.svelte')
 
       // Reset and create an active session
       resetLayoutState()

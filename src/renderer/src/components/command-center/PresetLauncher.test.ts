@@ -246,7 +246,11 @@ describe('PresetLauncher', () => {
       ;(buttons[0] as HTMLElement).focus()
 
       // Shift+Tab from button 1 should wrap to button 4
-      const shiftTabEvent = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true })
+      const shiftTabEvent = new KeyboardEvent('keydown', {
+        key: 'Tab',
+        shiftKey: true,
+        bubbles: true
+      })
       container?.dispatchEvent(shiftTabEvent)
 
       expect(document.activeElement).toBe(buttons[3])

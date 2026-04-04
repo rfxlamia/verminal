@@ -67,7 +67,7 @@
   tabindex="0"
 >
   <div class="preset-grid">
-    {#each presetLabels as label, index}
+    {#each presetLabels as label, index (index)}
       {@const preset = index + 1}
       {@const isSelected = preset === selectedPreset}
       <button

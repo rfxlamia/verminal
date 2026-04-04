@@ -8,8 +8,17 @@
   import { onDestroy } from 'svelte'
   import { commandCenterState, closeCommandCenter } from '../../stores/command-center-store.svelte'
   import { workspaceUIState } from '../../stores/workspace-ui-store.svelte'
-  import { layoutState, initSinglePaneLayout, initHorizontalSplitLayout, initMixedSplitLayout, initGridLayout } from '../../stores/layout-store.svelte'
-  import { requestWorkspaceReplace, onWorkspaceReplaceConfirm } from '../../stores/workspace-replace-confirmation-store.svelte'
+  import {
+    layoutState,
+    initSinglePaneLayout,
+    initHorizontalSplitLayout,
+    initMixedSplitLayout,
+    initGridLayout
+  } from '../../stores/layout-store.svelte'
+  import {
+    requestWorkspaceReplace,
+    onWorkspaceReplaceConfirm
+  } from '../../stores/workspace-replace-confirmation-store.svelte'
   import PresetLauncher from './PresetLauncher.svelte'
 
   let backdropEl: HTMLDivElement | null = $state(null)
@@ -204,7 +213,9 @@
         {selectedPreset}
         {isSpawning}
         errorMessage={spawnError}
-        onSelect={(preset) => { selectedPreset = preset }}
+        onSelect={(preset) => {
+          selectedPreset = preset
+        }}
         onSubmit={handlePresetSubmit}
       />
 
