@@ -42,6 +42,8 @@ describe('repo-context CLI', () => {
     expect(output).toContain(
       'Default main policy: On main, only continue the in-progress epic from sprint-status.yaml. Do not start worktree-only epics on main.'
     )
+    expect(output).toContain('Active lane policy:')
+    expect(output).toContain('Do not start worktree-only epics on main')
     for (const doc of context.requiredDocs) {
       expect(output).toContain(doc)
     }
