@@ -9,6 +9,7 @@ describe('SavedLayoutList', () => {
 
   afterEach(() => {
     document.body.innerHTML = ''
+    vi.unstubAllGlobals()
   })
 
   // Helper to get fresh component after resetModules

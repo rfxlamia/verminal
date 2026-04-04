@@ -9,10 +9,23 @@ function getLayoutsDir(): string {
 }
 
 function isValidLayoutName(name: string): boolean {
+  // Reject empty or whitespace-only names
+  if (!name || name.trim().length === 0) return false
+
+  // Reject names that are only whitespace
+  if (name.trim().length !== name.length) return false
+
   // Reject names with path separators or traversal attempts
   if (name.includes('/') || name.includes('\\')) return false
   if (name.includes('..')) return false
   if (name.startsWith('.')) return false
+
+  // Reject null bytes (path traversal on some filesystems)
+  if (name.includes('\0')) return false
+
+  // Maximum length check (255 chars for most filesystems)
+  if (name.length > 255) return false
+
   return true
 }
 
@@ -34,7 +47,7 @@ function validateSavedLayoutData(data: unknown): SavedLayoutData {
     throw new Error('Layout must have a layout_name string')
   }
   if (!validLayoutNames.includes(obj.layout_name)) {
-    throw new Error(`Invalid layout_name: ${obj.layout_name}`)
+    throw new Error(`Layout has invalid layout_name: ${obj.layout_name}`)
   }
 
   // Validate panes
@@ -43,15 +56,25 @@ function validateSavedLayoutData(data: unknown): SavedLayoutData {
   }
 
   // Validate each pane
+  const seenPaneIds = new Set<number>()
   const validatedPanes = obj.panes.map((pane: unknown, index: number) => {
     if (typeof pane !== 'object' || pane === null) {
       throw new Error(`Pane at index ${index} must be an object`)
     }
     const paneObj = pane as Record<string, unknown>
 
-    // pane_id is optional but must be a number if present
-    if (paneObj.pane_id !== undefined && typeof paneObj.pane_id !== 'number') {
-      throw new Error(`Pane at index ${index} has invalid pane_id`)
+    // pane_id is optional but must be a positive number if present
+    if (paneObj.pane_id !== undefined) {
+      if (typeof paneObj.pane_id !== 'number') {
+        throw new Error(`Pane at index ${index} has invalid pane_id`)
+      }
+      if (paneObj.pane_id <= 0) {
+        throw new Error(`Pane at index ${index} has invalid pane_id: must be positive`)
+      }
+      if (seenPaneIds.has(paneObj.pane_id)) {
+        throw new Error(`Pane at index ${index} has duplicate pane_id: ${paneObj.pane_id}`)
+      }
+      seenPaneIds.add(paneObj.pane_id)
     }
 
     return {
@@ -134,18 +157,13 @@ export function loadLayout(name: string): Result<SavedLayoutData> {
     const validated = validateSavedLayoutData(parsed)
     return { ok: true, data: validated }
   } catch (error) {
-    // Check if it's a validation error from validateSavedLayoutData
-    const errorMessage = (error as Error).message
-    if (
-      errorMessage.includes('must have') ||
-      errorMessage.includes('must be') ||
-      errorMessage.includes('Invalid')
-    ) {
+    // Check if it's a validation error from validateSavedLayoutData by error type
+    if (error instanceof Error && error.message.startsWith('Layout ')) {
       return {
         ok: false,
         error: {
           code: 'LAYOUT_INVALID_DATA',
-          message: `Failed to load layout "${name}": ${errorMessage}`
+          message: `Failed to load layout "${name}": ${error.message}`
         }
       }
     }
@@ -154,7 +172,7 @@ export function loadLayout(name: string): Result<SavedLayoutData> {
       ok: false,
       error: {
         code: 'LAYOUT_INVALID_DATA',
-        message: `Failed to load layout "${name}": ${errorMessage}`
+        message: `Failed to load layout "${name}": ${(error as Error).message}`
       }
     }
   }

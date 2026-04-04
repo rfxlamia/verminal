@@ -121,12 +121,12 @@
 
     if (result.ok) {
       savedLayouts = result.data
-      // Auto-select first layout if none selected and layouts exist
+      // Auto-select first layout only on initial load (no previous selection)
       if (selectedLayout === null && savedLayouts.length > 0) {
         selectedLayout = savedLayouts[0]
       } else if (selectedLayout !== null && !savedLayouts.includes(selectedLayout)) {
-        // Reset selection if previously selected layout no longer exists
-        selectedLayout = savedLayouts.length > 0 ? savedLayouts[0] : null
+        // Previously selected layout no longer exists - clear selection, don't auto-select
+        selectedLayout = null
       }
     } else {
       savedLayoutsError = `Failed to load saved layouts: ${result.error.message}`
@@ -200,12 +200,13 @@
         return
       }
 
-      const shell = detectResult.data[0]
-      if (!shell) {
+      if (detectResult.data.length === 0) {
         spawnError = 'No shell detected. Please check your system configuration.'
         isSpawning = false
         return
       }
+
+      const shell = detectResult.data[0]
 
       // Step 4: Get paths
       const pathsResult = await window.api.app.getPaths()
@@ -218,8 +219,8 @@
         if (!spawnResult.ok) {
           // Cleanup any spawned sessions
           for (const sessionId of newSessionIds) {
-            window.api.pty.kill(sessionId).catch(() => {
-              // Ignore cleanup errors
+            window.api.pty.kill(sessionId).catch((err: Error) => {
+              console.warn('Failed to cleanup session during spawn error:', err.message)
             })
           }
           spawnError = `Failed to spawn terminal: ${spawnResult.error.message}`
@@ -247,8 +248,8 @@
 
       // Step 7: Kill old sessions fire-and-forget
       for (const sessionId of oldSessionIds) {
-        window.api.pty.kill(sessionId).catch(() => {
-          // Ignore cleanup errors
+        window.api.pty.kill(sessionId).catch((err: Error) => {
+          console.warn('Failed to kill old session:', err.message)
         })
       }
 
@@ -301,12 +302,13 @@
         return
       }
 
-      const shell = detectResult.data[0]
-      if (!shell) {
+      if (detectResult.data.length === 0) {
         loadLayoutError = 'No shell detected. Please check your system configuration.'
         isLoadingLayout = false
         return
       }
+
+      const shell = detectResult.data[0]
 
       // Step 6: Get paths
       const pathsResult = await window.api.app.getPaths()
@@ -319,8 +321,8 @@
         if (!spawnResult.ok) {
           // Cleanup any spawned sessions
           for (const sessionId of newSessionIds) {
-            window.api.pty.kill(sessionId).catch(() => {
-              // Ignore cleanup errors
+            window.api.pty.kill(sessionId).catch((err: Error) => {
+              console.warn('Failed to cleanup session during load error:', err.message)
             })
           }
           loadLayoutError = `Failed to spawn terminal: ${spawnResult.error.message}`
@@ -330,7 +332,21 @@
         newSessionIds.push(spawnResult.data.sessionId)
       }
 
-      // Step 8: Initialize layout based on layout_name
+      // Step 8: Validate pane count matches layout type
+      const expectedPaneCounts: Record<string, number> = {
+        single: 1,
+        horizontal: 2,
+        mixed: 3,
+        grid: 4
+      }
+      const expectedCount = expectedPaneCounts[savedLayout.layout_name]
+      if (expectedCount && paneCount !== expectedCount) {
+        loadLayoutError = `Layout "${savedLayout.layout_name}" expects ${expectedCount} panes, but found ${paneCount}`
+        isLoadingLayout = false
+        return
+      }
+
+      // Step 9: Initialize layout based on layout_name
       switch (savedLayout.layout_name) {
         case 'single':
           initSinglePaneLayout(newSessionIds[0])
@@ -349,10 +365,10 @@
           initSinglePaneLayout(newSessionIds[0])
       }
 
-      // Step 9: Kill old sessions fire-and-forget
+      // Step 10: Kill old sessions fire-and-forget
       for (const sessionId of oldSessionIds) {
-        window.api.pty.kill(sessionId).catch(() => {
-          // Ignore cleanup errors
+        window.api.pty.kill(sessionId).catch((err: Error) => {
+          console.warn('Failed to kill old session during load:', err.message)
         })
       }
 
