@@ -7,40 +7,33 @@ describe('repo-context CLI', () => {
   it('prints required repo bootstrap information', () => {
     const repoRoot = path.resolve(__dirname, '../../..')
     const contextPath = path.join(repoRoot, 'docs/implementation-artifacts/agent-context.json')
-    const originalContext = fs.readFileSync(contextPath, 'utf8')
-    const controlledContext = {
-      requiredDocs: [
-        'docs/implementation-artifacts/sprint-status.yaml',
-        'AGENTS.md',
-        'CLAUDE.md',
-        'GEMINI.md'
-      ],
-      statusSource: 'docs/implementation-artifacts/sprint-status.yaml',
-      mainBranchPolicy: 'use the current checked-out branch as the active main lane',
+    const context = JSON.parse(fs.readFileSync(contextPath, 'utf8')) as {
+      requiredDocs: string[]
+      statusSource: string
+      mainBranchPolicy: string
       lanes: {
         main: {
-          currentEpic: 'epic-4'
+          currentEpic: string
         }
       }
     }
 
-    fs.writeFileSync(contextPath, JSON.stringify(controlledContext, null, 2))
+    const output = execFileSync('node', ['scripts/repo-context.mjs'], {
+      cwd: repoRoot,
+      encoding: 'utf8'
+    })
 
-    try {
-      const output = execFileSync('node', ['scripts/repo-context.mjs'], {
-        cwd: repoRoot,
-        encoding: 'utf8'
-      })
-
-      expect(output).toContain('Repository Context')
-      expect(output).toContain('Current branch:')
-      expect(output).toContain('Worktrees:')
-      expect(output).toContain('Required docs:')
-      for (const doc of controlledContext.requiredDocs) {
-        expect(output).toContain(doc)
-      }
-    } finally {
-      fs.writeFileSync(contextPath, originalContext)
+    expect(output).toContain('Repository Context')
+    expect(output).toContain('Current branch:')
+    expect(output).toContain('Worktrees:')
+    expect(output).toContain('Required docs:')
+    expect(output).toContain('Default main policy:')
+    expect(output).toContain('Current main lane: epic-4')
+    expect(output).toContain(
+      'Default main policy: On main, only continue the in-progress epic from sprint-status.yaml. Do not start worktree-only epics on main.'
+    )
+    for (const doc of context.requiredDocs) {
+      expect(output).toContain(doc)
     }
   })
 })
