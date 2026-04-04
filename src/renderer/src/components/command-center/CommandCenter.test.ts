@@ -7,10 +7,23 @@ describe('CommandCenter', () => {
     vi.resetModules()
     document.body.innerHTML = ''
     resetCommandCenterState()
+
+    // Default stub for window.api.layout to prevent unhandled errors
+    vi.stubGlobal('window', {
+      api: {
+        layout: {
+          list: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+          load: vi.fn().mockResolvedValue({ ok: true, data: { name: 'test', layout_name: 'single', panes: [{}] } }),
+          save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+          delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+        }
+      }
+    })
   })
 
   afterEach(() => {
     document.body.innerHTML = ''
+    vi.unstubAllGlobals()
   })
 
   // Helper to get fresh component after resetModules
@@ -217,6 +230,8 @@ describe('CommandCenter', () => {
         .fn()
         .mockResolvedValueOnce({ ok: true, data: { sessionId: 101 } })
         .mockResolvedValueOnce({ ok: true, data: { sessionId: 102 } })
+      const mockLayoutList = vi.fn().mockResolvedValue({ ok: true, data: [] })
+      const mockLayoutLoad = vi.fn().mockResolvedValue({ ok: true, data: { name: 'test', layout_name: 'single', panes: [{}] } })
 
       vi.stubGlobal('window', {
         api: {
@@ -225,6 +240,12 @@ describe('CommandCenter', () => {
           pty: {
             spawn: mockPtySpawn,
             kill: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+          },
+          layout: {
+            list: mockLayoutList,
+            load: mockLayoutLoad,
+            save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+            delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
           }
         }
       })
@@ -287,12 +308,19 @@ describe('CommandCenter', () => {
         ok: false,
         error: { code: 'DETECT_ERROR', message: 'No shell found' }
       })
+      const mockLayoutList = vi.fn().mockResolvedValue({ ok: true, data: [] })
 
       vi.stubGlobal('window', {
         api: {
           shell: { detect: mockShellDetect },
           app: { getPaths: vi.fn() },
-          pty: { spawn: vi.fn(), kill: vi.fn() }
+          pty: { spawn: vi.fn(), kill: vi.fn() },
+          layout: {
+            list: mockLayoutList,
+            load: vi.fn().mockResolvedValue({ ok: true, data: { name: 'test', layout_name: 'single', panes: [{}] } }),
+            save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+            delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+          }
         }
       })
 

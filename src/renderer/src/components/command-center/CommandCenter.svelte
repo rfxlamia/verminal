@@ -20,6 +20,8 @@
     onWorkspaceReplaceConfirm
   } from '../../stores/workspace-replace-confirmation-store.svelte'
   import PresetLauncher from './PresetLauncher.svelte'
+  import SavedLayoutList from './SavedLayoutList.svelte'
+  import type { SavedLayoutData } from '../../../../shared/ipc-contract'
 
   let backdropEl: HTMLDivElement | null = $state(null)
   let isMounted = true
@@ -28,6 +30,16 @@
   let selectedPreset = $state(1)
   let isSpawning = $state(false)
   let spawnError = $state('')
+
+  // Saved layouts section state
+  let savedLayouts = $state<string[]>([])
+  let selectedLayout = $state<string | null>(null)
+  let isLoadingSavedLayouts = $state(false)
+  let savedLayoutsError = $state('')
+
+  // Load flow state
+  let isLoadingLayout = $state(false)
+  let loadLayoutError = $state('')
 
   onDestroy(() => {
     isMounted = false
@@ -94,8 +106,43 @@
     }
   })
 
+  // Fetch saved layouts when Command Center opens
+  $effect(() => {
+    if (commandCenterState.isOpen) {
+      fetchSavedLayouts()
+    }
+  })
+
+  async function fetchSavedLayouts(): Promise<void> {
+    isLoadingSavedLayouts = true
+    savedLayoutsError = ''
+
+    const result = await window.api.layout.list()
+
+    if (result.ok) {
+      savedLayouts = result.data
+      // Auto-select first layout if none selected and layouts exist
+      if (selectedLayout === null && savedLayouts.length > 0) {
+        selectedLayout = savedLayouts[0]
+      } else if (selectedLayout !== null && !savedLayouts.includes(selectedLayout)) {
+        // Reset selection if previously selected layout no longer exists
+        selectedLayout = savedLayouts.length > 0 ? savedLayouts[0] : null
+      }
+    } else {
+      savedLayoutsError = `Failed to load saved layouts: ${result.error.message}`
+      savedLayouts = []
+      selectedLayout = null
+    }
+
+    isLoadingSavedLayouts = false
+  }
+
   async function handlePresetSubmit(paneCount: number): Promise<void> {
     await launchPreset(paneCount)
+  }
+
+  async function handleSavedLayoutSubmit(layoutName: string): Promise<void> {
+    await launchSavedLayout(layoutName)
   }
 
   async function launchPreset(paneCount: number): Promise<void> {
@@ -116,6 +163,27 @@
     } else {
       // No active sessions, proceed directly
       await executeSpawnFlow(paneCount, oldSessionIds)
+    }
+  }
+
+  async function launchSavedLayout(layoutName: string): Promise<void> {
+    // Step 1: Capture old session IDs
+    const oldSessionIds = layoutState.panes.map((pane) => pane.sessionId)
+
+    // Step 2: If there are active sessions, request confirmation
+    if (oldSessionIds.length > 0) {
+      requestWorkspaceReplace(oldSessionIds.length)
+
+      // Wait for user confirmation
+      return new Promise((resolve) => {
+        onWorkspaceReplaceConfirm(async () => {
+          await executeSavedLayoutFlow(layoutName, oldSessionIds)
+          resolve()
+        })
+      })
+    } else {
+      // No active sessions, proceed directly
+      await executeSavedLayoutFlow(layoutName, oldSessionIds)
     }
   }
 
@@ -192,6 +260,107 @@
       isSpawning = false
     }
   }
+
+  async function executeSavedLayoutFlow(layoutName: string, oldSessionIds: number[]): Promise<void> {
+    isLoadingLayout = true
+    loadLayoutError = ''
+
+    try {
+      // Step 3: Load saved layout data
+      const loadResult = await window.api.layout.load(layoutName)
+      if (!loadResult.ok) {
+        loadLayoutError = `Failed to load layout "${layoutName}": ${loadResult.error.message}`
+        isLoadingLayout = false
+        return
+      }
+
+      const savedLayout: SavedLayoutData = loadResult.data
+
+      // Step 4: Check pane count (Phase 0 only supports up to 4 panes)
+      const paneCount = savedLayout.panes.length
+      if (paneCount > 4) {
+        loadLayoutError = 'Layouts with more than 4 panes are not supported in this version.'
+        isLoadingLayout = false
+        return
+      }
+
+      if (paneCount === 0) {
+        loadLayoutError = 'Layout contains no panes.'
+        isLoadingLayout = false
+        return
+      }
+
+      // Step 5: Detect shell
+      const detectResult = await window.api.shell.detect()
+      if (!detectResult.ok) {
+        loadLayoutError = `Shell detection failed: ${detectResult.error.message}`
+        isLoadingLayout = false
+        return
+      }
+
+      const shell = detectResult.data[0]
+      if (!shell) {
+        loadLayoutError = 'No shell detected. Please check your system configuration.'
+        isLoadingLayout = false
+        return
+      }
+
+      // Step 6: Get paths
+      const pathsResult = await window.api.app.getPaths()
+      const cwd = pathsResult.ok ? pathsResult.data.home : ''
+
+      // Step 7: Spawn PTY sessions sequentially
+      const newSessionIds: number[] = []
+      for (let i = 0; i < paneCount; i++) {
+        const spawnResult = await window.api.pty.spawn(shell, [], cwd)
+        if (!spawnResult.ok) {
+          // Cleanup any spawned sessions
+          for (const sessionId of newSessionIds) {
+            window.api.pty.kill(sessionId).catch(() => {
+              // Ignore cleanup errors
+            })
+          }
+          loadLayoutError = `Failed to spawn terminal: ${spawnResult.error.message}`
+          isLoadingLayout = false
+          return
+        }
+        newSessionIds.push(spawnResult.data.sessionId)
+      }
+
+      // Step 8: Initialize layout based on layout_name
+      switch (savedLayout.layout_name) {
+        case 'single':
+          initSinglePaneLayout(newSessionIds[0])
+          break
+        case 'horizontal':
+          initHorizontalSplitLayout(newSessionIds[0], newSessionIds[1])
+          break
+        case 'mixed':
+          initMixedSplitLayout(newSessionIds[0], newSessionIds[1], newSessionIds[2])
+          break
+        case 'grid':
+          initGridLayout(newSessionIds[0], newSessionIds[1], newSessionIds[2], newSessionIds[3])
+          break
+        default:
+          // Fallback to single pane if unknown layout
+          initSinglePaneLayout(newSessionIds[0])
+      }
+
+      // Step 9: Kill old sessions fire-and-forget
+      for (const sessionId of oldSessionIds) {
+        window.api.pty.kill(sessionId).catch(() => {
+          // Ignore cleanup errors
+        })
+      }
+
+      // Step 10: Reset state and close
+      loadLayoutError = ''
+      closeCommandCenter()
+      closeAndRestoreFocus()
+    } finally {
+      isLoadingLayout = false
+    }
+  }
 </script>
 
 {#if commandCenterState.isOpen}
@@ -218,6 +387,29 @@
         }}
         onSubmit={handlePresetSubmit}
       />
+
+      <!-- Saved Layouts Section -->
+      <div class="saved-layouts-section">
+        <h3 class="saved-layouts-title">Saved Layouts</h3>
+        {#if isLoadingSavedLayouts}
+          <p class="saved-layouts-status">Loading saved layouts...</p>
+        {:else if savedLayoutsError}
+          <p class="saved-layouts-error">{savedLayoutsError}</p>
+        {:else if savedLayouts.length > 0}
+          <SavedLayoutList
+            layouts={savedLayouts}
+            {selectedLayout}
+            isLoading={isLoadingLayout}
+            errorMessage={loadLayoutError}
+            onSelect={(name) => {
+              selectedLayout = name
+            }}
+            onSubmit={handleSavedLayoutSubmit}
+          />
+        {:else}
+          <p class="saved-layouts-empty">No saved layouts yet. Create one from workspace.</p>
+        {/if}
+      </div>
 
       <p class="command-center-hint">Press Esc to dismiss</p>
     </div>
@@ -259,5 +451,43 @@
     color: var(--cc-text-muted);
     margin: 24px 0 0;
     text-align: center;
+  }
+
+  .saved-layouts-section {
+    margin-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 16px;
+  }
+
+  .saved-layouts-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--cc-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 12px;
+  }
+
+  .saved-layouts-empty {
+    font-size: 13px;
+    color: var(--cc-text-muted);
+    text-align: center;
+    padding: 16px;
+    margin: 0;
+  }
+
+  .saved-layouts-status,
+  .saved-layouts-error {
+    font-size: 13px;
+    color: var(--cc-text-muted);
+    margin: 0;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .saved-layouts-error {
+    color: #e06c75;
+    background: rgba(224, 108, 117, 0.1);
+    border-radius: 6px;
   }
 </style>
