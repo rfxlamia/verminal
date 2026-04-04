@@ -251,6 +251,22 @@ export function renamePaneInLayout(paneId: number, newName: string): void {
  * Setting color to undefined removes the color tag.
  */
 export function recolorPaneInLayout(paneId: number, color: PaneColor | undefined): void {
+  // Runtime validation: only allow valid PaneColor values or undefined
+  if (color !== undefined) {
+    const validColors: PaneColor[] = [
+      'gray',
+      'red',
+      'orange',
+      'amber',
+      'green',
+      'teal',
+      'blue',
+      'purple'
+    ]
+    if (!validColors.includes(color)) {
+      return
+    }
+  }
   const pane = layoutState.panes.find((p) => p.paneId === paneId)
   if (pane) {
     pane.color = color

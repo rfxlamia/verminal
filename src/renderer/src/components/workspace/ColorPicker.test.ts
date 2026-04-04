@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { mount } from 'svelte'
 import { tick } from 'svelte'
 import type { PaneColor } from '../../stores/layout-store.svelte'
+import { PANE_COLOR_OPTIONS } from './pane-colors'
 
 describe('ColorPicker', () => {
   afterEach(() => {
@@ -21,7 +22,7 @@ describe('ColorPicker', () => {
     mount(ColorPicker, { target, props: {} })
 
     const swatches = target.querySelectorAll('button[type="button"]')
-    expect(swatches.length).toBe(8)
+    expect(swatches.length).toBe(PANE_COLOR_OPTIONS.length)
   })
 
   it('renders label text for each color swatch (non-color signal)', async () => {
@@ -32,7 +33,7 @@ describe('ColorPicker', () => {
     mount(ColorPicker, { target, props: {} })
 
     const labels = target.querySelectorAll('.swatch-label')
-    expect(labels.length).toBe(8)
+    expect(labels.length).toBe(PANE_COLOR_OPTIONS.length)
     // Check that each label has visible text
     labels.forEach((label) => {
       expect(label.textContent?.trim()).toBeTruthy()
@@ -71,7 +72,7 @@ describe('ColorPicker', () => {
         nonSelectedCount++
       }
     })
-    expect(nonSelectedCount).toBe(7) // 8 total - 1 selected
+    expect(nonSelectedCount).toBe(PANE_COLOR_OPTIONS.length - 1) // All except selected
   })
 
   it('calls onSelect with color when swatch clicked', async () => {
@@ -116,7 +117,7 @@ describe('ColorPicker', () => {
     mount(ColorPicker, { target, props: {} })
 
     const buttons = target.querySelectorAll('button[type="button"]')
-    expect(buttons.length).toBe(8)
+    expect(buttons.length).toBe(PANE_COLOR_OPTIONS.length)
     // Each button should be focusable
     buttons.forEach((btn) => {
       expect(btn.getAttribute('tabindex')).not.toBe('-1')
@@ -133,7 +134,7 @@ describe('ColorPicker', () => {
     // Native buttons automatically trigger click on Enter/Space
     // This test documents that we're using semantic buttons for accessibility
     const buttons = target.querySelectorAll('button[type="button"]')
-    expect(buttons.length).toBe(8)
+    expect(buttons.length).toBe(PANE_COLOR_OPTIONS.length)
 
     // Verify each button is a native button (not a div with onclick)
     buttons.forEach((btn) => {

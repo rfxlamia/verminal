@@ -49,7 +49,13 @@
     if (target !== e.currentTarget) {
       // Event bubbled from a child element - check if it's an interactive element
       const tagName = target.tagName.toLowerCase()
-      if (tagName === 'input' || tagName === 'button' || target.isContentEditable) {
+      if (
+        tagName === 'input' ||
+        tagName === 'textarea' ||
+        tagName === 'select' ||
+        tagName === 'button' ||
+        target.isContentEditable
+      ) {
         return
       }
     }

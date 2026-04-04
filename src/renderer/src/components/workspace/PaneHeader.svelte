@@ -111,7 +111,6 @@
   class="pane-header"
   class:is-focused={isFocused}
   class:is-editing={isEditing}
-  class:has-color={color !== undefined}
   data-color={color ?? ''}
   style:--pane-accent-color={colorMeta?.hex ?? 'transparent'}
   onclick={handleClick}
