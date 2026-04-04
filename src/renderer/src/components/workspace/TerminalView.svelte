@@ -5,9 +5,14 @@
   import { WebglAddon } from '@xterm/addon-webgl'
   import { Unicode11Addon } from '@xterm/addon-unicode11'
   import { WebLinksAddon } from '@xterm/addon-web-links'
+  import { workspaceUIState } from '../../stores/workspace-ui-store.svelte'
 
   // Props:
-  let { sessionId, resizeTick = 0 }: { sessionId: number; resizeTick?: number } = $props()
+  let { paneId, sessionId, resizeTick = 0 }: {
+    paneId: number
+    sessionId: number
+    resizeTick?: number
+  } = $props()
 
   // Container ref:
   let containerEl: HTMLDivElement | undefined = $state()
@@ -49,6 +54,10 @@
       try {
         fitAddon.fit()
         syncTerminalDimensions()
+        // Restore focus only if this pane is the focused pane (Story 3.6)
+        if (workspaceUIState.focusedPaneId === paneId) {
+          terminal.focus()
+        }
       } catch (err) {
         console.warn('[TerminalView] Resize handling failed:', err)
       }
@@ -104,8 +113,10 @@
       return
     }
 
-    // Focus terminal for keyboard input (AC #10)
-    terminal.focus()
+    // Note: We don't auto-focus on mount anymore to avoid focus wars in multi-pane layouts.
+    // Focus is only restored during resize for the focused pane (see $effect above).
+    // If this pane should be focused, the focusedPaneId will be set and the resize effect
+    // will handle focus restoration.
 
     // 4. Load WebGL after open (AC #9) — wrap in try/catch for graceful fallback
     try {

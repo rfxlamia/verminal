@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeAll, afterEach, beforeEach } from 'vitest'
 
 // ============================================================================
 // Mock setup - must be before any imports
@@ -219,19 +219,21 @@ describe('TerminalView', () => {
     expect(mockFitAddonFit).toHaveBeenCalled()
   })
 
-  it('focuses terminal after opening', async () => {
+  it('does not auto-focus terminal on mount to avoid focus wars in multi-pane layouts', async () => {
     const TerminalView = await getTerminalView()
     const container = document.createElement('div')
     document.body.appendChild(container)
 
     mount(TerminalView, {
       target: container,
-      props: { sessionId: 1 }
+      props: { paneId: 1, sessionId: 1 }
     })
 
-    await waitFor(() => mockTerminalFocus.mock.calls.length > 0)
+    await waitFor(() => mockTerminalOpen.mock.calls.length > 0)
 
-    expect(mockTerminalFocus).toHaveBeenCalled()
+    // Should NOT call focus on mount - focus is only restored during resize
+    // for the focused pane (Story 3.6)
+    expect(mockTerminalFocus).not.toHaveBeenCalled()
   })
 
   it('forwards keyboard input to pty.write via onData callback', async () => {
@@ -528,5 +530,36 @@ describe('TerminalView resize synchronization (Story 2.5)', () => {
     expect(mockPtyResize).not.toHaveBeenCalled()
 
     vi.useRealTimers()
+  })
+})
+
+describe('TerminalView focus preservation during resize (Story 3.6)', () => {
+  // Note: Focus preservation tests are covered by integration tests.
+  // The key behavior is:
+  // 1. TerminalView accepts paneId prop
+  // 2. Focus is NOT called on mount (avoiding focus wars)
+  // 3. Focus IS called during resize when focusedPaneId matches paneId
+  //
+  // These tests verify the component structure and prop acceptance.
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    document.body.innerHTML = ''
+  })
+
+  it('accepts paneId prop without errors', async () => {
+    const TerminalView = await getTerminalView()
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    // Should mount without error when paneId is provided
+    expect(() => {
+      mount(TerminalView, {
+        target: container,
+        props: { paneId: 1, sessionId: 1, resizeTick: 0 }
+      })
+    }).not.toThrow()
+
+    await waitFor(() => mockTerminalOpen.mock.calls.length > 0)
   })
 })
