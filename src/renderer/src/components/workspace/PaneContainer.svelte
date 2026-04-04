@@ -29,9 +29,7 @@
   )
 
   // Read pane color from layoutState
-  let paneColor = $derived(
-    (layoutState.panes ?? []).find((p) => p.paneId === paneId)?.color
-  )
+  let paneColor = $derived((layoutState.panes ?? []).find((p) => p.paneId === paneId)?.color)
 
   // Reference to PaneHeader for F2-triggered edit mode
   let paneHeaderRef: PaneHeaderExports | undefined = $state()

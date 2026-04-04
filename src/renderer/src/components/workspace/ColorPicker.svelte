@@ -12,7 +12,7 @@
 </script>
 
 <div class="color-picker" role="group" aria-label="Pilih warna pane">
-  {#each PANE_COLOR_OPTIONS as { color, hex, label }}
+  {#each PANE_COLOR_OPTIONS as { color, hex, label } (color)}
     <button
       type="button"
       class="color-swatch"

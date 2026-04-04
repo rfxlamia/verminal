@@ -197,8 +197,7 @@
     font-size: 10px;
     padding: 1px 6px;
     border-radius: 3px;
-    border: 1px solid
-      color-mix(in srgb, var(--pane-accent-color, transparent) 60%, transparent);
+    border: 1px solid color-mix(in srgb, var(--pane-accent-color, transparent) 60%, transparent);
     background: color-mix(in srgb, var(--pane-accent-color, transparent) 10%, transparent);
     white-space: nowrap;
     flex-shrink: 0;

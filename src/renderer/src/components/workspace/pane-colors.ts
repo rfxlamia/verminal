@@ -11,6 +11,8 @@ export const PANE_COLOR_OPTIONS: { color: PaneColor; hex: string; label: string 
   { color: 'purple', hex: '#c084fc', label: 'Purple' } // ~5.4:1
 ]
 
-export function getPaneColorMeta(color: PaneColor | undefined) {
+export function getPaneColorMeta(
+  color: PaneColor | undefined
+): { color: PaneColor; hex: string; label: string } | undefined {
   return PANE_COLOR_OPTIONS.find((entry) => entry.color === color)
 }

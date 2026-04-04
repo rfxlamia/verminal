@@ -527,9 +527,11 @@ describe('PaneContainer', () => {
 
     it('ignores Enter and Space keydown bubbling from nested swatch buttons', async () => {
       const PaneContainer = await getPaneContainer()
-      const { layoutState, resetLayoutState, recolorPaneInLayout } = await import(
-        '../../stores/layout-store.svelte'
-      )
+      const {
+        layoutState,
+        resetLayoutState,
+        recolorPaneInLayout: _recolorPaneInLayout
+      } = await import('../../stores/layout-store.svelte')
       const target = document.createElement('div')
       document.body.appendChild(target)
 
@@ -559,9 +561,8 @@ describe('PaneContainer', () => {
 
     it('header pane displays color update without re-mount', async () => {
       const PaneContainer = await getPaneContainer()
-      const { layoutState, resetLayoutState, recolorPaneInLayout } = await import(
-        '../../stores/layout-store.svelte'
-      )
+      const { layoutState, resetLayoutState, recolorPaneInLayout } =
+        await import('../../stores/layout-store.svelte')
       const target = document.createElement('div')
       document.body.appendChild(target)
 
