@@ -4,6 +4,16 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 describe('repo-context CLI', () => {
+  it('exits non-zero when agent-context.json is missing', () => {
+    expect(() =>
+      execFileSync('node', ['scripts/repo-context.mjs'], {
+        cwd: '/tmp',
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe']
+      })
+    ).toThrow()
+  })
+
   it('prints required repo bootstrap information', () => {
     const repoRoot = path.resolve(__dirname, '../../..')
     const contextPath = path.join(repoRoot, 'repo-config/agent-context.json')
