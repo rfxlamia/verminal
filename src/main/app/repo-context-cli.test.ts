@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 describe('repo-context CLI', () => {
   it('prints required repo bootstrap information', () => {
     const repoRoot = path.resolve(__dirname, '../../..')
-    const contextPath = path.join(repoRoot, 'docs/implementation-artifacts/agent-context.json')
+    const contextPath = path.join(repoRoot, 'repo-config/agent-context.json')
     const context = JSON.parse(fs.readFileSync(contextPath, 'utf8')) as {
       requiredDocs: string[]
       statusSource: string
