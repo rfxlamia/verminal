@@ -5,10 +5,21 @@ describe('QuitDialog', () => {
   beforeEach(() => {
     vi.resetModules()
     document.body.innerHTML = ''
+    // Stub window.api to prevent teardown errors
+    vi.stubGlobal('window', {
+      api: {
+        quit: {
+          onShowDialog: vi.fn(() => () => {}),
+          cancel: vi.fn(),
+          confirm: vi.fn()
+        }
+      }
+    })
   })
 
   afterEach(() => {
     document.body.innerHTML = ''
+    vi.unstubAllGlobals()
   })
 
   // Helper to get fresh component after resetModules

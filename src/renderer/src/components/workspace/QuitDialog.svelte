@@ -112,6 +112,7 @@
         {/if}
       </p>
       <div class="quit-dialog-actions">
+        <!-- autofocus is required for modal dialog accessibility - focus must be moved to the dialog when it appears -->
         <button class="quit-dialog-btn quit-dialog-btn--cancel" onclick={handleCancel} autofocus>
           Cancel
         </button>
