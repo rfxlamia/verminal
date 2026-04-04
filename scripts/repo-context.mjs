@@ -4,9 +4,7 @@ import path from 'node:path'
 import { execSync } from 'node:child_process'
 
 const repoRoot = process.cwd()
-const contextPath =
-  process.env.REPO_CONTEXT_BOOTSTRAP_PATH ??
-  path.join(repoRoot, 'docs/implementation-artifacts/agent-context.json')
+const contextPath = path.join(repoRoot, 'docs/implementation-artifacts/agent-context.json')
 const context = JSON.parse(fs.readFileSync(contextPath, 'utf8'))
 
 function safeGit(command) {

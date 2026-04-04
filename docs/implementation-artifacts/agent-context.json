@@ -1,0 +1,15 @@
+{
+  "requiredDocs": [
+    "docs/implementation-artifacts/sprint-status.yaml",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "GEMINI.md"
+  ],
+  "statusSource": "docs/implementation-artifacts/sprint-status.yaml",
+  "mainBranchPolicy": "use the current checked-out branch as the active main lane",
+  "lanes": {
+    "main": {
+      "currentEpic": "epic-4"
+    }
+  }
+}
