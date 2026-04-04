@@ -4,6 +4,19 @@ export type Result<T> =
 
 export type UnsubscribeFn = () => void
 
+export interface SavedPaneData {
+  pane_id?: number
+  name?: string
+  command?: string
+  color?: string
+}
+
+export interface SavedLayoutData {
+  name: string
+  layout_name: string
+  panes: SavedPaneData[]
+}
+
 export interface IpcContract {
   app: {
     getVersion: () => Promise<Result<string>>
@@ -19,7 +32,7 @@ export interface IpcContract {
   }
   layout: {
     save: (name: string, data: unknown) => Promise<Result<void>>
-    load: (name: string) => Promise<Result<unknown>>
+    load: (name: string) => Promise<Result<SavedLayoutData>>
     list: () => Promise<Result<string[]>>
     delete: (name: string) => Promise<Result<void>>
   }
