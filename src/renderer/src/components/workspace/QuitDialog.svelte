@@ -1,34 +1,53 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte'
+  import { workspaceReplaceState, cancelWorkspaceReplace, confirmWorkspaceReplace } from '../../stores/workspace-replace-confirmation-store.svelte'
 
-  let visible = $state(false)
-  let sessionCount = $state(0)
-  let unsubscribe: (() => void) | null = null
-  let dialogElement: HTMLDivElement | null = null
+  // App quit mode state
+  let quitVisible = $state(false)
+  let quitSessionCount = $state(0)
+  let quitUnsubscribe: (() => void) | null = null
+
+  // Computed: which mode is active
+  let isReplaceMode = $derived(workspaceReplaceState.visible)
+  let isQuitMode = $derived(quitVisible && !workspaceReplaceState.visible)
+  let visible = $derived(isReplaceMode || isQuitMode)
+  let sessionCount = $derived(isReplaceMode ? workspaceReplaceState.sessionCount : quitSessionCount)
+
+  let dialogElement: HTMLDivElement | null = $state(null)
 
   onMount(() => {
-    unsubscribe = window.api.quit.onShowDialog((data) => {
+    quitUnsubscribe = window.api.quit.onShowDialog((data) => {
       // Guard against multiple events while already visible
-      if (visible) return
-      sessionCount = data.sessionCount
-      visible = true
+      if (quitVisible || workspaceReplaceState.visible) return
+      quitSessionCount = data.sessionCount
+      quitVisible = true
     })
   })
 
   onDestroy(() => {
-    unsubscribe?.()
+    quitUnsubscribe?.()
   })
 
   function handleCancel(): void {
     if (!visible) return
-    visible = false
-    window.api.quit.cancel()
+
+    if (isReplaceMode) {
+      cancelWorkspaceReplace()
+    } else {
+      quitVisible = false
+      window.api.quit.cancel()
+    }
   }
 
-  function handleQuit(): void {
+  function handleConfirm(): void {
     if (!visible) return
-    visible = false
-    window.api.quit.confirm()
+
+    if (isReplaceMode) {
+      confirmWorkspaceReplace()
+    } else {
+      quitVisible = false
+      window.api.quit.confirm()
+    }
   }
 
   function handleKeydown(event: KeyboardEvent): void {
@@ -42,8 +61,8 @@
       if (activeElement?.tagName === 'BUTTON') {
         activeElement.click()
       } else {
-        // Default to Quit if no button focused (Enter should confirm dangerous action)
-        handleQuit()
+        // Default to confirm if no button focused
+        handleConfirm()
       }
     } else if (event.key === 'Tab') {
       // Focus trap: keep focus within dialog
@@ -77,15 +96,23 @@
       aria-labelledby="quit-dialog-title"
       aria-describedby="quit-dialog-desc"
     >
-      <h2 id="quit-dialog-title" class="quit-dialog-title">Close Verminal?</h2>
+      <h2 id="quit-dialog-title" class="quit-dialog-title">
+        {isReplaceMode ? 'Replace current workspace?' : 'Close Verminal?'}
+      </h2>
       <p id="quit-dialog-desc" class="quit-dialog-desc">
-        {sessionCount} active terminal session{sessionCount !== 1 ? 's' : ''} will be terminated.
+        {#if isReplaceMode}
+          {sessionCount} active terminal session{sessionCount !== 1 ? 's' : ''} will be terminated and replaced by the selected preset.
+        {:else}
+          {sessionCount} active terminal session{sessionCount !== 1 ? 's' : ''} will be terminated.
+        {/if}
       </p>
       <div class="quit-dialog-actions">
         <button class="quit-dialog-btn quit-dialog-btn--cancel" onclick={handleCancel} autofocus>
           Cancel
         </button>
-        <button class="quit-dialog-btn quit-dialog-btn--quit" onclick={handleQuit}> Quit </button>
+        <button class="quit-dialog-btn quit-dialog-btn--quit" onclick={handleConfirm}>
+          {isReplaceMode ? 'Replace' : 'Quit'}
+        </button>
       </div>
     </div>
   </div>
