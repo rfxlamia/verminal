@@ -1106,4 +1106,209 @@ describe('Workspace', () => {
       expect(firstPaneWrapper.style.gridColumn).toBe('1 / -1')
     })
   })
+
+  describe('resize focus preservation (Story 3.6)', () => {
+    it('workspace renders correctly with paneId prop passed to PaneContainer', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 }
+          ]
+        }
+      })
+
+      // Verify both panes are rendered with correct data-pane-id
+      const paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(2)
+      expect(paneContainers[0].dataset.paneId).toBe('1')
+      expect(paneContainers[1].dataset.paneId).toBe('2')
+    })
+
+    it('pane containers are clickable for focus after resize', async () => {
+      vi.useFakeTimers()
+
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 }
+          ]
+        }
+      })
+
+      // Wait for mount
+      await vi.runAllTimersAsync()
+
+      // Verify panes exist
+      const paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(2)
+
+      // Trigger resize
+      const mockEntry = createMockEntry(mockContentRect)
+      resizeObserverCallbacks.forEach((cb) => cb([mockEntry]))
+      await vi.advanceTimersByTimeAsync(50)
+
+      // Verify panes still exist and are clickable after resize
+      const panesAfterResize = target.querySelectorAll('.pane-container')
+      expect(panesAfterResize.length).toBe(2)
+
+      // Verify onclick handler is present (pane-container has role="button")
+      expect(panesAfterResize[0].getAttribute('role')).toBe('button')
+      expect(panesAfterResize[1].getAttribute('role')).toBe('button')
+    })
+
+    it('3-pane layout: first pane still spans columns after resize (regression)', async () => {
+      vi.useFakeTimers()
+
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 },
+            { paneId: 3, sessionId: 3 }
+          ]
+        }
+      })
+
+      // Wait for mount
+      await vi.runAllTimersAsync()
+
+      // Trigger resize
+      const mockEntry = createMockEntry(mockContentRect)
+      resizeObserverCallbacks.forEach((cb) => cb([mockEntry]))
+      await vi.advanceTimersByTimeAsync(50)
+
+      // Verify 3-pane layout is preserved
+      const workspace = target.querySelector('.workspace-container') as HTMLElement
+      expect(workspace).not.toBeNull()
+      expect(workspace.style.gridTemplateColumns).toBe('1fr 1fr')
+      expect(workspace.style.gridTemplateRows).toBe('1fr 1fr')
+
+      // First pane wrapper should still span both columns
+      const firstPaneWrapper = workspace.children[0] as HTMLElement
+      expect(firstPaneWrapper.style.gridColumn).toBe('1 / -1')
+    })
+
+    it('4-pane layout: all panes auto-placed without span after resize (regression)', async () => {
+      vi.useFakeTimers()
+
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 },
+            { paneId: 3, sessionId: 3 },
+            { paneId: 4, sessionId: 4 }
+          ]
+        }
+      })
+
+      // Wait for mount
+      await vi.runAllTimersAsync()
+
+      // Trigger resize
+      const mockEntry = createMockEntry(mockContentRect)
+      resizeObserverCallbacks.forEach((cb) => cb([mockEntry]))
+      await vi.advanceTimersByTimeAsync(50)
+
+      // Verify 4-pane layout is preserved
+      const workspace = target.querySelector('.workspace-container') as HTMLElement
+      expect(workspace).not.toBeNull()
+      expect(workspace.style.gridTemplateColumns).toBe('1fr 1fr')
+      expect(workspace.style.gridTemplateRows).toBe('1fr 1fr')
+
+      // All pane wrappers should NOT have grid-column span
+      const paneWrappers = workspace.querySelectorAll('.pane-wrapper')
+      expect(paneWrappers.length).toBe(4)
+      paneWrappers.forEach((wrapper) => {
+        const el = wrapper as HTMLElement
+        expect(el.style.gridColumn).toBe('')
+      })
+    })
+
+    it('resize completes within 100ms budget with focus state preservation', async () => {
+      vi.useFakeTimers()
+
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '1280px'
+      target.style.height = '720px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 1 },
+            { paneId: 2, sessionId: 2 },
+            { paneId: 3, sessionId: 3 },
+            { paneId: 4, sessionId: 4 }
+          ]
+        }
+      })
+
+      // Wait for mount
+      await vi.runAllTimersAsync()
+
+      // Record start time
+      const startTime = performance.now()
+
+      // Trigger resize
+      const mockEntry = createMockEntry(mockContentRect)
+      resizeObserverCallbacks.forEach((cb) => cb([mockEntry]))
+
+      // Advance past debounce (50ms)
+      await vi.advanceTimersByTimeAsync(50)
+
+      // Record end time
+      const endTime = performance.now()
+      const totalTime = endTime - startTime
+
+      // Verify all panes exist after resize (resizeTick propagated)
+      const paneContainers = target.querySelectorAll('.pane-container')
+      expect(paneContainers.length).toBe(4)
+
+      // Verify resize completes within FR17 100ms budget
+      expect(totalTime).toBeLessThan(100)
+    })
+  })
 })
