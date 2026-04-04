@@ -47,12 +47,7 @@
   tabindex="0"
   aria-label="Terminal pane {paneId}"
 >
-  <PaneHeader
-    {paneId}
-    name={paneName}
-    {isFocused}
-    onEditRequest={handleEditRequest}
-  />
+  <PaneHeader {paneId} name={paneName} {isFocused} onEditRequest={handleEditRequest} />
   <div class="pane-terminal-area">
     <TerminalView {paneId} {sessionId} {resizeTick} />
   </div>

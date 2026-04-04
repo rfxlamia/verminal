@@ -21,11 +21,9 @@
   }
 </script>
 
-<header
-  class="pane-header"
-  class:is-focused={isFocused}
-  onclick={handleClick}
->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<header class="pane-header" class:is-focused={isFocused} onclick={handleClick}>
   <span class="pane-header-name">{displayName}</span>
 </header>
 
