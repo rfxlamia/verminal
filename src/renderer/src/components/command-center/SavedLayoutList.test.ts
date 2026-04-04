@@ -445,7 +445,9 @@ describe('SavedLayoutList', () => {
         }
       })
 
-      const unselectedButtons = target.querySelectorAll('.saved-layout-item:not(.saved-layout-item--selected)')
+      const unselectedButtons = target.querySelectorAll(
+        '.saved-layout-item:not(.saved-layout-item--selected)'
+      )
       unselectedButtons.forEach((button) => {
         expect(button.getAttribute('aria-selected')).toBe('false')
       })

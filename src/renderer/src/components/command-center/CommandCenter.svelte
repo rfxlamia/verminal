@@ -261,7 +261,10 @@
     }
   }
 
-  async function executeSavedLayoutFlow(layoutName: string, oldSessionIds: number[]): Promise<void> {
+  async function executeSavedLayoutFlow(
+    layoutName: string,
+    oldSessionIds: number[]
+  ): Promise<void> {
     isLoadingLayout = true
     loadLayoutError = ''
 

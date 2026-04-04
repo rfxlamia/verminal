@@ -46,13 +46,10 @@ describe('layout-manager', () => {
 
     it('returns sorted list of layout names without .toml extension', () => {
       vi.mocked(fs.existsSync).mockReturnValue(true)
-      vi.mocked(fs.readdirSync).mockReturnValue([
-        'dev-workspace.toml',
-        'personal.toml',
-        'work.toml',
-        'not-a-layout.txt',
-        'README.md'
-      ] as any)
+      vi.mocked(fs.readdirSync).mockReturnValue(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ['dev-workspace.toml', 'personal.toml', 'work.toml', 'not-a-layout.txt', 'README.md'] as any
+      )
 
       const result = listLayouts()
 
@@ -64,10 +61,10 @@ describe('layout-manager', () => {
 
     it('returns empty array when directory exists but has no .toml files', () => {
       vi.mocked(fs.existsSync).mockReturnValue(true)
-      vi.mocked(fs.readdirSync).mockReturnValue([
-        'README.md',
-        'config.json'
-      ] as any)
+      vi.mocked(fs.readdirSync).mockReturnValue(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ['README.md', 'config.json'] as any
+      )
 
       const result = listLayouts()
 

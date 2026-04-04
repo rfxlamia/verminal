@@ -77,8 +77,8 @@ export function listLayouts(): Result<string[]> {
     }
     const files = fs.readdirSync(layoutsDir)
     const names = files
-      .filter(f => f.endsWith('.toml'))
-      .map(f => f.slice(0, -5)) // Remove .toml extension
+      .filter((f) => f.endsWith('.toml'))
+      .map((f) => f.slice(0, -5)) // Remove .toml extension
       .sort((a, b) => a.localeCompare(b))
     return { ok: true, data: names }
   } catch (error) {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { ipcMain } from 'electron'
+import { ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { registerLayoutIpcHandlers } from './layout-ipc-handler'
 import * as layoutManager from './layout-manager'
 import type { Result, SavedLayoutData } from '../../shared/ipc-contract'
@@ -42,9 +42,10 @@ describe('layout-ipc-handler', () => {
       registerLayoutIpcHandlers()
 
       // Get the registered handler
-      const listHandler = vi.mocked(ipcMain.handle).mock.calls.find(
-        call => call[0] === 'layout:list'
-      )?.[1] as Function
+      type ListHandler = () => Result<string[]>
+      const listHandler = vi
+        .mocked(ipcMain.handle)
+        .mock.calls.find((call) => call[0] === 'layout:list')?.[1] as ListHandler
 
       expect(listHandler).toBeDefined()
 
@@ -66,13 +67,14 @@ describe('layout-ipc-handler', () => {
       registerLayoutIpcHandlers()
 
       // Get the registered handler
-      const loadHandler = vi.mocked(ipcMain.handle).mock.calls.find(
-        call => call[0] === 'layout:load'
-      )?.[1] as Function
+      type LoadHandler = (event: IpcMainInvokeEvent, name: string) => Result<SavedLayoutData>
+      const loadHandler = vi
+        .mocked(ipcMain.handle)
+        .mock.calls.find((call) => call[0] === 'layout:load')?.[1] as LoadHandler
 
       expect(loadHandler).toBeDefined()
 
-      const mockEvent = {} as any
+      const mockEvent = {} as IpcMainInvokeEvent
       const result = await loadHandler(mockEvent, 'dev-workspace')
 
       expect(layoutManager.loadLayout).toHaveBeenCalledWith('dev-workspace')
@@ -82,11 +84,13 @@ describe('layout-ipc-handler', () => {
     it('layout:load handler passes name as positional argument', async () => {
       registerLayoutIpcHandlers()
 
-      const loadHandler = vi.mocked(ipcMain.handle).mock.calls.find(
-        call => call[0] === 'layout:load'
-      )?.[1] as Function
+      type LoadHandler = (event: IpcMainInvokeEvent, name: string) => Result<SavedLayoutData>
+      const loadHandler = vi
+        .mocked(ipcMain.handle)
+        .mock.calls.find((call) => call[0] === 'layout:load')?.[1] as LoadHandler
 
-      await loadHandler({}, 'test-layout')
+      const mockEvent = {} as IpcMainInvokeEvent
+      await loadHandler(mockEvent, 'test-layout')
 
       // Verify loadLayout was called with just the name (not an object)
       expect(layoutManager.loadLayout).toHaveBeenCalledWith('test-layout')

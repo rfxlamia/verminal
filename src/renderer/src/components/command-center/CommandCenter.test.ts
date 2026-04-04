@@ -13,7 +13,10 @@ describe('CommandCenter', () => {
       api: {
         layout: {
           list: vi.fn().mockResolvedValue({ ok: true, data: [] }),
-          load: vi.fn().mockResolvedValue({ ok: true, data: { name: 'test', layout_name: 'single', panes: [{}] } }),
+          load: vi.fn().mockResolvedValue({
+            ok: true,
+            data: { name: 'test', layout_name: 'single', panes: [{}] }
+          }),
           save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
           delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
         }
@@ -231,7 +234,9 @@ describe('CommandCenter', () => {
         .mockResolvedValueOnce({ ok: true, data: { sessionId: 101 } })
         .mockResolvedValueOnce({ ok: true, data: { sessionId: 102 } })
       const mockLayoutList = vi.fn().mockResolvedValue({ ok: true, data: [] })
-      const mockLayoutLoad = vi.fn().mockResolvedValue({ ok: true, data: { name: 'test', layout_name: 'single', panes: [{}] } })
+      const mockLayoutLoad = vi
+        .fn()
+        .mockResolvedValue({ ok: true, data: { name: 'test', layout_name: 'single', panes: [{}] } })
 
       vi.stubGlobal('window', {
         api: {
@@ -317,7 +322,10 @@ describe('CommandCenter', () => {
           pty: { spawn: vi.fn(), kill: vi.fn() },
           layout: {
             list: mockLayoutList,
-            load: vi.fn().mockResolvedValue({ ok: true, data: { name: 'test', layout_name: 'single', panes: [{}] } }),
+            load: vi.fn().mockResolvedValue({
+              ok: true,
+              data: { name: 'test', layout_name: 'single', panes: [{}] }
+            }),
             save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
             delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
           }
