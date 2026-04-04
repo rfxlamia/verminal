@@ -4,6 +4,7 @@ import type { Result } from '../shared/ipc-contract'
 import { ensureConfigDirectory, getLogsPath } from './config-manager'
 import { createWindow } from './app/window-manager'
 import { handleQuitCancel, handleQuitConfirm, registerQuitHandler } from './app/quit-handler'
+import { registerGlobalShortcuts, unregisterGlobalShortcuts } from './app/shortcuts'
 import { initCrashLogger } from './logging/crash-log'
 import { handleShellDetect } from './shell/shell-manager'
 import { registerPtyIpcHandlers } from './pty/pty-ipc-handler'
@@ -82,6 +83,7 @@ app.whenReady().then(() => {
   const createMainWindow = (): BrowserWindow => {
     mainWindow = createWindow()
     registerQuitHandler(mainWindow, getActiveSessionIds)
+    registerGlobalShortcuts(mainWindow)
     return mainWindow
   }
 
@@ -120,6 +122,11 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
+})
+
+// Unregister global shortcuts before quitting to avoid stale bindings
+app.on('will-quit', () => {
+  unregisterGlobalShortcuts()
 })
 
 // In this file you can include the rest of your app's specific main process
