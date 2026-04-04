@@ -1,0 +1,20 @@
+{
+  "statusSource": "docs/implementation-artifacts/sprint-status.yaml",
+  "requiredDocs": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    "GEMINI.md",
+    "repo-config/active-lanes.md"
+  ],
+  "mainBranchPolicy": "On main, only continue the in-progress epic from sprint-status.yaml. Do not start worktree-only epics on main.",
+  "worktreePolicy": "On a non-main branch, work only inside that lane's write-set. If the task needs files outside the lane, stop and integrate deliberately.",
+  "lanes": {
+    "main": {
+      "currentEpic": "epic-4"
+    },
+    "epic-5-worktree": {
+      "currentEpic": "epic-5",
+      "status": "planned"
+    }
+  }
+}
