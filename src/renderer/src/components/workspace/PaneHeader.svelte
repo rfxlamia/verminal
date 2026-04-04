@@ -1,6 +1,11 @@
 <script lang="ts">
   import { tick } from 'svelte'
 
+  // Public API type for bind:this usage
+  export interface PaneHeaderExports {
+    startEditExternally: () => void
+  }
+
   let {
     paneId,
     name,
@@ -13,7 +18,7 @@
     onRename?: (name: string) => void
   } = $props()
 
-  // Fallback: jika name kosong atau whitespace-only
+  // Fallback: if name is empty or whitespace-only
   let displayName = $derived(name?.trim() || `Pane ${paneId}`)
 
   // Inline edit state (local to PaneHeader - not in global stores)
@@ -132,5 +137,6 @@
     width: 100%;
     padding: 0;
     flex: 1;
+    transition: border-color 150ms ease;
   }
 </style>

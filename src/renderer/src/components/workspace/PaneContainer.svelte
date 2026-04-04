@@ -1,6 +1,6 @@
 <script lang="ts">
   import TerminalView from './TerminalView.svelte'
-  import PaneHeader from './PaneHeader.svelte'
+  import PaneHeader, { type PaneHeaderExports } from './PaneHeader.svelte'
   import { workspaceUIState, setFocusedPaneId } from '../../stores/workspace-ui-store.svelte'
   import { layoutState, renamePaneInLayout } from '../../stores/layout-store.svelte'
 
@@ -18,13 +18,13 @@
   // Derive focus state for this pane - single source of truth
   let isFocused = $derived(workspaceUIState.focusedPaneId === paneId)
 
-  // Baca nama pane dari layoutState — nama default "Pane N" sudah diisi oleh createPane()
+  // Read pane name from layoutState — default "Pane N" name is set by createPane()
   let paneName = $derived(
     (layoutState.panes ?? []).find((p) => p.paneId === paneId)?.name ?? `Pane ${paneId}`
   )
 
-  // Reference to PaneHeader untuk F2-triggered edit mode
-  let paneHeaderRef: { startEditExternally: () => void } | undefined = $state()
+  // Reference to PaneHeader for F2-triggered edit mode
+  let paneHeaderRef: PaneHeaderExports | undefined = $state()
 
   function handleRename(newName: string): void {
     renamePaneInLayout(paneId, newName)
@@ -52,7 +52,13 @@
   tabindex="0"
   aria-label="Terminal pane {paneId}"
 >
-  <PaneHeader {paneId} name={paneName} {isFocused} {handleRename} bind:this={paneHeaderRef} />
+  <PaneHeader
+    {paneId}
+    name={paneName}
+    {isFocused}
+    onRename={handleRename}
+    bind:this={paneHeaderRef}
+  />
   <div class="pane-terminal-area">
     <TerminalView {paneId} {sessionId} {resizeTick} />
   </div>
@@ -72,7 +78,7 @@
     /* Focus color #62c6ff on #1C1C1C background provides ~3.5:1 contrast
      * This meets WCAG 2.1 AA for UI components (3:1 requirement)
      * Using CSS custom property allows theming */
-    outline: 2px solid var(--color-focus, #62c6ff);
+    outline: 2px solid var(--cc-focus, #62c6ff);
     outline-offset: -2px;
   }
 

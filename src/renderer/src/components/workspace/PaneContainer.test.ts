@@ -431,7 +431,7 @@ describe('PaneContainer', () => {
       expect(input).toBeNull()
     })
 
-    it.skip('wires PaneHeader rename callback to update layoutState', async () => {
+    it('wires PaneHeader rename callback to update layoutState', async () => {
       const PaneContainer = await getPaneContainer()
       const { layoutState, resetLayoutState } = await import('../../stores/layout-store.svelte')
       const target = document.createElement('div')
@@ -453,6 +453,8 @@ describe('PaneContainer', () => {
       input.value = 'New Name'
       input.dispatchEvent(new Event('input', { bubbles: true }))
       input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+
+      // Wait for the commit handler to execute
       await tick()
 
       // Verify layoutState was updated (via renamePaneInLayout)

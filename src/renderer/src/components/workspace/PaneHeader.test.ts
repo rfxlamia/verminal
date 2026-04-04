@@ -111,15 +111,24 @@ describe('PaneHeader', () => {
       const target = document.createElement('div')
       document.body.appendChild(target)
 
+      // Mock select() to verify it's called
+      const selectMock = vi.fn()
+      const originalSelect = HTMLInputElement.prototype.select
+      HTMLInputElement.prototype.select = selectMock
+
       mount(PaneHeader, { target, props: { paneId: 1, name: 'Test' } })
 
       const header = target.querySelector('header.pane-header')
       header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
       await tick()
 
-      const input = target.querySelector('input.pane-name-input') as HTMLInputElement
-      // select() is called asynchronously via tick(), text should be selected
-      expect(input).not.toBeNull()
+      // Wait for the async select() call via tick().then()
+      await tick()
+
+      // Restore original before assertion
+      HTMLInputElement.prototype.select = originalSelect
+
+      expect(selectMock).toHaveBeenCalledOnce()
     })
 
     it('calls onRename with new name on Enter press', async () => {
