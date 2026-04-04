@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { tick } from 'svelte'
+import type { IPCAPI } from '../../shared/ipc-contract'
 
 describe('QuitDialog', () => {
   beforeEach(() => {
@@ -13,13 +14,14 @@ describe('QuitDialog', () => {
           cancel: vi.fn(),
           confirm: vi.fn()
         }
-      }
+      } as Pick<IPCAPI, 'quit'>
     })
   })
 
   afterEach(() => {
     document.body.innerHTML = ''
     vi.unstubAllGlobals()
+    vi.restoreAllMocks()
   })
 
   // Helper to get fresh component after resetModules

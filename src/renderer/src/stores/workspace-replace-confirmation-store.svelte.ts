@@ -25,7 +25,7 @@ let _confirmCallback: (() => void) | null = null
  * Shows dialog if there are active sessions
  */
 export function requestWorkspaceReplace(sessionCount: number): void {
-  workspaceReplaceState.sessionCount = sessionCount
+  workspaceReplaceState.sessionCount = Math.max(0, sessionCount)
   workspaceReplaceState.visible = true
 }
 
@@ -47,7 +47,11 @@ export function confirmWorkspaceReplace(): void {
   workspaceReplaceState.visible = false
   workspaceReplaceState.sessionCount = 0
   if (_confirmCallback) {
-    _confirmCallback()
+    try {
+      _confirmCallback()
+    } catch (e) {
+      console.error('Error in workspace replace confirm callback:', e)
+    }
     _confirmCallback = null
   }
 }
