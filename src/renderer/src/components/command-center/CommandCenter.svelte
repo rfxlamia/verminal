@@ -102,6 +102,8 @@
       if (focusedPaneId !== null && Number.isFinite(focusedPaneId)) {
         // Sanitize paneId for CSS selector safety
         const sanitizedId = String(focusedPaneId).replace(/[^a-zA-Z0-9_-]/g, '')
+        // Guard: empty sanitizedId would create invalid selector matching unintended elements
+        if (!sanitizedId) return
         const paneEl = document.querySelector<HTMLElement>(`[data-pane-id="${sanitizedId}"]`)
         // Defensive: only focus if element exists, is in DOM, and is focusable
         if (paneEl && document.contains(paneEl) && isFocusable(paneEl)) {

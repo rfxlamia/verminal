@@ -28,7 +28,12 @@
   function handleKeydown(event: KeyboardEvent): void {
     if (layouts.length === 0) return
 
-    const currentIndex = selectedLayout ? layouts.findIndex((l) => l.name === selectedLayout) : -1
+    // Guard: ensure selectedLayout exists in current layouts (handle stale selection)
+    const validSelectedLayout =
+      selectedLayout && layouts.find((l) => l.name === selectedLayout) ? selectedLayout : null
+    const currentIndex = validSelectedLayout
+      ? layouts.findIndex((l) => l.name === validSelectedLayout)
+      : -1
 
     if (event.key === 'ArrowDown') {
       event.preventDefault()

@@ -118,8 +118,18 @@ export function listLayouts(): Result<SavedLayoutSummary[]> {
       const layoutFile = path.join(layoutsDir, file)
       try {
         const content = fs.readFileSync(layoutFile, 'utf-8')
-        const parsed = parse(content) as Record<string, unknown>
-        const layoutName = parsed.layout_name as string
+        const parsed = parse(content)
+        // Runtime validation: ensure parsed is an object
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+          console.warn(`[layout-manager] Skipping file "${file}": not a valid TOML object`)
+          continue
+        }
+        const layoutName = (parsed as Record<string, unknown>).layout_name
+        // Runtime validation: ensure layout_name is a string
+        if (typeof layoutName !== 'string') {
+          console.warn(`[layout-manager] Skipping file "${file}": layout_name missing or invalid`)
+          continue
+        }
         // Only include if layout_name is valid
         if (isValidLayoutNameString(layoutName)) {
           summaries.push({ name, layout_name: layoutName })
