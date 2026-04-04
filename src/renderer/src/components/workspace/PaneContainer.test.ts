@@ -461,4 +461,132 @@ describe('PaneContainer', () => {
       expect(layoutState.panes[0].name).toBe('New Name')
     })
   })
+
+  // ========== Story 5.3: Color Change Wiring Tests ==========
+  describe('Color Change Wiring', () => {
+    it('derives paneColor from layoutState', async () => {
+      const PaneContainer = await getPaneContainer()
+      const { layoutState, resetLayoutState } = await import('../../stores/layout-store.svelte')
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      resetLayoutState()
+      layoutState.panes = [{ paneId: 42, sessionId: 1, name: 'Test', color: 'blue' }]
+
+      mount(PaneContainer, { target, props: { paneId: 42, sessionId: 1, resizeTick: 0 } })
+
+      // Verify color is applied to header
+      const header = target.querySelector('header.pane-header')
+      expect(header!.getAttribute('data-color')).toBe('blue')
+    })
+
+    it('calls recolorPaneInLayout when onColorChange fires', async () => {
+      const PaneContainer = await getPaneContainer()
+      const { layoutState, resetLayoutState } = await import('../../stores/layout-store.svelte')
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      resetLayoutState()
+      layoutState.panes = [{ paneId: 42, sessionId: 1, name: 'Test' }]
+
+      mount(PaneContainer, { target, props: { paneId: 42, sessionId: 1, resizeTick: 0 } })
+
+      // Enter edit mode by clicking header
+      const header = target.querySelector('header.pane-header')
+      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await tick()
+
+      // Click on a color swatch
+      const swatches = target.querySelectorAll('.color-swatch')
+      swatches[6].dispatchEvent(new MouseEvent('click', { bubbles: true })) // blue
+      await tick()
+
+      // Verify layoutState was updated via recolorPaneInLayout
+      expect(layoutState.panes[0].color).toBe('blue')
+    })
+
+    it('passes paneColor to PaneHeader', async () => {
+      const PaneContainer = await getPaneContainer()
+      const { layoutState, resetLayoutState } = await import('../../stores/layout-store.svelte')
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      resetLayoutState()
+      layoutState.panes = [{ paneId: 42, sessionId: 1, name: 'Test', color: 'green' }]
+
+      mount(PaneContainer, { target, props: { paneId: 42, sessionId: 1, resizeTick: 0 } })
+
+      // Verify color label is shown in header
+      const colorLabel = target.querySelector('.pane-color-label')
+      expect(colorLabel).not.toBeNull()
+      expect(colorLabel!.textContent).toBe('Green')
+    })
+
+    it('ignores Enter and Space keydown bubbling from nested swatch buttons', async () => {
+      const PaneContainer = await getPaneContainer()
+      const { layoutState, resetLayoutState, recolorPaneInLayout } = await import(
+        '../../stores/layout-store.svelte'
+      )
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      resetLayoutState()
+      layoutState.panes = [{ paneId: 42, sessionId: 1, name: 'Test' }]
+
+      mount(PaneContainer, { target, props: { paneId: 42, sessionId: 1, resizeTick: 0 } })
+
+      // Enter edit mode
+      const header = target.querySelector('header.pane-header')
+      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await tick()
+
+      // Get a swatch button and dispatch Enter key
+      const swatch = target.querySelector('.color-swatch') as HTMLElement
+      expect(swatch).not.toBeNull()
+
+      // Dispatch Enter key on swatch - this should not trigger pane container's Enter handler
+      swatch!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      await tick()
+
+      // Verify that color was NOT changed (recolorPaneInLayout only called via onclick, not keydown)
+      // The pane should still not have a color
+      expect(layoutState.panes[0].color).toBeUndefined()
+    })
+
+    it('header pane displays color update without re-mount', async () => {
+      const PaneContainer = await getPaneContainer()
+      const { layoutState, resetLayoutState, recolorPaneInLayout } = await import(
+        '../../stores/layout-store.svelte'
+      )
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      resetLayoutState()
+      layoutState.panes = [{ paneId: 42, sessionId: 1, name: 'Test' }]
+
+      mount(PaneContainer, { target, props: { paneId: 42, sessionId: 1, resizeTick: 0 } })
+
+      // Initially no color
+      let header = target.querySelector('header.pane-header')
+      expect(header!.getAttribute('data-color')).toBe('')
+
+      // Call recolorPaneInLayout directly (simulating color picker selection)
+      recolorPaneInLayout(42, 'purple')
+      await tick()
+
+      // Verify header updated without re-mount
+      header = target.querySelector('header.pane-header')
+      expect(header!.getAttribute('data-color')).toBe('purple')
+
+      // Color label should be visible
+      const colorLabel = target.querySelector('.pane-color-label')
+      expect(colorLabel).not.toBeNull()
+      expect(colorLabel!.textContent).toBe('Purple')
+    })
+  })
 })

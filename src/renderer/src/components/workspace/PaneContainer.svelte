@@ -2,7 +2,12 @@
   import TerminalView from './TerminalView.svelte'
   import PaneHeader, { type PaneHeaderExports } from './PaneHeader.svelte'
   import { workspaceUIState, setFocusedPaneId } from '../../stores/workspace-ui-store.svelte'
-  import { layoutState, renamePaneInLayout } from '../../stores/layout-store.svelte'
+  import {
+    layoutState,
+    renamePaneInLayout,
+    recolorPaneInLayout,
+    type PaneColor
+  } from '../../stores/layout-store.svelte'
 
   // Props:
   let {
@@ -23,11 +28,41 @@
     (layoutState.panes ?? []).find((p) => p.paneId === paneId)?.name ?? `Pane ${paneId}`
   )
 
+  // Read pane color from layoutState
+  let paneColor = $derived(
+    (layoutState.panes ?? []).find((p) => p.paneId === paneId)?.color
+  )
+
   // Reference to PaneHeader for F2-triggered edit mode
   let paneHeaderRef: PaneHeaderExports | undefined = $state()
 
   function handleRename(newName: string): void {
     renamePaneInLayout(paneId, newName)
+  }
+
+  function handleColorChange(color: PaneColor | undefined): void {
+    recolorPaneInLayout(paneId, color)
+  }
+
+  function handleKeydown(e: KeyboardEvent): void {
+    // Guard: ignore events from nested interactive elements (input, buttons)
+    // This ensures Enter/Space on color swatches or rename input don't trigger pane focus
+    const target = e.target as HTMLElement
+    if (target !== e.currentTarget) {
+      // Event bubbled from a child element - check if it's an interactive element
+      const tagName = target.tagName.toLowerCase()
+      if (tagName === 'input' || tagName === 'button' || target.isContentEditable) {
+        return
+      }
+    }
+
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      setFocusedPaneId(paneId)
+    } else if (e.key === 'F2') {
+      e.preventDefault()
+      paneHeaderRef?.startEditExternally()
+    }
   }
 </script>
 
@@ -39,15 +74,7 @@
   data-session-id={sessionId}
   data-focused={isFocused}
   onclick={() => setFocusedPaneId(paneId)}
-  onkeydown={(e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      setFocusedPaneId(paneId)
-    } else if (e.key === 'F2') {
-      e.preventDefault()
-      paneHeaderRef?.startEditExternally()
-    }
-  }}
+  onkeydown={handleKeydown}
   role="button"
   tabindex="0"
   aria-label="Terminal pane {paneId}"
@@ -55,8 +82,10 @@
   <PaneHeader
     {paneId}
     name={paneName}
+    color={paneColor}
     {isFocused}
     onRename={handleRename}
+    onColorChange={handleColorChange}
     bind:this={paneHeaderRef}
   />
   <div class="pane-terminal-area">
