@@ -8,9 +8,17 @@
   import { onDestroy } from 'svelte'
   import { commandCenterState, closeCommandCenter } from '../../stores/command-center-store.svelte'
   import { workspaceUIState } from '../../stores/workspace-ui-store.svelte'
+  import { layoutState, initSinglePaneLayout, initHorizontalSplitLayout, initMixedSplitLayout, initGridLayout } from '../../stores/layout-store.svelte'
+  import { requestWorkspaceReplace, onWorkspaceReplaceConfirm } from '../../stores/workspace-replace-confirmation-store.svelte'
+  import PresetLauncher from './PresetLauncher.svelte'
 
   let backdropEl: HTMLDivElement | null = $state(null)
   let isMounted = true
+
+  // Local state for preset launcher
+  let selectedPreset = $state(1)
+  let isSpawning = $state(false)
+  let spawnError = $state('')
 
   onDestroy(() => {
     isMounted = false
@@ -20,11 +28,8 @@
     if (event.key === 'Escape') {
       event.preventDefault()
       closeAndRestoreFocus()
-    } else if (event.key === 'Tab') {
-      // Trap focus inside the overlay for Story 4.1
-      // This prevents Tab from escaping to the workspace while CC is open
-      event.preventDefault()
     }
+    // Tab handling is now managed by PresetLauncher
   }
 
   function isFocusable(element: HTMLElement): boolean {
@@ -64,12 +69,120 @@
     })
   }
 
-  // Auto-focus backdrop when opened
+  // Auto-focus first preset button when opened
   $effect(() => {
     if (commandCenterState.isOpen && backdropEl) {
-      backdropEl.focus()
+      // Focus the first preset button after a small delay
+      queueMicrotask(() => {
+        const firstBtn = backdropEl?.querySelector<HTMLElement>('.preset-btn')
+        if (firstBtn) {
+          firstBtn.focus()
+        } else {
+          // Fallback to backdrop if buttons not yet rendered
+          backdropEl?.focus()
+        }
+      })
     }
   })
+
+  async function handlePresetSubmit(paneCount: number): Promise<void> {
+    await launchPreset(paneCount)
+  }
+
+  async function launchPreset(paneCount: number): Promise<void> {
+    // Step 1: Capture old session IDs
+    const oldSessionIds = layoutState.panes.map((pane) => pane.sessionId)
+
+    // Step 2: If there are active sessions, request confirmation
+    if (oldSessionIds.length > 0) {
+      requestWorkspaceReplace(oldSessionIds.length)
+
+      // Wait for user confirmation
+      return new Promise((resolve) => {
+        onWorkspaceReplaceConfirm(async () => {
+          await executeSpawnFlow(paneCount, oldSessionIds)
+          resolve()
+        })
+      })
+    } else {
+      // No active sessions, proceed directly
+      await executeSpawnFlow(paneCount, oldSessionIds)
+    }
+  }
+
+  async function executeSpawnFlow(paneCount: number, oldSessionIds: number[]): Promise<void> {
+    isSpawning = true
+    spawnError = ''
+
+    try {
+      // Step 3: Detect shell
+      const detectResult = await window.api.shell.detect()
+      if (!detectResult.ok) {
+        spawnError = `Shell detection failed: ${detectResult.error.message}`
+        isSpawning = false
+        return
+      }
+
+      const shell = detectResult.data[0]
+      if (!shell) {
+        spawnError = 'No shell detected. Please check your system configuration.'
+        isSpawning = false
+        return
+      }
+
+      // Step 4: Get paths
+      const pathsResult = await window.api.app.getPaths()
+      const cwd = pathsResult.ok ? pathsResult.data.home : ''
+
+      // Step 5: Spawn PTY sessions sequentially
+      const newSessionIds: number[] = []
+      for (let i = 0; i < paneCount; i++) {
+        const spawnResult = await window.api.pty.spawn(shell, [], cwd)
+        if (!spawnResult.ok) {
+          // Cleanup any spawned sessions
+          for (const sessionId of newSessionIds) {
+            window.api.pty.kill(sessionId).catch(() => {
+              // Ignore cleanup errors
+            })
+          }
+          spawnError = `Failed to spawn terminal: ${spawnResult.error.message}`
+          isSpawning = false
+          return
+        }
+        newSessionIds.push(spawnResult.data.sessionId)
+      }
+
+      // Step 6: Initialize layout based on paneCount
+      switch (paneCount) {
+        case 1:
+          initSinglePaneLayout(newSessionIds[0])
+          break
+        case 2:
+          initHorizontalSplitLayout(newSessionIds[0], newSessionIds[1])
+          break
+        case 3:
+          initMixedSplitLayout(newSessionIds[0], newSessionIds[1], newSessionIds[2])
+          break
+        case 4:
+          initGridLayout(newSessionIds[0], newSessionIds[1], newSessionIds[2], newSessionIds[3])
+          break
+      }
+
+      // Step 7: Kill old sessions fire-and-forget
+      for (const sessionId of oldSessionIds) {
+        window.api.pty.kill(sessionId).catch(() => {
+          // Ignore cleanup errors
+        })
+      }
+
+      // Step 8: Reset state and close
+      spawnError = ''
+      closeCommandCenter()
+      closeAndRestoreFocus()
+    } finally {
+      isSpawning = false
+    }
+  }
 </script>
 
 {#if commandCenterState.isOpen}
@@ -86,9 +199,15 @@
   >
     <div class="command-center-panel">
       <h2 class="command-center-title">Command Center</h2>
-      <!-- Story 4.2: PresetLauncher goes here -->
-      <!-- Story 4.3: SavedLayoutList goes here -->
-      <!-- Story 4.4: LayoutPreview goes here -->
+
+      <PresetLauncher
+        {selectedPreset}
+        {isSpawning}
+        errorMessage={spawnError}
+        onSelect={(preset) => { selectedPreset = preset }}
+        onSubmit={handlePresetSubmit}
+      />
+
       <p class="command-center-hint">Press Esc to dismiss</p>
     </div>
   </div>

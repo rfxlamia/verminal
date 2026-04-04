@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { tick } from 'svelte'
+import { resetCommandCenterState } from '../../stores/command-center-store.svelte'
 
 describe('CommandCenter', () => {
   beforeEach(() => {
     vi.resetModules()
     document.body.innerHTML = ''
+    resetCommandCenterState()
   })
 
   afterEach(() => {
@@ -73,6 +75,29 @@ describe('CommandCenter', () => {
       expect(title).not.toBeNull()
       expect(title?.textContent).toBe('Command Center')
     })
+
+    it('renders PresetLauncher component when open', async () => {
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter } = await import('../../stores/command-center-store.svelte')
+
+      openCommandCenter()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+
+      // Should render preset buttons
+      const presetButtons = target.querySelectorAll('.preset-btn')
+      expect(presetButtons.length).toBe(4)
+
+      // Should render preset launcher container
+      const presetLauncher = target.querySelector('.preset-launcher')
+      expect(presetLauncher).not.toBeNull()
+    })
   })
 
   describe('accessibility', () => {
@@ -98,7 +123,7 @@ describe('CommandCenter', () => {
   })
 
   describe('keyboard interactions', () => {
-    it('focuses the backdrop immediately when opened', async () => {
+    it('focuses the first preset button when opened', async () => {
       const CommandCenter = await getCommandCenter()
       const { openCommandCenter } = await import('../../stores/command-center-store.svelte')
 
@@ -114,10 +139,11 @@ describe('CommandCenter', () => {
       await tick()
       await tick()
 
-      const backdrop = target.querySelector('.command-center-backdrop')
+      const firstPresetBtn = target.querySelector('.preset-btn')
+      expect(firstPresetBtn).not.toBeNull()
 
-      expect(backdrop).not.toBeNull()
-      expect(document.activeElement).toBe(backdrop)
+      // After opening, focus should be on first preset button
+      expect(document.activeElement).toBe(firstPresetBtn)
     })
 
     it('pressing Escape calls closeCommandCenter()', async () => {
@@ -151,7 +177,7 @@ describe('CommandCenter', () => {
       expect(commandCenterState.isOpen).toBe(false)
     })
 
-    it('prevents Tab from escaping the overlay', async () => {
+    it('parent handles Escape but does not preventDefault all Tab events', async () => {
       const CommandCenter = await getCommandCenter()
       const { openCommandCenter } = await import('../../stores/command-center-store.svelte')
 
@@ -163,21 +189,20 @@ describe('CommandCenter', () => {
       const { mount } = await import('svelte')
       mount(CommandCenter, { target })
 
-      // Flush pending state changes and effects
       await tick()
       await tick()
 
       const backdrop = target.querySelector('.command-center-backdrop')
       expect(backdrop).not.toBeNull()
 
-      // Spy on preventDefault
-      const keydownEvent = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true })
-      const preventDefaultSpy = vi.spyOn(keydownEvent, 'preventDefault')
+      // Tab should not be prevented by parent (PresetLauncher handles it)
+      const tabEvent = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true })
+      const preventDefaultSpy = vi.spyOn(tabEvent, 'preventDefault')
 
-      backdrop?.dispatchEvent(keydownEvent)
+      backdrop?.dispatchEvent(tabEvent)
 
-      // preventDefault should have been called
-      expect(preventDefaultSpy).toHaveBeenCalled()
+      // Parent should not preventDefault for Tab
+      expect(preventDefaultSpy).not.toHaveBeenCalled()
     })
   })
 })
