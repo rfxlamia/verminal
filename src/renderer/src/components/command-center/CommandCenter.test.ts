@@ -120,9 +120,8 @@ describe('CommandCenter', () => {
 
     it('pressing Escape calls closeCommandCenter()', async () => {
       const CommandCenter = await getCommandCenter()
-      const { commandCenterState, openCommandCenter } = await import(
-        '../../stores/command-center-store.svelte'
-      )
+      const { commandCenterState, openCommandCenter } =
+        await import('../../stores/command-center-store.svelte')
 
       openCommandCenter()
       expect(commandCenterState.isOpen).toBe(true)

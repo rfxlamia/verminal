@@ -15,9 +15,8 @@ describe('command-center-store', () => {
 
   describe('closeCommandCenter()', () => {
     it('sets isOpen to false', async () => {
-      const { commandCenterState, closeCommandCenter } = await import(
-        './command-center-store.svelte'
-      )
+      const { commandCenterState, closeCommandCenter } =
+        await import('./command-center-store.svelte')
       // Ensure it starts open
       expect(commandCenterState.isOpen).toBe(true)
       closeCommandCenter()
@@ -25,9 +24,8 @@ describe('command-center-store', () => {
     })
 
     it('is idempotent when already closed', async () => {
-      const { commandCenterState, closeCommandCenter } = await import(
-        './command-center-store.svelte'
-      )
+      const { commandCenterState, closeCommandCenter } =
+        await import('./command-center-store.svelte')
       closeCommandCenter()
       expect(commandCenterState.isOpen).toBe(false)
       closeCommandCenter()
@@ -37,9 +35,8 @@ describe('command-center-store', () => {
 
   describe('openCommandCenter()', () => {
     it('sets isOpen to true', async () => {
-      const { commandCenterState, openCommandCenter, closeCommandCenter } = await import(
-        './command-center-store.svelte'
-      )
+      const { commandCenterState, openCommandCenter, closeCommandCenter } =
+        await import('./command-center-store.svelte')
       // First close it
       closeCommandCenter()
       expect(commandCenterState.isOpen).toBe(false)
@@ -49,9 +46,8 @@ describe('command-center-store', () => {
     })
 
     it('is idempotent when already open', async () => {
-      const { commandCenterState, openCommandCenter } = await import(
-        './command-center-store.svelte'
-      )
+      const { commandCenterState, openCommandCenter } =
+        await import('./command-center-store.svelte')
       expect(commandCenterState.isOpen).toBe(true)
       openCommandCenter()
       expect(commandCenterState.isOpen).toBe(true)

@@ -64,7 +64,7 @@ const api = {
   },
   commandCenter: {
     onOpen: (cb: () => void): (() => void) => {
-      const handler = (_event: Electron.IpcRendererEvent): void => cb()
+      const handler = (): void => cb()
       ipcRenderer.on('command-center:open', handler)
       return (): void => {
         ipcRenderer.removeListener('command-center:open', handler)

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, cleanup } from '@testing-library/svelte'
+import { render, waitFor, cleanup } from '@testing-library/svelte'
 import { resetLayoutState } from './stores/layout-store.svelte'
 import { resetCommandCenterState } from './stores/command-center-store.svelte'
 import App from './App.svelte'
