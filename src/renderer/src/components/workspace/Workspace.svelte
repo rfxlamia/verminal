@@ -74,6 +74,7 @@
 <div
   class="workspace-container"
   bind:this={containerEl}
+  tabindex="-1"
   style="grid-template-columns: {gridColumns}; grid-template-rows: {gridRows};"
 >
   {#each panes ?? [] as pane, i (pane.paneId)}

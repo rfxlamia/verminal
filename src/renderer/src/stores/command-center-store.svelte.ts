@@ -22,3 +22,11 @@ export function openCommandCenter(): void {
 export function closeCommandCenter(): void {
   commandCenterState.isOpen = false
 }
+
+/**
+ * Resets the command center state for testing purposes.
+ * Resets isOpen to default (true) for fresh test state.
+ */
+export function resetCommandCenterState(): void {
+  commandCenterState.isOpen = true
+}
