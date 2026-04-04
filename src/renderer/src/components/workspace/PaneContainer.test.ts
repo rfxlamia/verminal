@@ -404,9 +404,8 @@ describe('PaneContainer', () => {
     it('keeps Enter on pane container as focus action, not rename action', async () => {
       const PaneContainer = await getPaneContainer()
       const { layoutState, resetLayoutState } = await import('../../stores/layout-store.svelte')
-      const { setFocusedPaneId, workspaceUIState } = await import(
-        '../../stores/workspace-ui-store.svelte'
-      )
+      const { setFocusedPaneId, workspaceUIState } =
+        await import('../../stores/workspace-ui-store.svelte')
       const target = document.createElement('div')
       document.body.appendChild(target)
 
@@ -434,9 +433,7 @@ describe('PaneContainer', () => {
 
     it.skip('wires PaneHeader rename callback to update layoutState', async () => {
       const PaneContainer = await getPaneContainer()
-      const { layoutState, resetLayoutState, renamePaneInLayout } = await import(
-        '../../stores/layout-store.svelte'
-      )
+      const { layoutState, resetLayoutState } = await import('../../stores/layout-store.svelte')
       const target = document.createElement('div')
       document.body.appendChild(target)
 

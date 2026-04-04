@@ -441,9 +441,8 @@ describe('layout-store', () => {
   // ========== Story 5.2: renamePaneInLayout Tests ==========
   describe('renamePaneInLayout', () => {
     it('updates pane name in layoutState', async () => {
-      const { layoutState, initSinglePaneLayout, renamePaneInLayout } = await import(
-        './layout-store.svelte'
-      )
+      const { layoutState, initSinglePaneLayout, renamePaneInLayout } =
+        await import('./layout-store.svelte')
       initSinglePaneLayout(1)
       const paneId = layoutState.panes[0].paneId
 
@@ -453,9 +452,8 @@ describe('layout-store', () => {
     })
 
     it('is a no-op when pane not found', async () => {
-      const { layoutState, initSinglePaneLayout, renamePaneInLayout } = await import(
-        './layout-store.svelte'
-      )
+      const { layoutState, initSinglePaneLayout, renamePaneInLayout } =
+        await import('./layout-store.svelte')
       initSinglePaneLayout(1)
       const originalName = layoutState.panes[0].name
 
@@ -465,9 +463,8 @@ describe('layout-store', () => {
     })
 
     it('is a no-op when newName is empty', async () => {
-      const { layoutState, initSinglePaneLayout, renamePaneInLayout } = await import(
-        './layout-store.svelte'
-      )
+      const { layoutState, initSinglePaneLayout, renamePaneInLayout } =
+        await import('./layout-store.svelte')
       initSinglePaneLayout(1)
       const paneId = layoutState.panes[0].paneId
       layoutState.panes[0].name = 'Original'
@@ -478,9 +475,8 @@ describe('layout-store', () => {
     })
 
     it('is a no-op when newName is whitespace-only', async () => {
-      const { layoutState, initSinglePaneLayout, renamePaneInLayout } = await import(
-        './layout-store.svelte'
-      )
+      const { layoutState, initSinglePaneLayout, renamePaneInLayout } =
+        await import('./layout-store.svelte')
       initSinglePaneLayout(1)
       const paneId = layoutState.panes[0].paneId
       layoutState.panes[0].name = 'Original'
@@ -491,9 +487,8 @@ describe('layout-store', () => {
     })
 
     it('trims whitespace from newName before saving', async () => {
-      const { layoutState, initSinglePaneLayout, renamePaneInLayout } = await import(
-        './layout-store.svelte'
-      )
+      const { layoutState, initSinglePaneLayout, renamePaneInLayout } =
+        await import('./layout-store.svelte')
       initSinglePaneLayout(1)
       const paneId = layoutState.panes[0].paneId
 
@@ -503,11 +498,10 @@ describe('layout-store', () => {
     })
 
     it('updates correct pane when multiple panes exist', async () => {
-      const { layoutState, initHorizontalSplitLayout, renamePaneInLayout } = await import(
-        './layout-store.svelte'
-      )
+      const { layoutState, initHorizontalSplitLayout, renamePaneInLayout } =
+        await import('./layout-store.svelte')
       initHorizontalSplitLayout(1, 2)
-      const paneId1 = layoutState.panes[0].paneId
+      const _paneId1 = layoutState.panes[0].paneId
       const paneId2 = layoutState.panes[1].paneId
 
       renamePaneInLayout(paneId2, 'Second Pane')
