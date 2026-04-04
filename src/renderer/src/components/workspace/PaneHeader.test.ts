@@ -346,4 +346,108 @@ describe('PaneHeader', () => {
       expect(onRename).toHaveBeenCalledWith('Trimmed Name')
     })
   })
+
+  // ========== Story 5.3: Color Picker Integration Tests ==========
+  describe('Color Picker Integration', () => {
+    it('renders ColorPicker in edit mode', async () => {
+      const PaneHeader = await getPaneHeader()
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      mount(PaneHeader, { target, props: { paneId: 1, name: 'Test' } })
+
+      const header = target.querySelector('header.pane-header')
+      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await tick()
+
+      const colorPicker = target.querySelector('.color-picker')
+      expect(colorPicker).not.toBeNull()
+    })
+
+    it('does not render ColorPicker outside edit mode', async () => {
+      const PaneHeader = await getPaneHeader()
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      mount(PaneHeader, { target, props: { paneId: 1, name: 'Test' } })
+
+      // Don't click - stay in display mode
+      const colorPicker = target.querySelector('.color-picker')
+      expect(colorPicker).toBeNull()
+    })
+
+    it('renders color label beside pane name when color prop is set', async () => {
+      const PaneHeader = await getPaneHeader()
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      mount(PaneHeader, { target, props: { paneId: 1, name: 'Test', color: 'blue' } })
+
+      const colorLabel = target.querySelector('.pane-color-label')
+      expect(colorLabel).not.toBeNull()
+      expect(colorLabel!.textContent).toBe('Blue')
+    })
+
+    it('passes current color as selectedColor to ColorPicker', async () => {
+      const PaneHeader = await getPaneHeader()
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      mount(PaneHeader, { target, props: { paneId: 1, name: 'Test', color: 'red' } })
+
+      const header = target.querySelector('header.pane-header')
+      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await tick()
+
+      const selectedSwatch = target.querySelector('.color-swatch.is-selected')
+      expect(selectedSwatch).not.toBeNull()
+      expect(selectedSwatch!.getAttribute('aria-label')).toBe('Red')
+    })
+
+    it('calls onColorChange when color is selected from picker', async () => {
+      const PaneHeader = await getPaneHeader()
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const onColorChange = vi.fn()
+      mount(PaneHeader, { target, props: { paneId: 1, name: 'Test', onColorChange } })
+
+      const header = target.querySelector('header.pane-header')
+      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await tick()
+
+      const swatches = target.querySelectorAll('.color-swatch')
+      // Click on the blue swatch (7th index - blue)
+      swatches[6].dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await tick()
+
+      expect(onColorChange).toHaveBeenCalledOnce()
+      expect(onColorChange).toHaveBeenCalledWith('blue')
+    })
+
+    it('renders data-color attribute matching selected color on header', async () => {
+      const PaneHeader = await getPaneHeader()
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      mount(PaneHeader, { target, props: { paneId: 1, name: 'Test', color: 'green' } })
+
+      const header = target.querySelector('header.pane-header')
+      expect(header!.getAttribute('data-color')).toBe('green')
+    })
+
+    it('renders no color label and empty data-color attribute when no color selected', async () => {
+      const PaneHeader = await getPaneHeader()
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      mount(PaneHeader, { target, props: { paneId: 1, name: 'Test', color: undefined } })
+
+      const colorLabel = target.querySelector('.pane-color-label')
+      expect(colorLabel).toBeNull()
+
+      const header = target.querySelector('header.pane-header')
+      expect(header!.getAttribute('data-color')).toBe('')
+    })
+  })
 })
