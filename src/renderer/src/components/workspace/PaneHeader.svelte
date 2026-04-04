@@ -25,8 +25,15 @@
   let isEditing = $state(false)
   let editValue = $state('')
   let inputEl: HTMLInputElement | undefined = $state()
+  let headerEl: HTMLElement | undefined = $state()
+  let isCommitting = $state(false)
 
   async function startEdit(): Promise<void> {
+    // Prevent reset if already editing (patch: startEdit while editing)
+    if (isEditing) {
+      inputEl?.select()
+      return
+    }
     editValue = displayName
     isEditing = true
     await tick()
@@ -39,18 +46,30 @@
   }
 
   function commitRename(): void {
+    // Prevent double commit from blur + Enter race (patch: race condition)
+    if (isCommitting) return
+    isCommitting = true
+
     const trimmed = editValue.trim()
     if (trimmed) {
       onRename?.(trimmed)
     }
     isEditing = false
+    isCommitting = false
+
+    // Restore focus to header after commit (patch: focus management)
+    headerEl?.focus()
   }
 
   function cancelRename(): void {
     isEditing = false
+    // Restore focus to header after cancel (patch: focus management)
+    headerEl?.focus()
   }
 
-  function handleClick(): void {
+  function handleClick(e: MouseEvent): void {
+    // Only trigger on left-click (patch: left-click only)
+    if (e.button !== 0) return
     if (!isEditing) {
       void startEdit()
     }
@@ -63,6 +82,9 @@
     } else if (e.key === 'Escape') {
       e.preventDefault()
       cancelRename()
+    } else {
+      // Prevent other keys from bubbling to parent (patch: stopPropagation)
+      e.stopPropagation()
     }
   }
 </script>
@@ -71,6 +93,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- Keyboard path for rename lives in PaneContainer via F2; header click is pointer-only -->
 <header
+  bind:this={headerEl}
   class="pane-header"
   class:is-focused={isFocused}
   class:is-editing={isEditing}
@@ -82,6 +105,7 @@
       bind:value={editValue}
       class="pane-name-input"
       type="text"
+      maxlength="64"
       aria-label="Rename pane"
       onkeydown={handleInputKeydown}
       onblur={commitRename}
@@ -90,6 +114,13 @@
     <span class="pane-header-name">{displayName}</span>
   {/if}
 </header>
+
+<!-- Screen reader announcement region (patch: aria-live) -->
+<div aria-live="polite" aria-atomic="true" class="sr-only">
+  {#if !isEditing}
+    Pane renamed to {displayName}
+  {/if}
+</div>
 
 <style>
   .pane-header {
@@ -138,5 +169,18 @@
     padding: 0;
     flex: 1;
     transition: border-color 150ms ease;
+  }
+
+  /* Screen reader only - visually hidden but accessible */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
 </style>
