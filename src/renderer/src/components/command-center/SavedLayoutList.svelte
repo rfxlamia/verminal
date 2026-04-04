@@ -14,6 +14,8 @@
     errorMessage?: string
     onSelect: (name: string) => void
     onSubmit: (name: string) => void
+    onNavigateToPrevSection?: () => void
+    onNavigateToNextSection?: () => void
   }
 
   let {
@@ -22,7 +24,9 @@
     isLoading = false,
     errorMessage = '',
     onSelect,
-    onSubmit
+    onSubmit,
+    onNavigateToPrevSection,
+    onNavigateToNextSection
   }: Props = $props()
 
   function handleKeydown(event: KeyboardEvent): void {
@@ -37,12 +41,32 @@
 
     if (event.key === 'ArrowDown') {
       event.preventDefault()
-      const nextIndex = currentIndex < layouts.length - 1 ? currentIndex + 1 : 0
-      onSelect(layouts[nextIndex].name)
+      if (currentIndex < layouts.length - 1) {
+        // Not at last item - move selection down
+        onSelect(layouts[currentIndex + 1].name)
+      } else {
+        // At last item - try boundary escape, fallback to wrap if no callback
+        if (onNavigateToNextSection) {
+          onNavigateToNextSection()
+        } else {
+          // Fallback: wrap to first item
+          onSelect(layouts[0].name)
+        }
+      }
     } else if (event.key === 'ArrowUp') {
       event.preventDefault()
-      const prevIndex = currentIndex > 0 ? currentIndex - 1 : layouts.length - 1
-      onSelect(layouts[prevIndex].name)
+      if (currentIndex > 0) {
+        // Not at first item - move selection up
+        onSelect(layouts[currentIndex - 1].name)
+      } else {
+        // At first item - try boundary escape, fallback to wrap if no callback
+        if (onNavigateToPrevSection) {
+          onNavigateToPrevSection()
+        } else {
+          // Fallback: wrap to last item
+          onSelect(layouts[layouts.length - 1].name)
+        }
+      }
     } else if (event.key === 'Enter' && selectedLayout) {
       event.preventDefault()
       onSubmit(selectedLayout)

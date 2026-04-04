@@ -281,7 +281,7 @@ describe('SavedLayoutList', () => {
       expect(onSelect).toHaveBeenCalledWith('personal')
     })
 
-    it('wraps to first item when ArrowDown from last item', async () => {
+    it('wraps to first item when ArrowDown from last item (internal navigation when no callback)', async () => {
       const SavedLayoutList = await getSavedLayoutList()
 
       const target = document.createElement('div')
@@ -304,6 +304,7 @@ describe('SavedLayoutList', () => {
           selectedLayout: 'work-project',
           onSelect,
           onSubmit
+          // No onNavigateToNextSection - should wrap internally
         }
       })
 
@@ -311,14 +312,14 @@ describe('SavedLayoutList', () => {
 
       const container = target.querySelector('.saved-layout-list')
 
-      // Press ArrowDown from last item
+      // Press ArrowDown from last item without navigation callback - should wrap
       const keydownEvent = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })
       container?.dispatchEvent(keydownEvent)
 
       expect(onSelect).toHaveBeenCalledWith('dev-workspace')
     })
 
-    it('wraps to last item when ArrowUp from first item', async () => {
+    it('wraps to last item when ArrowUp from first item (internal navigation when no callback)', async () => {
       const SavedLayoutList = await getSavedLayoutList()
 
       const target = document.createElement('div')
@@ -341,6 +342,7 @@ describe('SavedLayoutList', () => {
           selectedLayout: 'dev-workspace',
           onSelect,
           onSubmit
+          // No onNavigateToPrevSection - should wrap internally
         }
       })
 
@@ -348,7 +350,7 @@ describe('SavedLayoutList', () => {
 
       const container = target.querySelector('.saved-layout-list')
 
-      // Press ArrowUp from first item
+      // Press ArrowUp from first item without navigation callback - should wrap
       const keydownEvent = new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true })
       container?.dispatchEvent(keydownEvent)
 
@@ -513,6 +515,222 @@ describe('SavedLayoutList', () => {
       unselectedButtons.forEach((button) => {
         expect(button.getAttribute('aria-selected')).toBe('false')
       })
+    })
+  })
+
+  describe('cross-section navigation', () => {
+    it('ArrowUp at first item calls onNavigateToPrevSection', async () => {
+      const SavedLayoutList = await getSavedLayoutList()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const onSelect = vi.fn()
+      const onSubmit = vi.fn()
+      const onNavigateToPrevSection = vi.fn()
+
+      const layouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'horizontal' },
+        { name: 'personal', layout_name: 'single' },
+        { name: 'work-project', layout_name: 'grid' }
+      ]
+
+      mount(SavedLayoutList, {
+        target,
+        props: {
+          layouts,
+          selectedLayout: 'dev-workspace',
+          onSelect,
+          onSubmit,
+          onNavigateToPrevSection
+        }
+      })
+
+      await tick()
+
+      const container = target.querySelector('.saved-layout-list')
+      expect(container).not.toBeNull()
+
+      // Press ArrowUp at first item
+      const keydownEvent = new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true })
+      container?.dispatchEvent(keydownEvent)
+
+      expect(onNavigateToPrevSection).toHaveBeenCalledOnce()
+    })
+
+    it('ArrowDown at last item calls onNavigateToNextSection', async () => {
+      const SavedLayoutList = await getSavedLayoutList()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const onSelect = vi.fn()
+      const onSubmit = vi.fn()
+      const onNavigateToNextSection = vi.fn()
+
+      const layouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'horizontal' },
+        { name: 'personal', layout_name: 'single' },
+        { name: 'work-project', layout_name: 'grid' }
+      ]
+
+      mount(SavedLayoutList, {
+        target,
+        props: {
+          layouts,
+          selectedLayout: 'work-project',
+          onSelect,
+          onSubmit,
+          onNavigateToNextSection
+        }
+      })
+
+      await tick()
+
+      const container = target.querySelector('.saved-layout-list')
+      expect(container).not.toBeNull()
+
+      // Press ArrowDown at last item
+      const keydownEvent = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })
+      container?.dispatchEvent(keydownEvent)
+
+      expect(onNavigateToNextSection).toHaveBeenCalledOnce()
+    })
+
+    it('ArrowUp not at first item just moves selection up', async () => {
+      const SavedLayoutList = await getSavedLayoutList()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const onSelect = vi.fn()
+      const onSubmit = vi.fn()
+      const onNavigateToPrevSection = vi.fn()
+
+      const layouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'horizontal' },
+        { name: 'personal', layout_name: 'single' },
+        { name: 'work-project', layout_name: 'grid' }
+      ]
+
+      mount(SavedLayoutList, {
+        target,
+        props: {
+          layouts,
+          selectedLayout: 'personal',
+          onSelect,
+          onSubmit,
+          onNavigateToPrevSection
+        }
+      })
+
+      await tick()
+
+      const container = target.querySelector('.saved-layout-list')
+      expect(container).not.toBeNull()
+
+      // Press ArrowUp at second item (not first)
+      const keydownEvent = new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true })
+      container?.dispatchEvent(keydownEvent)
+
+      // Should move selection up, not call boundary callback
+      expect(onSelect).toHaveBeenCalledWith('dev-workspace')
+      expect(onNavigateToPrevSection).not.toHaveBeenCalled()
+    })
+
+    it('ArrowDown not at last item just moves selection down', async () => {
+      const SavedLayoutList = await getSavedLayoutList()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const onSelect = vi.fn()
+      const onSubmit = vi.fn()
+      const onNavigateToNextSection = vi.fn()
+
+      const layouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'horizontal' },
+        { name: 'personal', layout_name: 'single' },
+        { name: 'work-project', layout_name: 'grid' }
+      ]
+
+      mount(SavedLayoutList, {
+        target,
+        props: {
+          layouts,
+          selectedLayout: 'personal',
+          onSelect,
+          onSubmit,
+          onNavigateToNextSection
+        }
+      })
+
+      await tick()
+
+      const container = target.querySelector('.saved-layout-list')
+      expect(container).not.toBeNull()
+
+      // Press ArrowDown at second item (not last)
+      const keydownEvent = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })
+      container?.dispatchEvent(keydownEvent)
+
+      // Should move selection down, not call boundary callback
+      expect(onSelect).toHaveBeenCalledWith('work-project')
+      expect(onNavigateToNextSection).not.toHaveBeenCalled()
+    })
+
+    it('does not throw if navigation callbacks are not provided', async () => {
+      const SavedLayoutList = await getSavedLayoutList()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const onSelect = vi.fn()
+      const onSubmit = vi.fn()
+      // Navigation callbacks omitted (optional)
+
+      const layouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'horizontal' },
+        { name: 'personal', layout_name: 'single' }
+      ]
+
+      mount(SavedLayoutList, {
+        target,
+        props: {
+          layouts,
+          selectedLayout: 'dev-workspace',
+          onSelect,
+          onSubmit
+          // Navigation callbacks omitted
+        }
+      })
+
+      await tick()
+
+      const container = target.querySelector('.saved-layout-list')
+      expect(container).not.toBeNull()
+
+      // Should not throw when at boundary without callbacks
+      ;(container as HTMLElement).focus()
+      const keydownEventUp = new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true })
+
+      expect(() => {
+        container?.dispatchEvent(keydownEventUp)
+      }).not.toThrow()
+
+      // Select last item for ArrowDown test
+      onSelect.mockClear()
+
+      // Reset and test ArrowDown at last item
+      const keydownEventDown2 = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })
+      expect(() => {
+        container?.dispatchEvent(keydownEventDown2)
+      }).not.toThrow()
     })
   })
 })

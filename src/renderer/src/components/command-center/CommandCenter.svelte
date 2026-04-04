@@ -22,6 +22,7 @@
   import PresetLauncher from './PresetLauncher.svelte'
   import SavedLayoutList from './SavedLayoutList.svelte'
   import LayoutPreview from './LayoutPreview.svelte'
+  import ShortcutCheatsheet from './ShortcutCheatsheet.svelte'
   import type {
     SavedLayoutData,
     SavedLayoutSummary,
@@ -49,12 +50,63 @@
   // Active selection source for preview (AC #3)
   let activeSelectionSource = $state<'preset' | 'saved'>('preset')
 
+  // Shortcut cheatsheet visibility state (AC #2)
+  let isCheatsheetOpen = $state(false)
+
   // Mapping preset to LayoutName for preview
   const presetToLayoutName: Record<number, LayoutName> = {
     1: 'single',
     2: 'horizontal',
     3: 'mixed',
     4: 'grid'
+  }
+
+  // Cross-section navigation handlers (AC #1)
+  function handleNavigateFromPreset(direction: 'next' | 'prev'): void {
+    if (direction === 'next') {
+      if (savedLayouts.length > 0) {
+        // Pindah ke saved layouts section
+        activeSelectionSource = 'saved'
+        if (!selectedLayout || !savedLayouts.find((l) => l.name === selectedLayout)) {
+          selectedLayout = savedLayouts[0].name
+        }
+        queueMicrotask(() => {
+          const savedListEl = backdropEl?.querySelector<HTMLElement>('.saved-layout-list')
+          savedListEl?.focus()
+        })
+      } else {
+        // Tidak ada saved layouts → wrap ke preset 1
+        selectedPreset = 1
+        activeSelectionSource = 'preset'
+        queueMicrotask(() => {
+          const firstBtn = backdropEl?.querySelector<HTMLElement>('.preset-btn')
+          firstBtn?.focus()
+        })
+      }
+    }
+    // direction === 'prev' saat preset 1: wrap ke preset 4 (tetap dalam section)
+    // Ini sudah dihandle oleh PresetLauncher sendiri (tidak keluar)
+  }
+
+  function handleNavigateFromSavedLayout(direction: 'next' | 'prev'): void {
+    if (direction === 'prev') {
+      // Pindah ke preset section — pilih preset 4
+      selectedPreset = 4
+      activeSelectionSource = 'preset'
+      queueMicrotask(() => {
+        // Focus pada tombol preset 4 (index 3)
+        const presetBtns = backdropEl?.querySelectorAll<HTMLElement>('.preset-btn')
+        presetBtns?.[3]?.focus()
+      })
+    } else if (direction === 'next') {
+      // Wrap dari saved layout terakhir → kembali ke preset 1
+      selectedPreset = 1
+      activeSelectionSource = 'preset'
+      queueMicrotask(() => {
+        const firstBtn = backdropEl?.querySelector<HTMLElement>('.preset-btn')
+        firstBtn?.focus()
+      })
+    }
   }
 
   // Derived: get selected saved layout summary
@@ -76,9 +128,18 @@
   function handleKeydown(event: KeyboardEvent): void {
     if (event.key === 'Escape') {
       event.preventDefault()
+      // Esc cascade: first Esc closes cheatsheet, second Esc closes Command Center
+      if (isCheatsheetOpen) {
+        isCheatsheetOpen = false
+        return
+      }
       closeAndRestoreFocus()
+    } else if (event.key === '?' || event.key === 'F1') {
+      event.preventDefault()
+      // Toggle cheatsheet visibility
+      isCheatsheetOpen = !isCheatsheetOpen
     }
-    // Tab handling is now managed by PresetLauncher
+    // Tab handling is managed by PresetLauncher
   }
 
   function isFocusable(element: HTMLElement): boolean {
@@ -444,6 +505,7 @@
           activeSelectionSource = 'preset'
         }}
         onSubmit={handlePresetSubmit}
+        onNavigateToNextSection={() => handleNavigateFromPreset('next')}
       />
 
       <!-- Saved Layouts Section -->
@@ -464,6 +526,8 @@
               activeSelectionSource = 'saved'
             }}
             onSubmit={handleSavedLayoutSubmit}
+            onNavigateToPrevSection={() => handleNavigateFromSavedLayout('prev')}
+            onNavigateToNextSection={() => handleNavigateFromSavedLayout('next')}
           />
         {:else}
           <p class="saved-layouts-empty">No saved layouts yet. Create one from workspace.</p>
@@ -472,6 +536,15 @@
 
       <!-- Shared Layout Preview (AC #5) -->
       <LayoutPreview layoutName={activePreviewLayoutName} />
+
+      <!-- Shortcut Cheatsheet (AC #2) -->
+      {#if isCheatsheetOpen}
+        <ShortcutCheatsheet
+          onClose={() => {
+            isCheatsheetOpen = false
+          }}
+        />
+      {/if}
 
       <p class="command-center-hint">Press Esc to dismiss</p>
     </div>

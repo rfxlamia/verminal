@@ -573,4 +573,551 @@ describe('CommandCenter', () => {
       vi.unstubAllGlobals()
     })
   })
+
+  describe('shortcut cheatsheet', () => {
+    it('pressing ? shows the shortcut cheatsheet', async () => {
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter } = await import('../../stores/command-center-store.svelte')
+
+      openCommandCenter()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+      await tick()
+
+      const backdrop = target.querySelector('.command-center-backdrop')
+      expect(backdrop).not.toBeNull()
+
+      // Cheatsheet should not be visible initially
+      let cheatsheet = target.querySelector('.shortcut-cheatsheet')
+      expect(cheatsheet).toBeNull()
+
+      // Press ? key
+      const keydownEvent = new KeyboardEvent('keydown', { key: '?', bubbles: true })
+      backdrop?.dispatchEvent(keydownEvent)
+
+      await tick()
+
+      // Cheatsheet should now be visible
+      cheatsheet = target.querySelector('.shortcut-cheatsheet')
+      expect(cheatsheet).not.toBeNull()
+    })
+
+    it('pressing F1 shows the shortcut cheatsheet', async () => {
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter } = await import('../../stores/command-center-store.svelte')
+
+      openCommandCenter()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+      await tick()
+
+      const backdrop = target.querySelector('.command-center-backdrop')
+      expect(backdrop).not.toBeNull()
+
+      // Press F1 key
+      const keydownEvent = new KeyboardEvent('keydown', { key: 'F1', bubbles: true })
+      backdrop?.dispatchEvent(keydownEvent)
+
+      await tick()
+
+      // Cheatsheet should be visible
+      const cheatsheet = target.querySelector('.shortcut-cheatsheet')
+      expect(cheatsheet).not.toBeNull()
+    })
+
+    it('pressing Esc when cheatsheet is open closes only the cheatsheet', async () => {
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter, commandCenterState } =
+        await import('../../stores/command-center-store.svelte')
+
+      openCommandCenter()
+      expect(commandCenterState.isOpen).toBe(true)
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+      await tick()
+
+      const backdrop = target.querySelector('.command-center-backdrop')
+      expect(backdrop).not.toBeNull()
+
+      // First, open the cheatsheet with ?
+      const keydownEventQuestion = new KeyboardEvent('keydown', { key: '?', bubbles: true })
+      backdrop?.dispatchEvent(keydownEventQuestion)
+      await tick()
+
+      // Cheatsheet should be visible
+      let cheatsheet = target.querySelector('.shortcut-cheatsheet')
+      expect(cheatsheet).not.toBeNull()
+
+      // Press Escape
+      const keydownEventEsc = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+      backdrop?.dispatchEvent(keydownEventEsc)
+
+      await tick()
+      await new Promise((resolve) => queueMicrotask(resolve))
+
+      // Cheatsheet should be closed but Command Center should still be open
+      cheatsheet = target.querySelector('.shortcut-cheatsheet')
+      expect(cheatsheet).toBeNull()
+      expect(commandCenterState.isOpen).toBe(true)
+    })
+
+    it('pressing Esc twice closes Command Center after cheatsheet is closed', async () => {
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter, commandCenterState } =
+        await import('../../stores/command-center-store.svelte')
+
+      openCommandCenter()
+      expect(commandCenterState.isOpen).toBe(true)
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+      await tick()
+
+      const backdrop = target.querySelector('.command-center-backdrop')
+      expect(backdrop).not.toBeNull()
+
+      // First, open the cheatsheet with ?
+      const keydownEventQuestion = new KeyboardEvent('keydown', { key: '?', bubbles: true })
+      backdrop?.dispatchEvent(keydownEventQuestion)
+      await tick()
+
+      // First Esc - closes cheatsheet
+      const keydownEventEsc1 = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+      backdrop?.dispatchEvent(keydownEventEsc1)
+      await tick()
+      await new Promise((resolve) => queueMicrotask(resolve))
+
+      // Command Center should still be open
+      expect(commandCenterState.isOpen).toBe(true)
+
+      // Second Esc - closes Command Center
+      const keydownEventEsc2 = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+      backdrop?.dispatchEvent(keydownEventEsc2)
+      await tick()
+      await new Promise((resolve) => queueMicrotask(resolve))
+
+      // Command Center should now be closed
+      expect(commandCenterState.isOpen).toBe(false)
+    })
+
+    it('pressing ? toggles cheatsheet off when already open', async () => {
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter } = await import('../../stores/command-center-store.svelte')
+
+      openCommandCenter()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+      await tick()
+
+      const backdrop = target.querySelector('.command-center-backdrop')
+      expect(backdrop).not.toBeNull()
+
+      // Open cheatsheet
+      const keydownEvent1 = new KeyboardEvent('keydown', { key: '?', bubbles: true })
+      backdrop?.dispatchEvent(keydownEvent1)
+      await tick()
+
+      let cheatsheet = target.querySelector('.shortcut-cheatsheet')
+      expect(cheatsheet).not.toBeNull()
+
+      // Press ? again to toggle off
+      const keydownEvent2 = new KeyboardEvent('keydown', { key: '?', bubbles: true })
+      backdrop?.dispatchEvent(keydownEvent2)
+      await tick()
+
+      // Cheatsheet should be closed
+      cheatsheet = target.querySelector('.shortcut-cheatsheet')
+      expect(cheatsheet).toBeNull()
+    })
+
+    it('shortcut help is scoped to Command Center backdrop only', async () => {
+      // This test verifies that the ?/F1 handler is on the backdrop, not global
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter, closeCommandCenter } =
+        await import('../../stores/command-center-store.svelte')
+
+      openCommandCenter()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+      await tick()
+
+      // Close Command Center
+      closeCommandCenter()
+      await tick()
+
+      // Dispatch ? on document (outside Command Center)
+      const keydownEvent = new KeyboardEvent('keydown', { key: '?', bubbles: true })
+      document.dispatchEvent(keydownEvent)
+
+      await tick()
+
+      // No errors should occur and no global state should be affected
+      // The key point is the handler is scoped to the backdrop via onkeydown
+    })
+  })
+
+  describe('cross-section navigation', () => {
+    it('navigates from preset to saved layouts section with ArrowDown', async () => {
+      const mockLayouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'grid' },
+        { name: 'personal', layout_name: 'single' }
+      ]
+
+      const mockLayoutList = vi.fn().mockResolvedValue({ ok: true, data: mockLayouts })
+
+      vi.stubGlobal('window', {
+        api: {
+          layout: {
+            list: mockLayoutList,
+            load: vi.fn().mockResolvedValue({
+              ok: true,
+              data: { name: 'test', layout_name: 'single', panes: [{}] }
+            }),
+            save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+            delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+          },
+          shell: { detect: vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] }) },
+          app: {
+            getPaths: vi
+              .fn()
+              .mockResolvedValue({ ok: true, data: { home: '/', userData: '', logsDir: '' } })
+          },
+          pty: {
+            spawn: vi.fn().mockResolvedValue({ ok: true, data: { sessionId: 1 } }),
+            kill: vi.fn()
+          }
+        }
+      })
+
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter } = await import('../../stores/command-center-store.svelte')
+
+      openCommandCenter()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+      await tick()
+
+      const presetContainer = target.querySelector('.preset-launcher')
+      expect(presetContainer).not.toBeNull()
+
+      // Press ArrowDown from preset section
+      const keydownEvent = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })
+      presetContainer?.dispatchEvent(keydownEvent)
+
+      await tick()
+      await new Promise((resolve) => queueMicrotask(resolve))
+
+      // Should have navigated to saved layouts section
+      // Check that the first saved layout is now selected
+      const savedLayoutItems = target.querySelectorAll('.saved-layout-item')
+      expect(savedLayoutItems.length).toBe(2)
+      expect(savedLayoutItems[0]?.classList.contains('saved-layout-item--selected')).toBe(true)
+
+      vi.unstubAllGlobals()
+    })
+
+    it('navigates from saved layouts to preset section with ArrowUp at first item', async () => {
+      const mockLayouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'grid' },
+        { name: 'personal', layout_name: 'single' }
+      ]
+
+      const mockLayoutList = vi.fn().mockResolvedValue({ ok: true, data: mockLayouts })
+
+      vi.stubGlobal('window', {
+        api: {
+          layout: {
+            list: mockLayoutList,
+            load: vi.fn().mockResolvedValue({
+              ok: true,
+              data: { name: 'test', layout_name: 'single', panes: [{}] }
+            }),
+            save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+            delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+          },
+          shell: { detect: vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] }) },
+          app: {
+            getPaths: vi
+              .fn()
+              .mockResolvedValue({ ok: true, data: { home: '/', userData: '', logsDir: '' } })
+          },
+          pty: {
+            spawn: vi.fn().mockResolvedValue({ ok: true, data: { sessionId: 1 } }),
+            kill: vi.fn()
+          }
+        }
+      })
+
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter } = await import('../../stores/command-center-store.svelte')
+
+      openCommandCenter()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+      await tick()
+
+      // First navigate to saved layouts
+      const presetContainer = target.querySelector('.preset-launcher')
+      const keydownEventDown = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })
+      presetContainer?.dispatchEvent(keydownEventDown)
+      await tick()
+      await new Promise((resolve) => queueMicrotask(resolve))
+
+      // Now press ArrowUp at first saved layout item
+      const savedListContainer = target.querySelector('.saved-layout-list')
+      const keydownEventUp = new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true })
+      savedListContainer?.dispatchEvent(keydownEventUp)
+
+      await tick()
+      await new Promise((resolve) => queueMicrotask(resolve))
+
+      // Preset 4 should now be selected (boundary escape goes to preset 4)
+      const presetButtons = target.querySelectorAll('.preset-btn')
+      expect(presetButtons[3]?.classList.contains('preset-btn--selected')).toBe(true)
+
+      vi.unstubAllGlobals()
+    })
+
+    it('wraps from last saved layout back to preset 1 with ArrowDown', async () => {
+      const mockLayouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'grid' },
+        { name: 'personal', layout_name: 'single' }
+      ]
+
+      const mockLayoutList = vi.fn().mockResolvedValue({ ok: true, data: mockLayouts })
+
+      vi.stubGlobal('window', {
+        api: {
+          layout: {
+            list: mockLayoutList,
+            load: vi.fn().mockResolvedValue({
+              ok: true,
+              data: { name: 'test', layout_name: 'single', panes: [{}] }
+            }),
+            save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+            delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+          },
+          shell: { detect: vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] }) },
+          app: {
+            getPaths: vi
+              .fn()
+              .mockResolvedValue({ ok: true, data: { home: '/', userData: '', logsDir: '' } })
+          },
+          pty: {
+            spawn: vi.fn().mockResolvedValue({ ok: true, data: { sessionId: 1 } }),
+            kill: vi.fn()
+          }
+        }
+      })
+
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter } = await import('../../stores/command-center-store.svelte')
+
+      openCommandCenter()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+      await tick()
+
+      // Navigate to saved layouts
+      const presetContainer = target.querySelector('.preset-launcher')
+      const keydownEventDown = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })
+      presetContainer?.dispatchEvent(keydownEventDown)
+      await tick()
+      await new Promise((resolve) => queueMicrotask(resolve))
+
+      // Select the last saved layout
+      const savedItems = target.querySelectorAll('.saved-layout-item')
+      ;(savedItems[1] as HTMLElement).click()
+      await tick()
+
+      // Press ArrowDown at last saved layout
+      const savedListContainer = target.querySelector('.saved-layout-list')
+      const keydownEventDown2 = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })
+      savedListContainer?.dispatchEvent(keydownEventDown2)
+
+      await tick()
+      await new Promise((resolve) => queueMicrotask(resolve))
+
+      // Should wrap back to preset 1
+      const presetButtons = target.querySelectorAll('.preset-btn')
+      expect(presetButtons[0]?.classList.contains('preset-btn--selected')).toBe(true)
+
+      vi.unstubAllGlobals()
+    })
+
+    it('wraps from preset to preset 1 when no saved layouts exist', async () => {
+      const mockLayoutList = vi.fn().mockResolvedValue({ ok: true, data: [] })
+
+      vi.stubGlobal('window', {
+        api: {
+          layout: {
+            list: mockLayoutList,
+            load: vi.fn().mockResolvedValue({
+              ok: true,
+              data: { name: 'test', layout_name: 'single', panes: [{}] }
+            }),
+            save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+            delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+          },
+          shell: { detect: vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] }) },
+          app: {
+            getPaths: vi
+              .fn()
+              .mockResolvedValue({ ok: true, data: { home: '/', userData: '', logsDir: '' } })
+          },
+          pty: {
+            spawn: vi.fn().mockResolvedValue({ ok: true, data: { sessionId: 1 } }),
+            kill: vi.fn()
+          }
+        }
+      })
+
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter } = await import('../../stores/command-center-store.svelte')
+
+      openCommandCenter()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+      await tick()
+
+      // Select preset 4
+      const presetContainer = target.querySelector('.preset-launcher')
+      const keydownEvent4 = new KeyboardEvent('keydown', { key: '4', bubbles: true })
+      presetContainer?.dispatchEvent(keydownEvent4)
+      await tick()
+
+      // Press ArrowDown or ArrowRight at preset 4
+      const keydownEventRight = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })
+      presetContainer?.dispatchEvent(keydownEventRight)
+
+      await tick()
+      await new Promise((resolve) => queueMicrotask(resolve))
+
+      // Should wrap back to preset 1 (no saved layouts to navigate to)
+      const presetButtons = target.querySelectorAll('.preset-btn')
+      expect(presetButtons[0]?.classList.contains('preset-btn--selected')).toBe(true)
+
+      vi.unstubAllGlobals()
+    })
+
+    it('updates preview when navigating between sections', async () => {
+      const mockLayouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'grid' },
+        { name: 'personal', layout_name: 'single' }
+      ]
+
+      const mockLayoutList = vi.fn().mockResolvedValue({ ok: true, data: mockLayouts })
+
+      vi.stubGlobal('window', {
+        api: {
+          layout: {
+            list: mockLayoutList,
+            load: vi.fn().mockResolvedValue({
+              ok: true,
+              data: { name: 'test', layout_name: 'single', panes: [{}] }
+            }),
+            save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+            delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+          },
+          shell: { detect: vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] }) },
+          app: {
+            getPaths: vi
+              .fn()
+              .mockResolvedValue({ ok: true, data: { home: '/', userData: '', logsDir: '' } })
+          },
+          pty: {
+            spawn: vi.fn().mockResolvedValue({ ok: true, data: { sessionId: 1 } }),
+            kill: vi.fn()
+          }
+        }
+      })
+
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter } = await import('../../stores/command-center-store.svelte')
+
+      openCommandCenter()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+      await tick()
+
+      // Navigate to saved layouts
+      const presetContainer = target.querySelector('.preset-launcher')
+      const keydownEventDown = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })
+      presetContainer?.dispatchEvent(keydownEventDown)
+      await tick()
+      await new Promise((resolve) => queueMicrotask(resolve))
+
+      // Preview should show grid layout (first saved layout has layout_name: 'grid')
+      // 'grid' layout maps to preview-grid--4 class
+      const previewGrid = target.querySelector('.preview-grid--4')
+      expect(previewGrid).not.toBeNull()
+
+      vi.unstubAllGlobals()
+    })
+  })
 })

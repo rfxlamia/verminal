@@ -433,4 +433,184 @@ describe('PresetLauncher', () => {
       expect(statusElement?.textContent).toContain('Spawning')
     })
   })
+
+  describe('cross-section navigation', () => {
+    it('ArrowRight moves to next preset within section', async () => {
+      const PresetLauncher = await getPresetLauncher()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const onSelect = vi.fn()
+      const onSubmit = vi.fn()
+
+      mount(PresetLauncher, {
+        target,
+        props: {
+          selectedPreset: 1,
+          isSpawning: false,
+          errorMessage: '',
+          onSelect,
+          onSubmit
+        }
+      })
+
+      await tick()
+
+      const container = target.querySelector('.preset-launcher')
+      expect(container).not.toBeNull()
+
+      // Focus and press ArrowRight
+      ;(container as HTMLElement).focus()
+      const keydownEvent = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })
+      container?.dispatchEvent(keydownEvent)
+
+      expect(onSelect).toHaveBeenCalledWith(2)
+    })
+
+    it('ArrowRight at preset 4 calls onNavigateToNextSection callback', async () => {
+      const PresetLauncher = await getPresetLauncher()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const onSelect = vi.fn()
+      const onSubmit = vi.fn()
+      const onNavigateToNextSection = vi.fn()
+
+      mount(PresetLauncher, {
+        target,
+        props: {
+          selectedPreset: 4,
+          isSpawning: false,
+          errorMessage: '',
+          onSelect,
+          onSubmit,
+          onNavigateToNextSection
+        }
+      })
+
+      await tick()
+
+      const container = target.querySelector('.preset-launcher')
+      expect(container).not.toBeNull()
+
+      // Focus and press ArrowRight from preset 4
+      ;(container as HTMLElement).focus()
+      const keydownEvent = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })
+      container?.dispatchEvent(keydownEvent)
+
+      expect(onNavigateToNextSection).toHaveBeenCalledOnce()
+      expect(onSelect).not.toHaveBeenCalled()
+    })
+
+    it('ArrowLeft at preset 1 wraps to preset 4 via onSelect', async () => {
+      const PresetLauncher = await getPresetLauncher()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const onSelect = vi.fn()
+      const onSubmit = vi.fn()
+
+      mount(PresetLauncher, {
+        target,
+        props: {
+          selectedPreset: 1,
+          isSpawning: false,
+          errorMessage: '',
+          onSelect,
+          onSubmit
+        }
+      })
+
+      await tick()
+
+      const container = target.querySelector('.preset-launcher')
+      expect(container).not.toBeNull()
+
+      // Focus and press ArrowLeft from preset 1
+      ;(container as HTMLElement).focus()
+      const keydownEvent = new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })
+      container?.dispatchEvent(keydownEvent)
+
+      expect(onSelect).toHaveBeenCalledWith(4)
+    })
+
+    it('ArrowDown calls onNavigateToNextSection', async () => {
+      const PresetLauncher = await getPresetLauncher()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const onSelect = vi.fn()
+      const onSubmit = vi.fn()
+      const onNavigateToNextSection = vi.fn()
+
+      mount(PresetLauncher, {
+        target,
+        props: {
+          selectedPreset: 2,
+          isSpawning: false,
+          errorMessage: '',
+          onSelect,
+          onSubmit,
+          onNavigateToNextSection
+        }
+      })
+
+      await tick()
+
+      const container = target.querySelector('.preset-launcher')
+      expect(container).not.toBeNull()
+
+      // Focus and press ArrowDown
+      ;(container as HTMLElement).focus()
+      const keydownEvent = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true })
+      container?.dispatchEvent(keydownEvent)
+
+      expect(onNavigateToNextSection).toHaveBeenCalledOnce()
+    })
+
+    it('does not throw if onNavigateToNextSection is not provided', async () => {
+      const PresetLauncher = await getPresetLauncher()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const onSelect = vi.fn()
+      const onSubmit = vi.fn()
+      // onNavigateToNextSection is not provided (optional)
+
+      mount(PresetLauncher, {
+        target,
+        props: {
+          selectedPreset: 4,
+          isSpawning: false,
+          errorMessage: '',
+          onSelect,
+          onSubmit
+          // onNavigateToNextSection omitted
+        }
+      })
+
+      await tick()
+
+      const container = target.querySelector('.preset-launcher')
+      expect(container).not.toBeNull()
+
+      // Should not throw when ArrowRight at boundary without callback
+      ;(container as HTMLElement).focus()
+      const keydownEvent = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })
+
+      expect(() => {
+        container?.dispatchEvent(keydownEvent)
+      }).not.toThrow()
+    })
+  })
 })

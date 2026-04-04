@@ -11,9 +11,18 @@
     errorMessage: string
     onSelect: (paneCount: number) => void
     onSubmit: (paneCount: number) => void
+    onNavigateToNextSection?: () => void
+    onNavigateToPrevSection?: () => void
   }
 
-  let { selectedPreset, isSpawning, errorMessage, onSelect, onSubmit }: Props = $props()
+  let {
+    selectedPreset,
+    isSpawning,
+    errorMessage,
+    onSelect,
+    onSubmit,
+    onNavigateToNextSection
+  }: Props = $props()
 
   let containerEl: HTMLDivElement | null = $state(null)
 
@@ -28,6 +37,26 @@
     } else if (event.key === 'Enter') {
       event.preventDefault()
       onSubmit(selectedPreset)
+    } else if (event.key === 'ArrowRight') {
+      event.preventDefault()
+      if (selectedPreset < 4) {
+        onSelect(selectedPreset + 1)
+      } else {
+        // At preset 4, boundary escape to next section
+        onNavigateToNextSection?.()
+      }
+    } else if (event.key === 'ArrowLeft') {
+      event.preventDefault()
+      if (selectedPreset > 1) {
+        onSelect(selectedPreset - 1)
+      } else {
+        // At preset 1, wrap within section to preset 4
+        onSelect(4)
+      }
+    } else if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      // ArrowDown always navigates to next section (saved layouts)
+      onNavigateToNextSection?.()
     } else if (event.key === 'Tab') {
       // Focus trap: cycle between the 4 preset buttons
       const buttons = containerEl?.querySelectorAll<HTMLElement>('.preset-btn')
