@@ -22,17 +22,21 @@
   }
 
   function closeAndRestoreFocus(): void {
+    // Capture focusedPaneId BEFORE closing (state may change)
     const focusedPaneId = workspaceUIState.focusedPaneId
     closeCommandCenter()
     // Use queueMicrotask to ensure DOM updates before restoring focus
     queueMicrotask(() => {
       if (focusedPaneId !== null) {
         const paneEl = document.querySelector<HTMLElement>(`[data-pane-id="${focusedPaneId}"]`)
-        paneEl?.focus()
-        if (paneEl) return
+        // Defensive: only focus if element exists and is still in DOM
+        if (paneEl && document.contains(paneEl)) {
+          paneEl.focus()
+          return
+        }
       }
 
-      // Fallback to workspace container if no pane is focused
+      // Fallback to workspace container if no pane is focused or pane no longer exists
       document.querySelector<HTMLElement>('.workspace-container')?.focus()
     })
   }
@@ -75,31 +79,31 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--cc-backdrop);
   }
 
   .command-center-panel {
-    background: #2c2c2c;
+    background: var(--cc-surface-secondary);
     border-radius: 8px;
     padding: 32px;
     min-width: 480px;
     max-width: 640px;
     width: 100%;
     font-family: 'Work Sans', system-ui, sans-serif;
-    color: #f7f7f7;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+    color: var(--cc-text-primary);
+    box-shadow: 0 16px 48px var(--cc-shadow);
   }
 
   .command-center-title {
     font-size: 18px;
     font-weight: 600;
     margin: 0 0 24px;
-    color: #f7f7f7;
+    color: var(--cc-text-primary);
   }
 
   .command-center-hint {
     font-size: 12px;
-    color: #888;
+    color: var(--cc-text-muted);
     margin: 24px 0 0;
     text-align: center;
   }

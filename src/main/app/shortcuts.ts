@@ -19,10 +19,16 @@ const COMMAND_CENTER_SHORTCUT = 'CommandOrControl+Alt+T'
 export function registerGlobalShortcuts(mainWindow: BrowserWindow): void {
   // Unregister first to avoid stale bindings when window is recreated (macOS activate)
   globalShortcut.unregister(COMMAND_CENTER_SHORTCUT)
-  globalShortcut.register(COMMAND_CENTER_SHORTCUT, () => {
+  const registered = globalShortcut.register(COMMAND_CENTER_SHORTCUT, () => {
     if (mainWindow.isDestroyed()) return
     mainWindow.webContents.send('command-center:open')
   })
+  if (!registered) {
+    console.warn(
+      `[shortcuts] Failed to register global shortcut ${COMMAND_CENTER_SHORTCUT}. ` +
+        'This may happen if the shortcut is already in use by another application or the OS.'
+    )
+  }
 }
 
 /**

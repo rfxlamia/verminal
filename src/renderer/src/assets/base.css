@@ -21,6 +21,14 @@
   --ev-button-alt-hover-border: transparent;
   --ev-button-alt-hover-text: var(--ev-c-text-1);
   --ev-button-alt-hover-bg: var(--ev-c-gray-2);
+
+  /* Command Center Design Tokens */
+  --cc-surface-primary: #1c1c1c;
+  --cc-surface-secondary: #2c2c2c;
+  --cc-text-primary: #f7f7f7;
+  --cc-text-muted: #888888;
+  --cc-backdrop: rgba(0, 0, 0, 0.6);
+  --cc-shadow: rgba(0, 0, 0, 0.6);
 }
 
 :root {

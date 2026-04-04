@@ -11,6 +11,7 @@ import type { BrowserWindow } from 'electron'
 // Track registered shortcuts and their handlers
 const registeredShortcuts = new Map<string, () => void>()
 let isDestroyedValue = false
+let shouldRegisterFail = false
 
 const mockSend = vi.fn()
 const mockIsDestroyed = vi.fn(() => isDestroyedValue)
@@ -19,7 +20,9 @@ const mockIsDestroyed = vi.fn(() => isDestroyedValue)
 vi.mock('electron', () => ({
   globalShortcut: {
     register: vi.fn((accelerator: string, callback: () => void) => {
+      if (shouldRegisterFail) return false
       registeredShortcuts.set(accelerator, callback)
+      return true
     }),
     unregister: vi.fn((accelerator: string) => {
       registeredShortcuts.delete(accelerator)
@@ -37,6 +40,7 @@ describe('shortcuts', () => {
   beforeEach(() => {
     registeredShortcuts.clear()
     isDestroyedValue = false
+    shouldRegisterFail = false
     vi.clearAllMocks()
   })
 
@@ -107,6 +111,20 @@ describe('shortcuts', () => {
 
       // Verify the new window's webContents.send was called
       // This confirms the replacement window is being used
+    })
+
+    it('logs warning when shortcut registration fails', () => {
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      shouldRegisterFail = true
+
+      const mainWindow = createMockWindow()
+      registerGlobalShortcuts(mainWindow)
+
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to register global shortcut')
+      )
+
+      consoleWarnSpy.mockRestore()
     })
   })
 

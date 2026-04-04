@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { tick } from 'svelte'
 
 describe('CommandCenter', () => {
   beforeEach(() => {
@@ -109,8 +110,9 @@ describe('CommandCenter', () => {
       const { mount } = await import('svelte')
       mount(CommandCenter, { target })
 
-      // Give time for effect to run
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      // Flush pending state changes and effects
+      await tick()
+      await tick()
 
       const backdrop = target.querySelector('.command-center-backdrop')
 
@@ -132,8 +134,9 @@ describe('CommandCenter', () => {
       const { mount } = await import('svelte')
       mount(CommandCenter, { target })
 
-      // Wait for mount and effect
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      // Flush pending state changes and effects
+      await tick()
+      await tick()
 
       const backdrop = target.querySelector('.command-center-backdrop')
       expect(backdrop).not.toBeNull()
@@ -142,7 +145,7 @@ describe('CommandCenter', () => {
       const keydownEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
       backdrop?.dispatchEvent(keydownEvent)
 
-      // Wait for microtask
+      // Wait for microtask (closeAndRestoreFocus uses queueMicrotask)
       await new Promise((resolve) => queueMicrotask(resolve))
 
       expect(commandCenterState.isOpen).toBe(false)
@@ -160,8 +163,9 @@ describe('CommandCenter', () => {
       const { mount } = await import('svelte')
       mount(CommandCenter, { target })
 
-      // Wait for mount
-      await new Promise((resolve) => setTimeout(resolve, 10))
+      // Flush pending state changes and effects
+      await tick()
+      await tick()
 
       const backdrop = target.querySelector('.command-center-backdrop')
       expect(backdrop).not.toBeNull()
