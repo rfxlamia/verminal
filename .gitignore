@@ -17,5 +17,8 @@ out
 # bmad config (can be installed from npx bmad-method install)
 _bmad/
 
+# local git worktrees
+.worktrees/
+
 # docs (separate repo). for public documentation, use contributions/
 docs/
