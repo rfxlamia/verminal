@@ -105,15 +105,23 @@
         const paneEl = document.querySelector<HTMLElement>(`[data-pane-id="${sanitizedId}"]`)
         // Defensive: only focus if element exists, is in DOM, and is focusable
         if (paneEl && document.contains(paneEl) && isFocusable(paneEl)) {
-          paneEl.focus()
-          return
+          try {
+            paneEl.focus()
+            return
+          } catch {
+            // Element may have become unfocusable between check and focus call
+          }
         }
       }
 
       // Fallback to workspace container if no pane is focused or pane no longer exists
       const workspaceEl = document.querySelector<HTMLElement>('.workspace-container')
       if (workspaceEl) {
-        workspaceEl.focus()
+        try {
+          workspaceEl.focus()
+        } catch {
+          // Workspace container may not be focusable
+        }
       }
     })
   }

@@ -124,8 +124,12 @@ export function listLayouts(): Result<SavedLayoutSummary[]> {
         if (isValidLayoutNameString(layoutName)) {
           summaries.push({ name, layout_name: layoutName })
         }
-      } catch {
-        // Skip files that can't be read or parsed
+      } catch (error) {
+        // Log parse errors for debugging but continue processing other files
+        console.warn(
+          `[layout-manager] Failed to parse layout file "${file}":`,
+          (error as Error).message
+        )
       }
     }
 

@@ -4,9 +4,9 @@ import LayoutPreview from './LayoutPreview.svelte'
 import type { LayoutName } from '../../../../shared/ipc-contract'
 
 describe('LayoutPreview', () => {
-  it('renders 1 preview cell for single layout', () => {
+  it('renders single preview cell for single layout', () => {
     const { container } = render(LayoutPreview, {
-      props: { layoutName: 'single' as LayoutName }
+      props: { layoutName: 'single' }
     })
 
     const cells = container.querySelectorAll('.preview-cell')
@@ -15,7 +15,7 @@ describe('LayoutPreview', () => {
 
   it('renders 2 preview cells for horizontal layout', () => {
     const { container } = render(LayoutPreview, {
-      props: { layoutName: 'horizontal' as LayoutName }
+      props: { layoutName: 'horizontal' }
     })
 
     const cells = container.querySelectorAll('.preview-cell')
@@ -24,7 +24,7 @@ describe('LayoutPreview', () => {
 
   it('renders 3 preview cells for mixed layout with top cell', () => {
     const { container } = render(LayoutPreview, {
-      props: { layoutName: 'mixed' as LayoutName }
+      props: { layoutName: 'mixed' }
     })
 
     const cells = container.querySelectorAll('.preview-cell')
@@ -36,7 +36,7 @@ describe('LayoutPreview', () => {
 
   it('renders 4 preview cells for grid layout', () => {
     const { container } = render(LayoutPreview, {
-      props: { layoutName: 'grid' as LayoutName }
+      props: { layoutName: 'grid' }
     })
 
     const cells = container.querySelectorAll('.preview-cell')
@@ -58,7 +58,7 @@ describe('LayoutPreview', () => {
 
   it('has aria-label on container', () => {
     const { container } = render(LayoutPreview, {
-      props: { layoutName: 'single' as LayoutName }
+      props: { layoutName: 'single' }
     })
 
     const preview = container.querySelector('.layout-preview')

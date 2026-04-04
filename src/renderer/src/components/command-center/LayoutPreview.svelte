@@ -47,9 +47,9 @@
   .layout-preview {
     margin-top: 8px;
     padding: 16px;
-    background: var(--cc-surface);
+    background: var(--cc-surface, #2c2c2c);
     border-radius: 6px;
-    border: 1px solid var(--cc-border);
+    border: 1px solid var(--cc-border, #444444);
     min-height: 152px; /* 120px + padding + border for stable height */
   }
 
@@ -84,8 +84,8 @@
   }
 
   .preview-cell {
-    background: var(--cc-preview-bg);
-    border: 1px solid var(--cc-border);
+    background: var(--cc-preview-bg, #3c3c3c);
+    border: 1px solid var(--cc-border, #444444);
     border-radius: 4px;
     transition: all 200ms ease-out;
   }
