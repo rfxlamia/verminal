@@ -510,4 +510,65 @@ describe('layout-store', () => {
       expect(layoutState.panes[1].name).toBe('Second Pane')
     })
   })
+
+  // ========== Story 5.3: recolorPaneInLayout Tests ==========
+  describe('recolorPaneInLayout', () => {
+    it('recolorPaneInLayout updates pane color in layoutState', async () => {
+      const { layoutState, initSinglePaneLayout, recolorPaneInLayout } =
+        await import('./layout-store.svelte')
+      initSinglePaneLayout(1)
+      const paneId = layoutState.panes[0].paneId
+
+      recolorPaneInLayout(paneId, 'blue')
+
+      expect(layoutState.panes[0].color).toBe('blue')
+    })
+
+    it('recolorPaneInLayout with undefined removes color (reset)', async () => {
+      const { layoutState, initSinglePaneLayout, recolorPaneInLayout } =
+        await import('./layout-store.svelte')
+      initSinglePaneLayout(1)
+      const paneId = layoutState.panes[0].paneId
+
+      // First set a color
+      recolorPaneInLayout(paneId, 'red')
+      expect(layoutState.panes[0].color).toBe('red')
+
+      // Then reset to undefined
+      recolorPaneInLayout(paneId, undefined)
+      expect(layoutState.panes[0].color).toBeUndefined()
+    })
+
+    it('recolorPaneInLayout is no-op when pane not found', async () => {
+      const { layoutState, initSinglePaneLayout, recolorPaneInLayout } =
+        await import('./layout-store.svelte')
+      initSinglePaneLayout(1)
+      const originalState = layoutState.panes[0].color
+
+      recolorPaneInLayout(9999, 'green') // Non-existent paneId
+
+      expect(layoutState.panes[0].color).toBe(originalState)
+    })
+
+    it('createPane creates pane with color undefined by default', async () => {
+      const { createPane } = await import('./layout-store.svelte')
+      const pane = createPane(1)
+
+      expect(pane.color).toBeUndefined()
+    })
+
+    it('updates correct pane color when multiple panes exist', async () => {
+      const { layoutState, initHorizontalSplitLayout, recolorPaneInLayout } =
+        await import('./layout-store.svelte')
+      initHorizontalSplitLayout(1, 2)
+      const paneId1 = layoutState.panes[0].paneId
+      const paneId2 = layoutState.panes[1].paneId
+
+      recolorPaneInLayout(paneId1, 'blue')
+      recolorPaneInLayout(paneId2, 'red')
+
+      expect(layoutState.panes[0].color).toBe('blue')
+      expect(layoutState.panes[1].color).toBe('red')
+    })
+  })
 })

@@ -10,7 +10,10 @@ export interface PaneState {
   paneId: number
   sessionId: number
   name: string
+  color?: PaneColor
 }
+
+export type PaneColor = 'gray' | 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'blue' | 'purple'
 
 export interface LayoutState {
   layoutName: LayoutName
@@ -239,5 +242,17 @@ export function renamePaneInLayout(paneId: number, newName: string): void {
   const pane = layoutState.panes.find((p) => p.paneId === paneId)
   if (pane && newName.trim()) {
     pane.name = newName.trim()
+  }
+}
+
+/**
+ * Changes the color of a pane by its paneId.
+ * No-op if pane not found.
+ * Setting color to undefined removes the color tag.
+ */
+export function recolorPaneInLayout(paneId: number, color: PaneColor | undefined): void {
+  const pane = layoutState.panes.find((p) => p.paneId === paneId)
+  if (pane) {
+    pane.color = color
   }
 }
