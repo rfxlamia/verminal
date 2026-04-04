@@ -315,4 +315,118 @@ describe('PresetLauncher', () => {
       expect(onSubmit).toHaveBeenCalledWith(2)
     })
   })
+
+  describe('layout preview', () => {
+    it('shows 2 preview cells when selectedPreset is 2', async () => {
+      const PresetLauncher = await getPresetLauncher()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const onSelect = vi.fn()
+      const onSubmit = vi.fn()
+
+      mount(PresetLauncher, {
+        target,
+        props: {
+          selectedPreset: 2,
+          isSpawning: false,
+          errorMessage: '',
+          onSelect,
+          onSubmit
+        }
+      })
+
+      await tick()
+
+      const previewCells = target.querySelectorAll('.preview-cell')
+      expect(previewCells.length).toBe(2)
+    })
+
+    it('shows 4 preview cells when selectedPreset is 4', async () => {
+      const PresetLauncher = await getPresetLauncher()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const onSelect = vi.fn()
+      const onSubmit = vi.fn()
+
+      mount(PresetLauncher, {
+        target,
+        props: {
+          selectedPreset: 4,
+          isSpawning: false,
+          errorMessage: '',
+          onSelect,
+          onSubmit
+        }
+      })
+
+      await tick()
+
+      const previewCells = target.querySelectorAll('.preview-cell')
+      expect(previewCells.length).toBe(4)
+    })
+  })
+
+  describe('status and error display', () => {
+    it('displays spawn-error when errorMessage is set', async () => {
+      const PresetLauncher = await getPresetLauncher()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const onSelect = vi.fn()
+      const onSubmit = vi.fn()
+
+      mount(PresetLauncher, {
+        target,
+        props: {
+          selectedPreset: 1,
+          isSpawning: false,
+          errorMessage: 'Shell detection failed',
+          onSelect,
+          onSubmit
+        }
+      })
+
+      await tick()
+
+      const errorElement = target.querySelector('.spawn-error')
+      expect(errorElement).not.toBeNull()
+      expect(errorElement?.textContent).toContain('Shell detection failed')
+    })
+
+    it('displays spawn-status when isSpawning is true', async () => {
+      const PresetLauncher = await getPresetLauncher()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const onSelect = vi.fn()
+      const onSubmit = vi.fn()
+
+      mount(PresetLauncher, {
+        target,
+        props: {
+          selectedPreset: 1,
+          isSpawning: true,
+          errorMessage: '',
+          onSelect,
+          onSubmit
+        }
+      })
+
+      await tick()
+
+      const statusElement = target.querySelector('.spawn-status')
+      expect(statusElement).not.toBeNull()
+      expect(statusElement?.textContent).toContain('Spawning')
+    })
+  })
 })

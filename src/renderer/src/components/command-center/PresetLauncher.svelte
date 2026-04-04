@@ -120,6 +120,33 @@
   {#if errorMessage}
     <div class="spawn-error" role="alert">{errorMessage}</div>
   {/if}
+
+  <!-- Layout Preview - always visible, pre-commit per UX-DR21 -->
+  <div class="layout-preview" aria-label="Layout preview">
+    {#if selectedPreset === 1}
+      <div class="preview-grid preview-grid--1">
+        <div class="preview-cell"></div>
+      </div>
+    {:else if selectedPreset === 2}
+      <div class="preview-grid preview-grid--2">
+        <div class="preview-cell"></div>
+        <div class="preview-cell"></div>
+      </div>
+    {:else if selectedPreset === 3}
+      <div class="preview-grid preview-grid--3">
+        <div class="preview-cell preview-cell--top"></div>
+        <div class="preview-cell"></div>
+        <div class="preview-cell"></div>
+      </div>
+    {:else if selectedPreset === 4}
+      <div class="preview-grid preview-grid--4">
+        <div class="preview-cell"></div>
+        <div class="preview-cell"></div>
+        <div class="preview-cell"></div>
+        <div class="preview-cell"></div>
+      </div>
+    {/if}
+  </div>
 </div>
 
 <style>
@@ -234,5 +261,50 @@
     background: var(--cc-error-bg);
     border-radius: 6px;
     border: 1px solid var(--cc-error-border);
+  }
+
+  .layout-preview {
+    margin-top: 8px;
+    padding: 16px;
+    background: var(--cc-surface);
+    border-radius: 6px;
+    border: 1px solid var(--cc-border);
+  }
+
+  .preview-grid {
+    display: grid;
+    width: 100%;
+    height: 120px;
+    gap: 4px;
+    transition: all 200ms ease-out;
+  }
+
+  .preview-grid--1 {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-grid--2 {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .preview-grid--3 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+
+  .preview-grid--3 .preview-cell--top {
+    grid-column: 1 / -1;
+  }
+
+  .preview-grid--4 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+  }
+
+  .preview-cell {
+    background: var(--cc-preview-bg);
+    border: 1px solid var(--cc-border);
+    border-radius: 4px;
+    transition: all 200ms ease-out;
   }
 </style>
