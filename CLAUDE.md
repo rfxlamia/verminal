@@ -190,6 +190,10 @@ type Result<T> =
 
 ## Additional Project Preferences
 
+- **[DOCS_FOLDER]**: Folder `docs/` di-ignore karena punya repo terpisah khusus dokumentasi internal/pengembangan. Update story langsung di `docs/` di main repo, tidak perlu copy ke worktree.
+  - Ditambahkan: 2026-04-05
+  - Konteks: Story file update seharusnya langsung di main repo `docs/`, bukan di-copy ke worktree
+
 - **[CODE REVIEW]**: Treat every code review finding as valuable advice that must be investigated. No minor suggestion is dismissed - minor suggestions are valuable edge cases. Investigate and verify every finding seriously.
   - Ditambahkan: 2026-04-03
   - Konteks: Code review untuk Story 3.2 - awalnya men-dismiss temuan sebagai "defer", tapi ternyata ada bug fungsional serius (preload path salah)

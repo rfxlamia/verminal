@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { registerLayoutIpcHandlers } from './layout-ipc-handler'
 import * as layoutManager from './layout-manager'
-import type { Result, SavedLayoutData } from '../../shared/ipc-contract'
+import type { Result, SavedLayoutData, SavedLayoutSummary } from '../../shared/ipc-contract'
 
 // Mock layout-manager
 vi.mock('./layout-manager', () => ({
@@ -35,14 +35,20 @@ describe('layout-ipc-handler', () => {
       expect(ipcMain.handle).toHaveBeenCalledWith('layout:load', expect.any(Function))
     })
 
-    it('layout:list handler calls listLayouts()', async () => {
-      const mockResult: Result<string[]> = { ok: true, data: ['dev', 'work'] }
+    it('layout:list handler calls listLayouts() and returns SavedLayoutSummary[]', async () => {
+      const mockResult: Result<SavedLayoutSummary[]> = {
+        ok: true,
+        data: [
+          { name: 'dev', layout_name: 'horizontal' },
+          { name: 'work', layout_name: 'grid' }
+        ]
+      }
       vi.mocked(layoutManager.listLayouts).mockReturnValue(mockResult)
 
       registerLayoutIpcHandlers()
 
       // Get the registered handler
-      type ListHandler = () => Result<string[]>
+      type ListHandler = () => Result<SavedLayoutSummary[]>
       const listHandler = vi
         .mocked(ipcMain.handle)
         .mock.calls.find((call) => call[0] === 'layout:list')?.[1] as ListHandler

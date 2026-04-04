@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { tick } from 'svelte'
+import type { SavedLayoutSummary } from '../../../../shared/ipc-contract'
 
 describe('SavedLayoutList', () => {
   beforeEach(() => {
@@ -19,7 +20,7 @@ describe('SavedLayoutList', () => {
   }
 
   describe('rendering', () => {
-    it('renders list of layout names', async () => {
+    it('renders list of layout names from SavedLayoutSummary[]', async () => {
       const SavedLayoutList = await getSavedLayoutList()
 
       const target = document.createElement('div')
@@ -29,10 +30,16 @@ describe('SavedLayoutList', () => {
       const onSelect = vi.fn()
       const onSubmit = vi.fn()
 
+      const layouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'horizontal' },
+        { name: 'personal', layout_name: 'single' },
+        { name: 'work-project', layout_name: 'grid' }
+      ]
+
       mount(SavedLayoutList, {
         target,
         props: {
-          layouts: ['dev-workspace', 'personal', 'work-project'],
+          layouts,
           selectedLayout: null,
           onSelect,
           onSubmit
@@ -42,7 +49,7 @@ describe('SavedLayoutList', () => {
       const items = target.querySelectorAll('.saved-layout-item')
       expect(items.length).toBe(3)
 
-      // Check layout names
+      // Check layout names (only name is displayed)
       expect(items[0]?.textContent).toContain('dev-workspace')
       expect(items[1]?.textContent).toContain('personal')
       expect(items[2]?.textContent).toContain('work-project')
@@ -137,10 +144,15 @@ describe('SavedLayoutList', () => {
       const onSelect = vi.fn()
       const onSubmit = vi.fn()
 
+      const layouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'horizontal' },
+        { name: 'personal', layout_name: 'single' }
+      ]
+
       mount(SavedLayoutList, {
         target,
         props: {
-          layouts: ['dev-workspace', 'personal'],
+          layouts,
           selectedLayout: 'dev-workspace',
           onSelect,
           onSubmit
@@ -169,10 +181,15 @@ describe('SavedLayoutList', () => {
       const onSelect = vi.fn()
       const onSubmit = vi.fn()
 
+      const layouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'horizontal' },
+        { name: 'personal', layout_name: 'single' }
+      ]
+
       mount(SavedLayoutList, {
         target,
         props: {
-          layouts: ['dev-workspace', 'personal'],
+          layouts,
           selectedLayout: null,
           onSelect,
           onSubmit
@@ -200,10 +217,16 @@ describe('SavedLayoutList', () => {
       const onSelect = vi.fn()
       const onSubmit = vi.fn()
 
+      const layouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'horizontal' },
+        { name: 'personal', layout_name: 'single' },
+        { name: 'work-project', layout_name: 'grid' }
+      ]
+
       mount(SavedLayoutList, {
         target,
         props: {
-          layouts: ['dev-workspace', 'personal', 'work-project'],
+          layouts,
           selectedLayout: 'dev-workspace',
           onSelect,
           onSubmit
@@ -231,10 +254,16 @@ describe('SavedLayoutList', () => {
       const onSelect = vi.fn()
       const onSubmit = vi.fn()
 
+      const layouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'horizontal' },
+        { name: 'personal', layout_name: 'single' },
+        { name: 'work-project', layout_name: 'grid' }
+      ]
+
       mount(SavedLayoutList, {
         target,
         props: {
-          layouts: ['dev-workspace', 'personal', 'work-project'],
+          layouts,
           selectedLayout: 'work-project',
           onSelect,
           onSubmit
@@ -262,10 +291,16 @@ describe('SavedLayoutList', () => {
       const onSelect = vi.fn()
       const onSubmit = vi.fn()
 
+      const layouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'horizontal' },
+        { name: 'personal', layout_name: 'single' },
+        { name: 'work-project', layout_name: 'grid' }
+      ]
+
       mount(SavedLayoutList, {
         target,
         props: {
-          layouts: ['dev-workspace', 'personal', 'work-project'],
+          layouts,
           selectedLayout: 'work-project',
           onSelect,
           onSubmit
@@ -293,10 +328,16 @@ describe('SavedLayoutList', () => {
       const onSelect = vi.fn()
       const onSubmit = vi.fn()
 
+      const layouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'horizontal' },
+        { name: 'personal', layout_name: 'single' },
+        { name: 'work-project', layout_name: 'grid' }
+      ]
+
       mount(SavedLayoutList, {
         target,
         props: {
-          layouts: ['dev-workspace', 'personal', 'work-project'],
+          layouts,
           selectedLayout: 'dev-workspace',
           onSelect,
           onSubmit
@@ -326,10 +367,15 @@ describe('SavedLayoutList', () => {
       const onSelect = vi.fn()
       const onSubmit = vi.fn()
 
+      const layouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'horizontal' },
+        { name: 'personal', layout_name: 'single' }
+      ]
+
       mount(SavedLayoutList, {
         target,
         props: {
-          layouts: ['dev-workspace', 'personal'],
+          layouts,
           selectedLayout: 'dev-workspace',
           onSelect,
           onSubmit
@@ -356,10 +402,15 @@ describe('SavedLayoutList', () => {
       const onSelect = vi.fn()
       const onSubmit = vi.fn()
 
+      const layouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'horizontal' },
+        { name: 'personal', layout_name: 'single' }
+      ]
+
       mount(SavedLayoutList, {
         target,
         props: {
-          layouts: ['dev-workspace', 'personal'],
+          layouts,
           selectedLayout: 'dev-workspace',
           onSelect,
           onSubmit
@@ -390,7 +441,7 @@ describe('SavedLayoutList', () => {
       mount(SavedLayoutList, {
         target,
         props: {
-          layouts: ['dev-workspace'],
+          layouts: [{ name: 'dev-workspace', layout_name: 'horizontal' }],
           selectedLayout: null,
           onSelect,
           onSubmit
@@ -412,10 +463,15 @@ describe('SavedLayoutList', () => {
       const onSelect = vi.fn()
       const onSubmit = vi.fn()
 
+      const layouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'horizontal' },
+        { name: 'personal', layout_name: 'single' }
+      ]
+
       mount(SavedLayoutList, {
         target,
         props: {
-          layouts: ['dev-workspace', 'personal'],
+          layouts,
           selectedLayout: 'dev-workspace',
           onSelect,
           onSubmit
@@ -436,10 +492,15 @@ describe('SavedLayoutList', () => {
       const onSelect = vi.fn()
       const onSubmit = vi.fn()
 
+      const layouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'horizontal' },
+        { name: 'personal', layout_name: 'single' }
+      ]
+
       mount(SavedLayoutList, {
         target,
         props: {
-          layouts: ['dev-workspace', 'personal'],
+          layouts,
           selectedLayout: 'dev-workspace',
           onSelect,
           onSubmit

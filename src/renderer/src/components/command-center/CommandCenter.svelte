@@ -21,7 +21,12 @@
   } from '../../stores/workspace-replace-confirmation-store.svelte'
   import PresetLauncher from './PresetLauncher.svelte'
   import SavedLayoutList from './SavedLayoutList.svelte'
-  import type { SavedLayoutData } from '../../../../shared/ipc-contract'
+  import LayoutPreview from './LayoutPreview.svelte'
+  import type {
+    SavedLayoutData,
+    SavedLayoutSummary,
+    LayoutName
+  } from '../../../../shared/ipc-contract'
 
   let backdropEl: HTMLDivElement | null = $state(null)
   let isMounted = true
@@ -32,7 +37,7 @@
   let spawnError = $state('')
 
   // Saved layouts section state
-  let savedLayouts = $state<string[]>([])
+  let savedLayouts = $state<SavedLayoutSummary[]>([])
   let selectedLayout = $state<string | null>(null)
   let isLoadingSavedLayouts = $state(false)
   let savedLayoutsError = $state('')
@@ -40,6 +45,29 @@
   // Load flow state
   let isLoadingLayout = $state(false)
   let loadLayoutError = $state('')
+
+  // Active selection source for preview (AC #3)
+  let activeSelectionSource = $state<'preset' | 'saved'>('preset')
+
+  // Mapping preset to LayoutName for preview
+  const presetToLayoutName: Record<number, LayoutName> = {
+    1: 'single',
+    2: 'horizontal',
+    3: 'mixed',
+    4: 'grid'
+  }
+
+  // Derived: get selected saved layout summary
+  const selectedSavedLayoutSummary = $derived(
+    selectedLayout ? savedLayouts.find((l) => l.name === selectedLayout) : undefined
+  )
+
+  // Derived: active preview layout name based on selection source (AC #1, #2, #3)
+  const activePreviewLayoutName = $derived<LayoutName | null>(
+    activeSelectionSource === 'preset'
+      ? (presetToLayoutName[selectedPreset] ?? null)
+      : (selectedSavedLayoutSummary?.layout_name ?? null)
+  )
 
   onDestroy(() => {
     isMounted = false
@@ -123,8 +151,8 @@
       savedLayouts = result.data
       // Auto-select first layout only on initial load (no previous selection)
       if (selectedLayout === null && savedLayouts.length > 0) {
-        selectedLayout = savedLayouts[0]
-      } else if (selectedLayout !== null && !savedLayouts.includes(selectedLayout)) {
+        selectedLayout = savedLayouts[0].name
+      } else if (selectedLayout !== null && !savedLayouts.find((l) => l.name === selectedLayout)) {
         // Previously selected layout no longer exists - clear selection, don't auto-select
         selectedLayout = null
       }
@@ -403,6 +431,7 @@
         errorMessage={spawnError}
         onSelect={(preset) => {
           selectedPreset = preset
+          activeSelectionSource = 'preset'
         }}
         onSubmit={handlePresetSubmit}
       />
@@ -422,6 +451,7 @@
             errorMessage={loadLayoutError}
             onSelect={(name) => {
               selectedLayout = name
+              activeSelectionSource = 'saved'
             }}
             onSubmit={handleSavedLayoutSubmit}
           />
@@ -429,6 +459,9 @@
           <p class="saved-layouts-empty">No saved layouts yet. Create one from workspace.</p>
         {/if}
       </div>
+
+      <!-- Shared Layout Preview (AC #5) -->
+      <LayoutPreview layoutName={activePreviewLayoutName} />
 
       <p class="command-center-hint">Press Esc to dismiss</p>
     </div>

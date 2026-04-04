@@ -1,7 +1,12 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { parse } from 'smol-toml'
-import type { Result, SavedLayoutData } from '../../shared/ipc-contract'
+import type {
+  Result,
+  SavedLayoutData,
+  SavedLayoutSummary,
+  LayoutName
+} from '../../shared/ipc-contract'
 import { getConfigPath } from '../config-manager'
 
 function getLayoutsDir(): string {
@@ -29,6 +34,12 @@ function isValidLayoutName(name: string): boolean {
   return true
 }
 
+const validLayoutNames: LayoutName[] = ['single', 'horizontal', 'mixed', 'grid']
+
+function isValidLayoutNameString(name: string): name is LayoutName {
+  return validLayoutNames.includes(name as LayoutName)
+}
+
 function validateSavedLayoutData(data: unknown): SavedLayoutData {
   if (typeof data !== 'object' || data === null) {
     throw new Error('Layout data must be an object')
@@ -42,11 +53,10 @@ function validateSavedLayoutData(data: unknown): SavedLayoutData {
   }
 
   // Validate layout_name
-  const validLayoutNames = ['single', 'horizontal', 'mixed', 'grid']
   if (typeof obj.layout_name !== 'string') {
     throw new Error('Layout must have a layout_name string')
   }
-  if (!validLayoutNames.includes(obj.layout_name)) {
+  if (!isValidLayoutNameString(obj.layout_name)) {
     throw new Error(`Layout has invalid layout_name: ${obj.layout_name}`)
   }
 
@@ -92,18 +102,34 @@ function validateSavedLayoutData(data: unknown): SavedLayoutData {
   }
 }
 
-export function listLayouts(): Result<string[]> {
+export function listLayouts(): Result<SavedLayoutSummary[]> {
   const layoutsDir = getLayoutsDir()
   try {
     if (!fs.existsSync(layoutsDir)) {
       return { ok: true, data: [] }
     }
     const files = fs.readdirSync(layoutsDir)
-    const names = files
-      .filter((f) => f.endsWith('.toml'))
-      .map((f) => f.slice(0, -5)) // Remove .toml extension
-      .sort((a, b) => a.localeCompare(b))
-    return { ok: true, data: names }
+    const tomlFiles = files.filter((f) => f.endsWith('.toml')).sort((a, b) => a.localeCompare(b))
+
+    // Read each layout file to extract summary (name + layout_name)
+    const summaries: SavedLayoutSummary[] = []
+    for (const file of tomlFiles) {
+      const name = file.slice(0, -5) // Remove .toml extension
+      const layoutFile = path.join(layoutsDir, file)
+      try {
+        const content = fs.readFileSync(layoutFile, 'utf-8')
+        const parsed = parse(content) as Record<string, unknown>
+        const layoutName = parsed.layout_name as string
+        // Only include if layout_name is valid
+        if (isValidLayoutNameString(layoutName)) {
+          summaries.push({ name, layout_name: layoutName })
+        }
+      } catch {
+        // Skip files that can't be read or parsed
+      }
+    }
+
+    return { ok: true, data: summaries }
   } catch (error) {
     return {
       ok: false,

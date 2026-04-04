@@ -5,8 +5,10 @@
   Saved Layout List - Presentational component for saved layout selection
 -->
 <script lang="ts">
+  import type { SavedLayoutSummary } from '../../../../shared/ipc-contract'
+
   interface Props {
-    layouts: string[]
+    layouts: SavedLayoutSummary[]
     selectedLayout: string | null
     isLoading?: boolean
     errorMessage?: string
@@ -26,16 +28,16 @@
   function handleKeydown(event: KeyboardEvent): void {
     if (layouts.length === 0) return
 
-    const currentIndex = selectedLayout ? layouts.indexOf(selectedLayout) : -1
+    const currentIndex = selectedLayout ? layouts.findIndex((l) => l.name === selectedLayout) : -1
 
     if (event.key === 'ArrowDown') {
       event.preventDefault()
       const nextIndex = currentIndex < layouts.length - 1 ? currentIndex + 1 : 0
-      onSelect(layouts[nextIndex])
+      onSelect(layouts[nextIndex].name)
     } else if (event.key === 'ArrowUp') {
       event.preventDefault()
       const prevIndex = currentIndex > 0 ? currentIndex - 1 : layouts.length - 1
-      onSelect(layouts[prevIndex])
+      onSelect(layouts[prevIndex].name)
     } else if (event.key === 'Enter' && selectedLayout) {
       event.preventDefault()
       onSubmit(selectedLayout)
@@ -66,17 +68,17 @@
     <p class="saved-layouts-error">{errorMessage}</p>
   {:else if layouts.length > 0}
     <div class="saved-layouts-items" role="group">
-      {#each layouts as layoutName (layoutName)}
-        {@const isSelected = layoutName === selectedLayout}
+      {#each layouts as layout (layout.name)}
+        {@const isSelected = layout.name === selectedLayout}
         <button
           class="saved-layout-item"
           class:saved-layout-item--selected={isSelected}
-          onclick={() => handleLayoutClick(layoutName)}
+          onclick={() => handleLayoutClick(layout.name)}
           role="option"
           aria-selected={isSelected}
           tabindex={isSelected ? 0 : -1}
         >
-          <span class="saved-layout-name">{layoutName}</span>
+          <span class="saved-layout-name">{layout.name}</span>
         </button>
       {/each}
     </div>

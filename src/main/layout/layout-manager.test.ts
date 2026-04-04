@@ -14,6 +14,7 @@ vi.mock('fs', async () => {
 import * as fs from 'fs'
 import { listLayouts, loadLayout } from './layout-manager'
 import * as configManager from '../config-manager'
+import type { SavedLayoutSummary } from '../../shared/ipc-contract'
 
 // Mock config-manager
 vi.mock('../config-manager', () => ({
@@ -44,18 +45,37 @@ describe('layout-manager', () => {
       }
     })
 
-    it('returns sorted list of layout names without .toml extension', () => {
+    it('returns sorted list of SavedLayoutSummary from .toml files', () => {
       vi.mocked(fs.existsSync).mockReturnValue(true)
       vi.mocked(fs.readdirSync).mockReturnValue(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ['dev-workspace.toml', 'personal.toml', 'work.toml', 'not-a-layout.txt', 'README.md'] as any
       )
+      // Mock readFileSync to return valid TOML content for each layout file
+      vi.mocked(fs.readFileSync).mockImplementation((filepath: unknown) => {
+        const path = String(filepath)
+        if (path.includes('dev-workspace')) {
+          return 'name = "dev-workspace"\nlayout_name = "horizontal"\npanes = []'
+        }
+        if (path.includes('personal')) {
+          return 'name = "personal"\nlayout_name = "single"\npanes = []'
+        }
+        if (path.includes('work')) {
+          return 'name = "work"\nlayout_name = "grid"\npanes = []'
+        }
+        return ''
+      })
 
       const result = listLayouts()
 
       expect(result.ok).toBe(true)
       if (result.ok) {
-        expect(result.data).toEqual(['dev-workspace', 'personal', 'work'])
+        expect(result.data).toHaveLength(3)
+        expect(result.data).toEqual([
+          { name: 'dev-workspace', layout_name: 'horizontal' },
+          { name: 'personal', layout_name: 'single' },
+          { name: 'work', layout_name: 'grid' }
+        ] as SavedLayoutSummary[])
       }
     })
 
@@ -86,6 +106,28 @@ describe('layout-manager', () => {
       if (!result.ok) {
         expect(result.error.code).toBe('LAYOUT_LIST_ERROR')
         expect(result.error.message).toContain('Permission denied')
+      }
+    })
+
+    it('skips files with invalid layout_name when listing layouts', () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true)
+      vi.mocked(fs.readdirSync).mockReturnValue(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ['invalid.toml', 'valid.toml'] as any
+      )
+      // Use mockReturnValueOnce to return different values for each call
+      // Files are sorted alphabetically: invalid.toml, valid.toml
+      vi.mocked(fs.readFileSync)
+        .mockReturnValueOnce('name = "invalid"\nlayout_name = "invalid-type"\npanes = []')
+        .mockReturnValueOnce('name = "valid"\nlayout_name = "horizontal"\npanes = []')
+
+      const result = listLayouts()
+
+      expect(result.ok).toBe(true)
+      if (result.ok) {
+        expect(result.data).toEqual([
+          { name: 'valid', layout_name: 'horizontal' }
+        ] as SavedLayoutSummary[])
       }
     })
   })

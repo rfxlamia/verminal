@@ -4,6 +4,13 @@ export type Result<T> =
 
 export type UnsubscribeFn = () => void
 
+export type LayoutName = 'single' | 'horizontal' | 'mixed' | 'grid'
+
+export interface SavedLayoutSummary {
+  name: string
+  layout_name: LayoutName
+}
+
 export interface SavedPaneData {
   pane_id?: number
   name?: string
@@ -13,7 +20,7 @@ export interface SavedPaneData {
 
 export interface SavedLayoutData {
   name: string
-  layout_name: string
+  layout_name: LayoutName
   panes: SavedPaneData[]
 }
 
@@ -33,7 +40,7 @@ export interface IpcContract {
   layout: {
     save: (name: string, data: unknown) => Promise<Result<void>>
     load: (name: string) => Promise<Result<SavedLayoutData>>
-    list: () => Promise<Result<string[]>>
+    list: () => Promise<Result<SavedLayoutSummary[]>>
     delete: (name: string) => Promise<Result<void>>
   }
   config: {
