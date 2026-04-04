@@ -20,7 +20,7 @@
 
   // Baca nama pane dari layoutState — nama default "Pane N" sudah diisi oleh createPane()
   let paneName = $derived(
-    layoutState.panes.find((p) => p.paneId === paneId)?.name ?? `Pane ${paneId}`
+    (layoutState.panes ?? []).find((p) => p.paneId === paneId)?.name ?? `Pane ${paneId}`
   )
 
   function handleEditRequest(): void {

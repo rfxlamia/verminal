@@ -11,8 +11,8 @@
     onEditRequest?: () => void
   } = $props()
 
-  // Fallback: jika name kosong (tidak seharusnya terjadi karena createPane() selalu mengisi)
-  let displayName = $derived(name || `Pane ${paneId}`)
+  // Fallback: jika name kosong atau whitespace-only
+  let displayName = $derived(name?.trim() || `Pane ${paneId}`)
 
   function handleClick(): void {
     // Story 5.1: emit request hook ke parent.
@@ -23,7 +23,12 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
-<header class="pane-header" class:is-focused={isFocused} onclick={handleClick}>
+<header
+  class="pane-header"
+  class:is-focused={isFocused}
+  onclick={handleClick}
+  aria-label="Edit pane name: {displayName}"
+>
   <span class="pane-header-name">{displayName}</span>
 </header>
 
@@ -47,7 +52,7 @@
   }
 
   .pane-header.is-focused {
-    border-bottom-color: var(--color-focus, #62c6ff);
+    border-bottom-color: var(--cc-focus, #62c6ff);
   }
 
   .pane-header-name {
