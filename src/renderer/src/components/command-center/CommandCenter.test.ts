@@ -205,4 +205,163 @@ describe('CommandCenter', () => {
       expect(preventDefaultSpy).not.toHaveBeenCalled()
     })
   })
+
+  describe('preset launch flow', () => {
+    it('submits preset 2 without active panes calls API and sets horizontal layout', async () => {
+      // Stub window.api before importing component
+      const mockShellDetect = vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] })
+      const mockGetPaths = vi.fn().mockResolvedValue({ ok: true, data: { home: '/home/test', userData: '', logsDir: '' } })
+      const mockPtySpawn = vi.fn()
+        .mockResolvedValueOnce({ ok: true, data: { sessionId: 101 } })
+        .mockResolvedValueOnce({ ok: true, data: { sessionId: 102 } })
+
+      vi.stubGlobal('window', {
+        api: {
+          shell: { detect: mockShellDetect },
+          app: { getPaths: mockGetPaths },
+          pty: {
+            spawn: mockPtySpawn,
+            kill: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+          }
+        }
+      })
+
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter, commandCenterState } = await import('../../stores/command-center-store.svelte')
+      const { layoutState, resetLayoutState } = await import('../../stores/layout-store.svelte')
+
+      // Reset to clean state
+      resetLayoutState()
+      openCommandCenter()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+      await tick()
+
+      // Select preset 2 and submit
+      const container = target.querySelector('.preset-launcher')
+      expect(container).not.toBeNull()
+      ;(container as HTMLElement).focus()
+
+      // Press '2' to select preset 2
+      const keydownEvent2 = new KeyboardEvent('keydown', { key: '2', bubbles: true })
+      container?.dispatchEvent(keydownEvent2)
+
+      await tick()
+
+      // Press Enter to submit
+      const keydownEventEnter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })
+      container?.dispatchEvent(keydownEventEnter)
+
+      // Wait for async operations
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      await tick()
+
+      // Verify API calls
+      expect(mockShellDetect).toHaveBeenCalled()
+      expect(mockGetPaths).toHaveBeenCalled()
+      expect(mockPtySpawn).toHaveBeenCalledTimes(2)
+
+      // Verify layout state
+      expect(layoutState.layoutName).toBe('horizontal')
+      expect(layoutState.panes.length).toBe(2)
+
+      // Verify Command Center is closed
+      expect(commandCenterState.isOpen).toBe(false)
+
+      vi.unstubAllGlobals()
+    })
+
+    it('shows inline error when shell detection fails', async () => {
+      // Stub window.api with failing shell detection
+      const mockShellDetect = vi.fn().mockResolvedValue({ ok: false, error: { code: 'DETECT_ERROR', message: 'No shell found' } })
+
+      vi.stubGlobal('window', {
+        api: {
+          shell: { detect: mockShellDetect },
+          app: { getPaths: vi.fn() },
+          pty: { spawn: vi.fn(), kill: vi.fn() }
+        }
+      })
+
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter, commandCenterState } = await import('../../stores/command-center-store.svelte')
+      const { resetLayoutState } = await import('../../stores/layout-store.svelte')
+
+      resetLayoutState()
+      openCommandCenter()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+      await tick()
+
+      // Submit preset 1
+      const container = target.querySelector('.preset-launcher')
+      ;(container as HTMLElement).focus()
+
+      const keydownEventEnter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })
+      container?.dispatchEvent(keydownEventEnter)
+
+      // Wait for async operations
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      await tick()
+
+      // Verify error is shown
+      const errorElement = target.querySelector('.spawn-error')
+      expect(errorElement).not.toBeNull()
+      expect(errorElement?.textContent).toContain('Shell detection failed')
+
+      // Command Center should still be open
+      expect(commandCenterState.isOpen).toBe(true)
+
+      vi.unstubAllGlobals()
+    })
+
+    it('requests workspace replace confirmation when active sessions exist', async () => {
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter } = await import('../../stores/command-center-store.svelte')
+      const { layoutState, initSinglePaneLayout, resetLayoutState } = await import('../../stores/layout-store.svelte')
+      const { workspaceReplaceState } = await import('../../stores/workspace-replace-confirmation-store.svelte')
+
+      // Reset and create an active session
+      resetLayoutState()
+      initSinglePaneLayout(999) // Create a pane with sessionId 999
+      openCommandCenter()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+      await tick()
+
+      // Verify we have an active session
+      expect(layoutState.panes.length).toBe(1)
+
+      // Try to submit a preset
+      const container = target.querySelector('.preset-launcher')
+      ;(container as HTMLElement).focus()
+
+      const keydownEventEnter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })
+      container?.dispatchEvent(keydownEventEnter)
+
+      await tick()
+
+      // Should have requested workspace replace confirmation
+      expect(workspaceReplaceState.visible).toBe(true)
+      expect(workspaceReplaceState.sessionCount).toBe(1)
+    })
+  })
 })
