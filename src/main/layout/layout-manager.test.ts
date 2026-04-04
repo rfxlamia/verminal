@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import type { SavedLayoutData } from '../../shared/ipc-contract'
 
 // Mock fs module before importing the module under test
 vi.mock('fs', async () => {
@@ -13,7 +12,6 @@ vi.mock('fs', async () => {
 })
 
 import * as fs from 'fs'
-import * as path from 'path'
 import { listLayouts, loadLayout } from './layout-manager'
 import * as configManager from '../config-manager'
 
@@ -24,7 +22,6 @@ vi.mock('../config-manager', () => ({
 
 describe('layout-manager', () => {
   const mockConfigPath = '/home/test/.verminal'
-  const mockLayoutsDir = path.join(mockConfigPath, 'layouts')
 
   beforeEach(() => {
     vi.mocked(configManager.getConfigPath).mockReturnValue(mockConfigPath)
@@ -55,7 +52,7 @@ describe('layout-manager', () => {
         'work.toml',
         'not-a-layout.txt',
         'README.md'
-      ] as unknown as fs.Dirent[])
+      ] as any)
 
       const result = listLayouts()
 
@@ -70,7 +67,7 @@ describe('layout-manager', () => {
       vi.mocked(fs.readdirSync).mockReturnValue([
         'README.md',
         'config.json'
-      ] as unknown as fs.Dirent[])
+      ] as any)
 
       const result = listLayouts()
 

@@ -120,4 +120,30 @@ describe('preload bridge wiring', () => {
     unsubscribe()
     expect(mockRemoveListener).toHaveBeenCalledWith('command-center:open', expect.any(Function))
   })
+
+  it('invokes layout:list through ipcRenderer.invoke', async () => {
+    await import('./index')
+
+    const apiExposeCall = mockExposeInMainWorld.mock.calls.find((call) => call[0] === 'api')
+    const api = apiExposeCall?.[1] as {
+      layout: { list: () => Promise<unknown> }
+    }
+
+    await api.layout.list()
+
+    expect(mockInvoke).toHaveBeenCalledWith('layout:list')
+  })
+
+  it('invokes layout:load with name through ipcRenderer.invoke', async () => {
+    await import('./index')
+
+    const apiExposeCall = mockExposeInMainWorld.mock.calls.find((call) => call[0] === 'api')
+    const api = apiExposeCall?.[1] as {
+      layout: { load: (name: string) => Promise<unknown> }
+    }
+
+    await api.layout.load('dev-workspace')
+
+    expect(mockInvoke).toHaveBeenCalledWith('layout:load', 'dev-workspace')
+  })
 })
