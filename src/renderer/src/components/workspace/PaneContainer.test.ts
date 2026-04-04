@@ -93,7 +93,8 @@ describe('PaneContainer', () => {
       document.body.appendChild(target)
 
       const { mount } = await import('svelte')
-      const { setFocusedPaneId, workspaceUIState } = await import('../../stores/workspace-ui-store.svelte')
+      const { setFocusedPaneId, workspaceUIState } =
+        await import('../../stores/workspace-ui-store.svelte')
 
       // Reset to null first
       setFocusedPaneId(null)
@@ -170,7 +171,8 @@ describe('PaneContainer', () => {
       document.body.appendChild(target)
 
       const { mount } = await import('svelte')
-      const { setFocusedPaneId, workspaceUIState } = await import('../../stores/workspace-ui-store.svelte')
+      const { setFocusedPaneId, workspaceUIState } =
+        await import('../../stores/workspace-ui-store.svelte')
 
       const paneId = 7
       setFocusedPaneId(null)

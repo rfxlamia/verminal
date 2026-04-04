@@ -8,7 +8,11 @@
   import { workspaceUIState } from '../../stores/workspace-ui-store.svelte'
 
   // Props:
-  let { paneId, sessionId, resizeTick = 0 }: {
+  let {
+    paneId,
+    sessionId,
+    resizeTick = 0
+  }: {
     paneId: number
     sessionId: number
     resizeTick?: number
