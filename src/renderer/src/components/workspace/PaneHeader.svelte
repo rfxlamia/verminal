@@ -1,35 +1,89 @@
 <script lang="ts">
+  import { tick } from 'svelte'
+
   let {
     paneId,
     name,
     isFocused = false,
-    onEditRequest
+    onRename
   }: {
     paneId: number
     name: string
     isFocused?: boolean
-    onEditRequest?: () => void
+    onRename?: (name: string) => void
   } = $props()
 
   // Fallback: jika name kosong atau whitespace-only
   let displayName = $derived(name?.trim() || `Pane ${paneId}`)
 
+  // Inline edit state (local to PaneHeader - not in global stores)
+  let isEditing = $state(false)
+  let editValue = $state('')
+  let inputEl: HTMLInputElement | undefined = $state()
+
+  async function startEdit(): Promise<void> {
+    editValue = displayName
+    isEditing = true
+    await tick()
+    inputEl?.select()
+  }
+
+  // Exported method for parent to trigger edit mode (F2 path via PaneContainer)
+  export function startEditExternally(): void {
+    void startEdit()
+  }
+
+  function commitRename(): void {
+    const trimmed = editValue.trim()
+    if (trimmed) {
+      onRename?.(trimmed)
+    }
+    isEditing = false
+  }
+
+  function cancelRename(): void {
+    isEditing = false
+  }
+
   function handleClick(): void {
-    // Story 5.1: emit request hook ke parent.
-    // Story 5.2 akan memakai hook ini untuk editor inline aktual.
-    onEditRequest?.()
+    if (!isEditing) {
+      void startEdit()
+    }
+  }
+
+  function handleInputKeydown(e: KeyboardEvent): void {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      commitRename()
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      cancelRename()
+    }
   }
 </script>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- Keyboard path for rename lives in PaneContainer via F2; header click is pointer-only -->
 <header
   class="pane-header"
   class:is-focused={isFocused}
+  class:is-editing={isEditing}
   onclick={handleClick}
-  aria-label="Edit pane name: {displayName}"
 >
-  <span class="pane-header-name">{displayName}</span>
+  {#if isEditing}
+    <input
+      bind:this={inputEl}
+      bind:value={editValue}
+      class="pane-name-input"
+      type="text"
+      aria-label="Rename pane"
+      onkeydown={handleInputKeydown}
+      onblur={commitRename}
+    />
+  {:else}
+    <span class="pane-header-name">{displayName}</span>
+  {/if}
 </header>
 
 <style>
@@ -55,10 +109,28 @@
     border-bottom-color: var(--cc-focus, #62c6ff);
   }
 
+  .pane-header.is-editing {
+    cursor: text;
+  }
+
   .pane-header-name {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex: 1;
+  }
+
+  .pane-name-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--cc-focus, #62c6ff);
+    color: var(--cc-text-primary, #f7f7f7);
+    font-family: 'Work Sans', system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    outline: none;
+    width: 100%;
+    padding: 0;
     flex: 1;
   }
 </style>
