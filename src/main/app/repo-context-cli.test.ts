@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import os from 'node:os'
 import { describe, expect, it } from 'vitest'
 import { execFileSync } from 'node:child_process'
 import path from 'node:path'
@@ -6,7 +7,7 @@ import path from 'node:path'
 describe('repo-context CLI', () => {
   it('prints required repo bootstrap information', () => {
     const repoRoot = path.resolve(__dirname, '../../..')
-    const contextDir = path.join(repoRoot, 'docs/implementation-artifacts')
+    const contextDir = fs.mkdtempSync(path.join(os.tmpdir(), 'verminal-repo-context-'))
     const contextPath = path.join(contextDir, 'agent-context.json')
     const bootstrapContext = {
       requiredDocs: [
@@ -24,12 +25,15 @@ describe('repo-context CLI', () => {
       }
     }
 
-    fs.mkdirSync(contextDir, { recursive: true })
     fs.writeFileSync(contextPath, JSON.stringify(bootstrapContext, null, 2))
 
     try {
       const output = execFileSync('node', ['scripts/repo-context.mjs'], {
         cwd: repoRoot,
+        env: {
+          ...process.env,
+          REPO_CONTEXT_BOOTSTRAP_PATH: contextPath
+        },
         encoding: 'utf8'
       })
 
@@ -42,7 +46,7 @@ describe('repo-context CLI', () => {
       expect(output).toContain('CLAUDE.md')
       expect(output).toContain('GEMINI.md')
     } finally {
-      fs.rmSync(contextPath, { force: true })
+      fs.rmSync(contextDir, { recursive: true, force: true })
     }
   })
 })
