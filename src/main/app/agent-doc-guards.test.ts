@@ -22,10 +22,7 @@ describe('root guidance files', () => {
   }
 
   it('active-lanes documents main and planned worktree lanes', () => {
-    const content = fs.readFileSync(
-      path.join(repoRoot, 'repo-config/active-lanes.md'),
-      'utf8'
-    )
+    const content = fs.readFileSync(path.join(repoRoot, 'repo-config/active-lanes.md'), 'utf8')
 
     expect(content).toContain('main')
     expect(content).toContain('epic-4')
