@@ -6,14 +6,14 @@
  * Defines pane state and layout configuration
  */
 
+export type PaneColor = 'gray' | 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'blue' | 'purple'
+
 export interface PaneState {
   paneId: number
   sessionId: number
   name: string
   color?: PaneColor
 }
-
-export type PaneColor = 'gray' | 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'blue' | 'purple'
 
 export interface LayoutState {
   layoutName: LayoutName

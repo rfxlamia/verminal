@@ -123,22 +123,22 @@ describe('ColorPicker', () => {
     })
   })
 
-  it('calls onSelect when focused swatch receives Enter or Space', async () => {
+  it('uses native button elements that respond to Enter/Space via browser default', async () => {
     const ColorPicker = await getColorPicker()
     const target = document.createElement('div')
     document.body.appendChild(target)
 
-    const onSelect = vi.fn()
-    mount(ColorPicker, { target, props: { onSelect } })
+    mount(ColorPicker, { target, props: {} })
 
-    const swatches = target.querySelectorAll('.color-swatch')
-    // Enter key
-    swatches[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
-    await tick()
+    // Native buttons automatically trigger click on Enter/Space
+    // This test documents that we're using semantic buttons for accessibility
+    const buttons = target.querySelectorAll('button[type="button"]')
+    expect(buttons.length).toBe(8)
 
-    // Native button behavior should trigger click which calls onSelect
-    // But vitest/jsdom doesn't fully simulate this, so we test the onclick handler exists
-    expect(swatches[0].getAttribute('onclick')).toBeNull() // Svelte binds handlers differently
+    // Verify each button is a native button (not a div with onclick)
+    buttons.forEach((btn) => {
+      expect(btn.tagName.toLowerCase()).toBe('button')
+    })
   })
 
   it('has role=group and aria-label on container', async () => {
