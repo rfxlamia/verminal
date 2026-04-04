@@ -278,4 +278,97 @@ describe('PaneContainer', () => {
       expect((pane as HTMLElement).dataset.focused).toBe('true')
     })
   })
+
+  describe('PaneHeader integration', () => {
+    it('renders PaneHeader above TerminalView', async () => {
+      const PaneContainer = await getPaneContainer()
+      const { layoutState } = await import('../../stores/layout-store.svelte')
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      layoutState.panes = [{ paneId: 42, sessionId: 1, name: 'Infra Logs' }]
+
+      mount(PaneContainer, { target, props: { paneId: 42, sessionId: 1, resizeTick: 0 } })
+
+      const header = target.querySelector('header.pane-header')
+      expect(header).not.toBeNull()
+
+      const terminalArea = target.querySelector('.pane-terminal-area')
+      expect(terminalArea).not.toBeNull()
+
+      // header must come before terminal area in DOM order
+      const pane = target.querySelector('.pane-container')!
+      const children = Array.from(pane.children)
+      const headerIdx = children.findIndex((el) => el.matches('header.pane-header'))
+      const terminalIdx = children.findIndex((el) => el.matches('.pane-terminal-area'))
+      expect(headerIdx).toBeLessThan(terminalIdx)
+    })
+
+    it('passes correct name from layoutState to PaneHeader', async () => {
+      const PaneContainer = await getPaneContainer()
+      const { layoutState } = await import('../../stores/layout-store.svelte')
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      layoutState.panes = [{ paneId: 42, sessionId: 1, name: 'Infra Logs' }]
+
+      mount(PaneContainer, { target, props: { paneId: 42, sessionId: 1, resizeTick: 0 } })
+
+      const nameEl = target.querySelector('.pane-header-name')
+      expect(nameEl).not.toBeNull()
+      expect(nameEl!.textContent).toBe('Infra Logs')
+    })
+
+    it('passes correct paneId to PaneHeader (fallback name uses paneId)', async () => {
+      const PaneContainer = await getPaneContainer()
+      const { layoutState } = await import('../../stores/layout-store.svelte')
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      // Pane with no matching entry → fallback to "Pane {paneId}"
+      layoutState.panes = []
+
+      mount(PaneContainer, { target, props: { paneId: 42, sessionId: 1, resizeTick: 0 } })
+
+      const nameEl = target.querySelector('.pane-header-name')
+      expect(nameEl).not.toBeNull()
+      expect(nameEl!.textContent).toBe('Pane 42')
+    })
+
+    it('passes isFocused state to PaneHeader', async () => {
+      const PaneContainer = await getPaneContainer()
+      const { layoutState } = await import('../../stores/layout-store.svelte')
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const { setFocusedPaneId } = await import('../../stores/workspace-ui-store.svelte')
+
+      layoutState.panes = [{ paneId: 42, sessionId: 1, name: 'Test' }]
+      setFocusedPaneId(42)
+
+      mount(PaneContainer, { target, props: { paneId: 42, sessionId: 1, resizeTick: 0 } })
+
+      const header = target.querySelector('header.pane-header')
+      expect(header!.classList.contains('is-focused')).toBe(true)
+    })
+
+    it('terminal area wraps TerminalView with flex sizing', async () => {
+      const PaneContainer = await getPaneContainer()
+      const { layoutState } = await import('../../stores/layout-store.svelte')
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      layoutState.panes = [{ paneId: 42, sessionId: 1, name: 'Test' }]
+
+      mount(PaneContainer, { target, props: { paneId: 42, sessionId: 1, resizeTick: 0 } })
+
+      const terminalArea = target.querySelector('.pane-terminal-area') as HTMLElement
+      expect(terminalArea).not.toBeNull()
+    })
+  })
 })

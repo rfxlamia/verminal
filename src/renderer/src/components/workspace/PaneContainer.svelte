@@ -1,6 +1,8 @@
 <script lang="ts">
   import TerminalView from './TerminalView.svelte'
+  import PaneHeader from './PaneHeader.svelte'
   import { workspaceUIState, setFocusedPaneId } from '../../stores/workspace-ui-store.svelte'
+  import { layoutState } from '../../stores/layout-store.svelte'
 
   // Props:
   let {
@@ -15,6 +17,16 @@
 
   // Derive focus state for this pane - single source of truth
   let isFocused = $derived(workspaceUIState.focusedPaneId === paneId)
+
+  // Baca nama pane dari layoutState — nama default "Pane N" sudah diisi oleh createPane()
+  let paneName = $derived(
+    layoutState.panes.find((p) => p.paneId === paneId)?.name ?? `Pane ${paneId}`
+  )
+
+  function handleEditRequest(): void {
+    // Story 5.1: reserved integration point only.
+    // Actual inline rename behavior lives in Story 5.2.
+  }
 </script>
 
 <!-- Pane container wrapper with metadata attributes -->
@@ -35,7 +47,15 @@
   tabindex="0"
   aria-label="Terminal pane {paneId}"
 >
-  <TerminalView {paneId} {sessionId} {resizeTick} />
+  <PaneHeader
+    {paneId}
+    name={paneName}
+    {isFocused}
+    onEditRequest={handleEditRequest}
+  />
+  <div class="pane-terminal-area">
+    <TerminalView {paneId} {sessionId} {resizeTick} />
+  </div>
 </div>
 
 <style>
@@ -44,6 +64,8 @@
     height: 100%;
     overflow: hidden;
     position: relative;
+    display: flex;
+    flex-direction: column;
   }
 
   .pane-container.is-focused {
@@ -52,5 +74,11 @@
      * Using CSS custom property allows theming */
     outline: 2px solid var(--color-focus, #62c6ff);
     outline-offset: -2px;
+  }
+
+  .pane-terminal-area {
+    flex: 1;
+    min-height: 0; /* KRITIS: tanpa ini, flex child tidak bisa shrink di bawah content height */
+    overflow: hidden;
   }
 </style>
