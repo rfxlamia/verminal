@@ -5,13 +5,20 @@ import { describe, expect, it } from 'vitest'
 
 describe('repo-context CLI', () => {
   it('exits non-zero when agent-context.json is missing', () => {
-    expect(() =>
-      execFileSync('node', ['scripts/repo-context.mjs'], {
+    const repoRoot = path.resolve(__dirname, '../../..')
+    const scriptPath = path.join(repoRoot, 'scripts/repo-context.mjs')
+    try {
+      execFileSync('node', [scriptPath], {
         cwd: '/tmp',
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe']
       })
-    ).toThrow()
+      expect.fail('expected CLI to exit non-zero')
+    } catch (err) {
+      const error = err as { stderr?: string; message?: string }
+      const output = error.stderr ?? error.message ?? ''
+      expect(output).toContain('agent-context.json')
+    }
   })
 
   it('prints required repo bootstrap information', () => {
@@ -38,12 +45,9 @@ describe('repo-context CLI', () => {
     expect(output).toContain('Worktrees:')
     expect(output).toContain('Required docs:')
     expect(output).toContain('Default main policy:')
-    expect(output).toContain('Current main lane: epic-4')
-    expect(output).toContain(
-      'Default main policy: On main, only continue the in-progress epic from sprint-status.yaml. Do not start worktree-only epics on main.'
-    )
+    expect(output).toContain(`Current main lane: ${context.lanes.main.currentEpic}`)
+    expect(output).toContain(`Default main policy: ${context.mainBranchPolicy}`)
     expect(output).toContain('Active lane policy:')
-    expect(output).toContain('Do not start worktree-only epics on main')
     for (const doc of context.requiredDocs) {
       expect(output).toContain(doc)
     }

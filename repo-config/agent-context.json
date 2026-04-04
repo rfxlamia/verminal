@@ -4,7 +4,6 @@
     "AGENTS.md",
     "CLAUDE.md",
     "GEMINI.md",
-    "docs/implementation-artifacts/sprint-status.yaml",
     "repo-config/active-lanes.md"
   ],
   "mainBranchPolicy": "On main, only continue the in-progress epic from sprint-status.yaml. Do not start worktree-only epics on main.",

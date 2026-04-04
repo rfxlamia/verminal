@@ -35,7 +35,8 @@ for (const doc of context.requiredDocs) console.log(`- ${doc}`)
 console.log(`Status source of truth: ${context.statusSource}`)
 console.log(`Default main policy: ${context.mainBranchPolicy}`)
 console.log(`Current main lane: ${context.lanes.main.currentEpic}`)
-console.log(`Active lane policy: ${context.mainBranchPolicy}`)
-if (context.worktreePolicy) {
-  console.log(`Worktree policy: ${context.worktreePolicy}`)
-}
+const activePolicy =
+  branch === 'main'
+    ? context.mainBranchPolicy
+    : (context.worktreePolicy ?? context.mainBranchPolicy)
+console.log(`Active lane policy: ${activePolicy}`)
