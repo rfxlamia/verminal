@@ -37,6 +37,7 @@ describe('App.svelte', () => {
       .mockResolvedValueOnce({ ok: true, data: { sessionId: 1 } })
       .mockResolvedValueOnce({ ok: true, data: { sessionId: 2 } })
       .mockResolvedValueOnce({ ok: true, data: { sessionId: 3 } })
+      .mockResolvedValueOnce({ ok: true, data: { sessionId: 4 } })
     const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
 
     // @ts-expect-error - mocking window.api
@@ -229,7 +230,7 @@ describe('App.svelte', () => {
     expect(errorElement.textContent).toContain(shellPath)
   })
 
-  describe('3-pane mixed layout (Story 3.3/3.4 transition)', () => {
+  describe('4-pane grid layout (Story 3.5)', () => {
     it('spawns 4 PTY sessions and initializes grid layout with all four sessionIds', async () => {
       const mockShellDetect = vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] })
       const mockGetPaths = vi

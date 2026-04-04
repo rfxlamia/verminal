@@ -13,9 +13,12 @@ export interface PaneState {
 }
 
 export interface LayoutState {
-  layoutName: string
+  layoutName: LayoutName
   panes: PaneState[]
 }
+
+/** Valid layout preset names */
+export type LayoutName = 'single' | 'horizontal' | 'mixed' | 'grid' | ''
 
 // CRITICAL: Only createPane() may read/write this counter
 // Sequential integer IDs starting from 1
@@ -127,7 +130,7 @@ export function initHorizontalSplitLayout(sessionId1: number, sessionId2: number
  * @throws {Error} If sessionId is not a positive integer
  */
 function validateSessionId(sessionId: number, name: string): void {
-  if (!Number.isInteger(sessionId) || sessionId <= 0) {
+  if (!Number.isFinite(sessionId) || !Number.isInteger(sessionId) || sessionId <= 0) {
     throw new Error(`${name} must be a positive integer. Got: ${sessionId}`)
   }
 }

@@ -23,6 +23,7 @@ export default defineConfig(
   },
   {
     files: ['**/*.test.ts'],
+    ignores: ['**/*.svelte', '**/*.svelte.ts'],
     rules: {
       '@typescript-eslint/no-unused-vars': [
         'error',

@@ -93,6 +93,7 @@
     min-height: 0;
     position: relative;
     display: grid;
+    gap: 0;
     /* grid-template-columns and grid-template-rows are now set via inline style */
   }
 
