@@ -30,7 +30,12 @@ vi.mock('electron', () => ({
   },
   ipcMain: { handle: mockHandle, on: mockOn },
   BrowserWindow: MockBrowserWindow,
-  shell: { openExternal: vi.fn() }
+  shell: { openExternal: vi.fn() },
+  globalShortcut: {
+    register: vi.fn(() => true),
+    unregister: vi.fn(),
+    unregisterAll: vi.fn()
+  }
 }))
 
 vi.mock('@electron-toolkit/utils', () => ({
@@ -52,6 +57,12 @@ vi.mock('./app/quit-handler', () => ({
 }))
 
 vi.mock('../../resources/icon.png?asset', () => ({ default: 'icon.png' }))
+
+// Mock crash-log to prevent process.exit(1) on unhandled rejections during tests
+vi.mock('./logging/crash-log', () => ({
+  initCrashLogger: vi.fn(),
+  resetCrashLoggerForTests: vi.fn()
+}))
 
 describe('main IPC registration', () => {
   beforeEach(() => {
