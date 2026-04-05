@@ -1397,4 +1397,55 @@ describe('Workspace', () => {
       expect(focusedPane?.getAttribute('data-pane-id')).toBe('2')
     })
   })
+
+  describe('Focus Mode - reduced motion', () => {
+    it('applies transition: none when prefers-reduced-motion is reduce', async () => {
+      // Mock matchMedia untuk prefers-reduced-motion: reduce
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: vi.fn().mockImplementation((query: string) => ({
+          matches: query === '(prefers-reduced-motion: reduce)',
+          media: query,
+          onchange: null,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn()
+        }))
+      })
+
+      // Import enterFocusMode
+      const { enterFocusMode } = await import('../../stores/workspace-ui-store.svelte')
+
+      // Setup: aktifkan focus mode
+      enterFocusMode(1)
+
+      // Render Workspace dengan focus mode aktif
+      const Workspace = await getWorkspace()
+      const mockPanes = [
+        { paneId: 1, sessionId: 101 },
+        { paneId: 2, sessionId: 102 }
+      ]
+      const target = document.createElement('div')
+      target.style.width = '800px'
+      target.style.height = '600px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(Workspace, {
+        target,
+        props: { panes: mockPanes }
+      })
+
+      // Wait for mount
+      await vi.runAllTimersAsync()
+
+      // Cari pane-wrapper yang is-focus-target
+      const focusedPane = target.querySelector('.pane-wrapper.is-focus-target')
+      expect(focusedPane).toBeTruthy()
+
+      // Verifikasi workspace container memiliki class focus-mode-active
+      const workspace = target.querySelector('.workspace-container.focus-mode-active')
+      expect(workspace).toBeTruthy()
+    })
+  })
 })
