@@ -443,9 +443,13 @@ describe('PaneContainer', () => {
 
       mount(PaneContainer, { target, props: { paneId: 42, sessionId: 1, resizeTick: 0 } })
 
-      // Enter edit mode by clicking header
-      const header = target.querySelector('header.pane-header')
-      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      // Focus the pane first
+      const container = target.querySelector('.pane-container')
+      container!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      await tick()
+
+      // Enter edit mode by pressing F2 (simulating PaneContainer's F2 handler calling startEditExternally)
+      container!.dispatchEvent(new KeyboardEvent('keydown', { key: 'F2', bubbles: true }))
       await tick()
 
       // Type new name and commit
@@ -493,9 +497,13 @@ describe('PaneContainer', () => {
 
       mount(PaneContainer, { target, props: { paneId: 42, sessionId: 1, resizeTick: 0 } })
 
-      // Enter edit mode by clicking header
-      const header = target.querySelector('header.pane-header')
-      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      // Focus the pane first
+      const container = target.querySelector('.pane-container')
+      container!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      await tick()
+
+      // Enter edit mode by pressing F2 (simulating PaneContainer's F2 handler calling startEditExternally)
+      container!.dispatchEvent(new KeyboardEvent('keydown', { key: 'F2', bubbles: true }))
       await tick()
 
       // Click on a color swatch
@@ -541,9 +549,13 @@ describe('PaneContainer', () => {
 
       mount(PaneContainer, { target, props: { paneId: 42, sessionId: 1, resizeTick: 0 } })
 
-      // Enter edit mode
-      const header = target.querySelector('header.pane-header')
-      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      // Focus the pane first
+      const container = target.querySelector('.pane-container')
+      container!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      await tick()
+
+      // Enter edit mode by pressing F2 (simulating PaneContainer's F2 handler calling startEditExternally)
+      container!.dispatchEvent(new KeyboardEvent('keydown', { key: 'F2', bubbles: true }))
       await tick()
 
       // Get a swatch button and dispatch Enter key

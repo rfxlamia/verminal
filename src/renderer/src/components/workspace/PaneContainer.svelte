@@ -34,6 +34,13 @@
   // Reference to PaneHeader for F2-triggered edit mode
   let paneHeaderRef: PaneHeaderExports | undefined = $state()
 
+  // Handle edit request from PaneHeader (AC #2: click triggers edit request signal)
+  function handleEditRequest(): void {
+    // Parent orchestrates the edit - triggers inline edit mode
+    paneHeaderRef?.startEditExternally()
+  }
+
+  // Handle rename from PaneHeader edit mode
   function handleRename(newName: string): void {
     renamePaneInLayout(paneId, newName)
   }
@@ -88,6 +95,7 @@
     name={paneName}
     color={paneColor}
     {isFocused}
+    onEditRequest={handleEditRequest}
     onRename={handleRename}
     onColorChange={handleColorChange}
     bind:this={paneHeaderRef}

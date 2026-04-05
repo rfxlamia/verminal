@@ -69,18 +69,58 @@ describe('PaneHeader', () => {
     expect(header!.classList.contains('is-focused')).toBe(false)
   })
 
+  // ========== AC #2: onEditRequest callback ==========
+
+  it('calls onEditRequest callback when clicked (AC #2)', async () => {
+    const PaneHeader = await getPaneHeader()
+    const target = document.createElement('div')
+    document.body.appendChild(target)
+
+    const onEditRequest = vi.fn()
+    mount(PaneHeader, { target, props: { paneId: 1, name: 'Test', onEditRequest } })
+
+    const header = target.querySelector('header.pane-header')
+    header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await tick()
+
+    expect(onEditRequest).toHaveBeenCalledOnce()
+  })
+
+  it('does not crash when onEditRequest is not provided', async () => {
+    const PaneHeader = await getPaneHeader()
+    const target = document.createElement('div')
+    document.body.appendChild(target)
+
+    // No onEditRequest prop provided - should not throw
+    mount(PaneHeader, { target, props: { paneId: 1, name: 'Test' } })
+
+    const header = target.querySelector('header.pane-header')
+    // Should not throw
+    expect(() => {
+      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    }).not.toThrow()
+  })
+
   // ========== Story 5.2: Inline Rename Tests ==========
 
   describe('Inline Rename Mode', () => {
-    it('enters edit mode when clicked', async () => {
+    // Note: With AC #2, click no longer directly enters edit mode.
+    // Instead, click calls onEditRequest(), and parent calls startEditExternally().
+    // Tests use bind:this pattern to trigger edit mode via the exported method.
+
+    it('enters edit mode when startEditExternally() is called', async () => {
       const PaneHeader = await getPaneHeader()
       const target = document.createElement('div')
       document.body.appendChild(target)
 
-      mount(PaneHeader, { target, props: { paneId: 1, name: 'Test' } })
+      // Use bind:this pattern - component exports startEditExternally via bind:this
+      const props: Record<string, unknown> = { paneId: 1, name: 'Test' }
+      const instance = mount(PaneHeader, { target, props }) as unknown as {
+        startEditExternally: () => void
+      }
 
-      const header = target.querySelector('header.pane-header')
-      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      // Trigger edit mode via the exported method (simulating PaneContainer F2 behavior)
+      instance.startEditExternally()
       await tick()
 
       // Should show input instead of span
@@ -95,10 +135,12 @@ describe('PaneHeader', () => {
       const target = document.createElement('div')
       document.body.appendChild(target)
 
-      mount(PaneHeader, { target, props: { paneId: 1, name: 'Infra Logs' } })
+      const props: Record<string, unknown> = { paneId: 1, name: 'Infra Logs' }
+      const instance = mount(PaneHeader, { target, props }) as unknown as {
+        startEditExternally: () => void
+      }
 
-      const header = target.querySelector('header.pane-header')
-      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      instance.startEditExternally()
       await tick()
 
       const input = target.querySelector('input.pane-name-input') as HTMLInputElement
@@ -116,10 +158,12 @@ describe('PaneHeader', () => {
       const originalSelect = HTMLInputElement.prototype.select
       HTMLInputElement.prototype.select = selectMock
 
-      mount(PaneHeader, { target, props: { paneId: 1, name: 'Test' } })
+      const props: Record<string, unknown> = { paneId: 1, name: 'Test' }
+      const instance = mount(PaneHeader, { target, props }) as unknown as {
+        startEditExternally: () => void
+      }
 
-      const header = target.querySelector('header.pane-header')
-      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      instance.startEditExternally()
       await tick()
 
       // Wait for the async select() call via tick().then()
@@ -137,10 +181,12 @@ describe('PaneHeader', () => {
       document.body.appendChild(target)
 
       const onRename = vi.fn()
-      mount(PaneHeader, { target, props: { paneId: 1, name: 'Old Name', onRename } })
+      const props: Record<string, unknown> = { paneId: 1, name: 'Old Name', onRename }
+      const instance = mount(PaneHeader, { target, props }) as unknown as {
+        startEditExternally: () => void
+      }
 
-      const header = target.querySelector('header.pane-header')
-      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      instance.startEditExternally()
       await tick()
 
       const input = target.querySelector('input.pane-name-input') as HTMLInputElement
@@ -159,10 +205,12 @@ describe('PaneHeader', () => {
       document.body.appendChild(target)
 
       const onRename = vi.fn()
-      mount(PaneHeader, { target, props: { paneId: 1, name: 'Original', onRename } })
+      const props: Record<string, unknown> = { paneId: 1, name: 'Original', onRename }
+      const instance = mount(PaneHeader, { target, props }) as unknown as {
+        startEditExternally: () => void
+      }
 
-      const header = target.querySelector('header.pane-header')
-      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      instance.startEditExternally()
       await tick()
 
       const input = target.querySelector('input.pane-name-input') as HTMLInputElement
@@ -179,10 +227,12 @@ describe('PaneHeader', () => {
       const target = document.createElement('div')
       document.body.appendChild(target)
 
-      mount(PaneHeader, { target, props: { paneId: 1, name: 'Original' } })
+      const props: Record<string, unknown> = { paneId: 1, name: 'Original' }
+      const instance = mount(PaneHeader, { target, props }) as unknown as {
+        startEditExternally: () => void
+      }
 
-      const header = target.querySelector('header.pane-header')
-      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      instance.startEditExternally()
       await tick()
 
       const input = target.querySelector('input.pane-name-input') as HTMLInputElement
@@ -203,10 +253,12 @@ describe('PaneHeader', () => {
       document.body.appendChild(target)
 
       const onRename = vi.fn()
-      mount(PaneHeader, { target, props: { paneId: 1, name: 'Old', onRename } })
+      const props: Record<string, unknown> = { paneId: 1, name: 'Old', onRename }
+      const instance = mount(PaneHeader, { target, props }) as unknown as {
+        startEditExternally: () => void
+      }
 
-      const header = target.querySelector('header.pane-header')
-      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      instance.startEditExternally()
       await tick()
 
       const input = target.querySelector('input.pane-name-input') as HTMLInputElement
@@ -225,10 +277,12 @@ describe('PaneHeader', () => {
       document.body.appendChild(target)
 
       const onRename = vi.fn()
-      mount(PaneHeader, { target, props: { paneId: 1, name: 'Original', onRename } })
+      const props: Record<string, unknown> = { paneId: 1, name: 'Original', onRename }
+      const instance = mount(PaneHeader, { target, props }) as unknown as {
+        startEditExternally: () => void
+      }
 
-      const header = target.querySelector('header.pane-header')
-      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      instance.startEditExternally()
       await tick()
 
       const input = target.querySelector('input.pane-name-input') as HTMLInputElement
@@ -246,10 +300,12 @@ describe('PaneHeader', () => {
       document.body.appendChild(target)
 
       const onRename = vi.fn()
-      mount(PaneHeader, { target, props: { paneId: 1, name: 'Original', onRename } })
+      const props: Record<string, unknown> = { paneId: 1, name: 'Original', onRename }
+      const instance = mount(PaneHeader, { target, props }) as unknown as {
+        startEditExternally: () => void
+      }
 
-      const header = target.querySelector('header.pane-header')
-      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      instance.startEditExternally()
       await tick()
 
       const input = target.querySelector('input.pane-name-input') as HTMLInputElement
@@ -267,10 +323,12 @@ describe('PaneHeader', () => {
       document.body.appendChild(target)
 
       const onRename = vi.fn()
-      mount(PaneHeader, { target, props: { paneId: 1, name: 'Original', onRename } })
+      const props: Record<string, unknown> = { paneId: 1, name: 'Original', onRename }
+      const instance = mount(PaneHeader, { target, props }) as unknown as {
+        startEditExternally: () => void
+      }
 
-      const header = target.querySelector('header.pane-header')
-      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      instance.startEditExternally()
       await tick()
 
       const input = target.querySelector('input.pane-name-input') as HTMLInputElement
@@ -291,10 +349,12 @@ describe('PaneHeader', () => {
       const target = document.createElement('div')
       document.body.appendChild(target)
 
-      mount(PaneHeader, { target, props: { paneId: 1, name: 'Original' } })
+      const props: Record<string, unknown> = { paneId: 1, name: 'Original' }
+      const instance = mount(PaneHeader, { target, props }) as unknown as {
+        startEditExternally: () => void
+      }
 
-      const header = target.querySelector('header.pane-header')
-      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      instance.startEditExternally()
       await tick()
 
       const input = target.querySelector('input.pane-name-input') as HTMLInputElement
@@ -313,10 +373,12 @@ describe('PaneHeader', () => {
       const target = document.createElement('div')
       document.body.appendChild(target)
 
-      mount(PaneHeader, { target, props: { paneId: 1, name: 'Test' } })
+      const props: Record<string, unknown> = { paneId: 1, name: 'Test' }
+      const instance = mount(PaneHeader, { target, props }) as unknown as {
+        startEditExternally: () => void
+      }
 
-      const header = target.querySelector('header.pane-header')
-      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      instance.startEditExternally()
       await tick()
 
       const input = target.querySelector('input.pane-name-input') as HTMLInputElement
@@ -330,10 +392,12 @@ describe('PaneHeader', () => {
       document.body.appendChild(target)
 
       const onRename = vi.fn()
-      mount(PaneHeader, { target, props: { paneId: 1, name: 'Old', onRename } })
+      const props: Record<string, unknown> = { paneId: 1, name: 'Old', onRename }
+      const instance = mount(PaneHeader, { target, props }) as unknown as {
+        startEditExternally: () => void
+      }
 
-      const header = target.querySelector('header.pane-header')
-      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      instance.startEditExternally()
       await tick()
 
       const input = target.querySelector('input.pane-name-input') as HTMLInputElement
@@ -354,10 +418,12 @@ describe('PaneHeader', () => {
       const target = document.createElement('div')
       document.body.appendChild(target)
 
-      mount(PaneHeader, { target, props: { paneId: 1, name: 'Test' } })
+      const props: Record<string, unknown> = { paneId: 1, name: 'Test' }
+      const instance = mount(PaneHeader, { target, props }) as unknown as {
+        startEditExternally: () => void
+      }
 
-      const header = target.querySelector('header.pane-header')
-      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      instance.startEditExternally()
       await tick()
 
       const colorPicker = target.querySelector('.color-picker')
@@ -371,7 +437,7 @@ describe('PaneHeader', () => {
 
       mount(PaneHeader, { target, props: { paneId: 1, name: 'Test' } })
 
-      // Don't click - stay in display mode
+      // Don't enter edit mode - stay in display mode
       const colorPicker = target.querySelector('.color-picker')
       expect(colorPicker).toBeNull()
     })
@@ -393,10 +459,12 @@ describe('PaneHeader', () => {
       const target = document.createElement('div')
       document.body.appendChild(target)
 
-      mount(PaneHeader, { target, props: { paneId: 1, name: 'Test', color: 'red' } })
+      const props: Record<string, unknown> = { paneId: 1, name: 'Test', color: 'red' }
+      const instance = mount(PaneHeader, { target, props }) as unknown as {
+        startEditExternally: () => void
+      }
 
-      const header = target.querySelector('header.pane-header')
-      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      instance.startEditExternally()
       await tick()
 
       const selectedSwatch = target.querySelector('.color-swatch.is-selected')
@@ -410,10 +478,12 @@ describe('PaneHeader', () => {
       document.body.appendChild(target)
 
       const onColorChange = vi.fn()
-      mount(PaneHeader, { target, props: { paneId: 1, name: 'Test', onColorChange } })
+      const props: Record<string, unknown> = { paneId: 1, name: 'Test', onColorChange }
+      const instance = mount(PaneHeader, { target, props }) as unknown as {
+        startEditExternally: () => void
+      }
 
-      const header = target.querySelector('header.pane-header')
-      header!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      instance.startEditExternally()
       await tick()
 
       const swatches = target.querySelectorAll('.color-swatch')

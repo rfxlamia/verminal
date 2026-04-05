@@ -14,6 +14,7 @@
     name,
     color,
     isFocused = false,
+    onEditRequest,
     onRename,
     onColorChange
   }: {
@@ -21,6 +22,7 @@
     name: string
     color?: PaneColor
     isFocused?: boolean
+    onEditRequest?: () => void
     onRename?: (name: string) => void
     onColorChange?: (color: PaneColor | undefined) => void
   } = $props()
@@ -80,9 +82,9 @@
   function handleClick(e: MouseEvent): void {
     // Only trigger on left-click (patch: left-click only)
     if (e.button !== 0) return
-    if (!isEditing) {
-      void startEdit()
-    }
+    // Emit edit request to parent - parent decides how to handle (AC #2)
+    // Parent can call startEditExternally() via bind:this if it wants inline edit
+    onEditRequest?.()
   }
 
   function handleInputKeydown(e: KeyboardEvent): void {
