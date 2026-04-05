@@ -1,0 +1,12 @@
+name = "dev-workspace"
+layout_name = "horizontal"
+
+[[panes]]
+pane_id = 1
+name = "Editor"
+color = "blue"
+
+[[panes]]
+pane_id = 2
+name = "Terminal"
+color = "green"
