@@ -6,7 +6,9 @@
  * Defines pane state and layout configuration
  */
 
-export type PaneColor = 'gray' | 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'blue' | 'purple'
+import type { PaneColor } from '../../../shared/ipc-contract'
+
+export type { PaneColor }
 
 export interface PaneState {
   paneId: number

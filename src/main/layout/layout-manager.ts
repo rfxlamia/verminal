@@ -7,6 +7,7 @@ import type {
   SavedLayoutSummary,
   LayoutName
 } from '../../shared/ipc-contract'
+import { isValidPaneColor } from '../../shared/ipc-contract'
 import { getConfigPath } from '../config-manager'
 
 function getLayoutsDir(): string {
@@ -91,7 +92,10 @@ function validateSavedLayoutData(data: unknown): SavedLayoutData {
       pane_id: paneObj.pane_id as number | undefined,
       name: typeof paneObj.name === 'string' ? paneObj.name : undefined,
       command: typeof paneObj.command === 'string' ? paneObj.command : undefined,
-      color: typeof paneObj.color === 'string' ? paneObj.color : undefined
+      color:
+        typeof paneObj.color === 'string' && isValidPaneColor(paneObj.color)
+          ? paneObj.color
+          : undefined
     }
   })
 

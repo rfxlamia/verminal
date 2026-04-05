@@ -6,6 +6,26 @@ export type UnsubscribeFn = () => void
 
 export type LayoutName = 'single' | 'horizontal' | 'mixed' | 'grid'
 
+/** Valid pane color values */
+export type PaneColor = 'gray' | 'red' | 'orange' | 'amber' | 'green' | 'teal' | 'blue' | 'purple'
+
+/** Set of valid pane colors for runtime validation */
+export const VALID_PANE_COLORS: ReadonlySet<string> = new Set<PaneColor>([
+  'gray',
+  'red',
+  'orange',
+  'amber',
+  'green',
+  'teal',
+  'blue',
+  'purple'
+])
+
+/** Validates if a string is a valid PaneColor (case-sensitive) */
+export function isValidPaneColor(color: string): color is PaneColor {
+  return VALID_PANE_COLORS.has(color)
+}
+
 export interface SavedLayoutSummary {
   name: string
   layout_name: LayoutName
@@ -15,7 +35,7 @@ export interface SavedPaneData {
   pane_id?: number
   name?: string
   command?: string
-  color?: string
+  color?: PaneColor
 }
 
 export interface SavedLayoutData {

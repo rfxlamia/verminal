@@ -306,5 +306,95 @@ pane_id = "not-a-number"
         expect(result.error.code).toBe('LAYOUT_INVALID_DATA')
       }
     })
+
+    it('drops invalid color on load', () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true)
+      vi.mocked(fs.readFileSync).mockReturnValue(`
+name = "test"
+layout_name = "single"
+
+[[panes]]
+pane_id = 1
+name = "Server"
+color = "hotpink"
+`)
+
+      const result = loadLayout('test')
+
+      expect(result.ok).toBe(true)
+      if (result.ok) {
+        expect(result.data.panes[0].color).toBeUndefined()
+      }
+    })
+
+    it('drops color with wrong case (case-sensitive validation)', () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true)
+      vi.mocked(fs.readFileSync).mockReturnValue(`
+name = "test"
+layout_name = "single"
+
+[[panes]]
+pane_id = 1
+color = "Blue"
+`)
+
+      const result = loadLayout('test')
+
+      expect(result.ok).toBe(true)
+      if (result.ok) {
+        expect(result.data.panes[0].color).toBeUndefined()
+      }
+    })
+
+    it('preserves undefined color for panes without color tag', () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true)
+      vi.mocked(fs.readFileSync).mockReturnValue(`
+name = "test"
+layout_name = "single"
+
+[[panes]]
+pane_id = 1
+name = "Server"
+`)
+
+      const result = loadLayout('test')
+
+      expect(result.ok).toBe(true)
+      if (result.ok) {
+        expect(result.data.panes[0].color).toBeUndefined()
+      }
+    })
+
+    it('preserves valid color values', () => {
+      vi.mocked(fs.existsSync).mockReturnValue(true)
+      vi.mocked(fs.readFileSync).mockReturnValue(`
+name = "test"
+layout_name = "single"
+
+[[panes]]
+pane_id = 1
+name = "Server"
+color = "blue"
+
+[[panes]]
+pane_id = 2
+name = "Tests"
+color = "green"
+
+[[panes]]
+pane_id = 3
+name = "Logs"
+color = "teal"
+`)
+
+      const result = loadLayout('test')
+
+      expect(result.ok).toBe(true)
+      if (result.ok) {
+        expect(result.data.panes[0].color).toBe('blue')
+        expect(result.data.panes[1].color).toBe('green')
+        expect(result.data.panes[2].color).toBe('teal')
+      }
+    })
   })
 })
