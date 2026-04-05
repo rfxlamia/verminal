@@ -266,9 +266,8 @@ describe('App.svelte', () => {
 
       // Setup: Set up layout with 2 panes and focus pane 2
       const { layoutState } = await import('./stores/layout-store.svelte')
-      const { setFocusedPaneId, workspaceUIState } = await import(
-        './stores/workspace-ui-store.svelte'
-      )
+      const { setFocusedPaneId, workspaceUIState } =
+        await import('./stores/workspace-ui-store.svelte')
 
       layoutState.panes = [
         { paneId: 1, sessionId: 101, name: 'Pane 1' },
@@ -314,9 +313,8 @@ describe('App.svelte', () => {
 
       // Setup: Set up layout with 1 pane
       const { layoutState } = await import('./stores/layout-store.svelte')
-      const { setFocusedPaneId, workspaceUIState } = await import(
-        './stores/workspace-ui-store.svelte'
-      )
+      const { setFocusedPaneId, workspaceUIState } =
+        await import('./stores/workspace-ui-store.svelte')
 
       layoutState.panes = [{ paneId: 1, sessionId: 101, name: 'Pane 1' }]
       setFocusedPaneId(1)

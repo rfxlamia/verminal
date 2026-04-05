@@ -1,7 +1,11 @@
 <script lang="ts">
   import TerminalView from './TerminalView.svelte'
   import PaneHeader, { type PaneHeaderExports } from './PaneHeader.svelte'
-  import { workspaceUIState, setFocusedPaneId, enterFocusMode } from '../../stores/workspace-ui-store.svelte'
+  import {
+    workspaceUIState,
+    setFocusedPaneId,
+    enterFocusMode
+  } from '../../stores/workspace-ui-store.svelte'
   import {
     layoutState,
     renamePaneInLayout,

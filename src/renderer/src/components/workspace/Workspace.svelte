@@ -120,7 +120,11 @@
     left: 0;
     z-index: 10;
     /* Animation 200ms ease-out -- NFR6 */
-    transition: top 200ms ease-out, right 200ms ease-out, bottom 200ms ease-out, left 200ms ease-out;
+    transition:
+      top 200ms ease-out,
+      right 200ms ease-out,
+      bottom 200ms ease-out,
+      left 200ms ease-out;
   }
 
   /* Reduced motion: skip animation */
@@ -135,6 +139,6 @@
   .workspace-container.focus-mode-active .pane-wrapper.is-dimmed {
     /* pointer-events none agar pane background tidak interactable saat focus mode */
     /* Tapi ini bisa dibahas kembali di Story 6.3 untuk pulse notification */
-    visibility: visible;  /* masih visible, tapi akan dimmed di Story 6.2 */
+    visibility: visible; /* masih visible, tapi akan dimmed di Story 6.2 */
   }
 </style>

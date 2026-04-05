@@ -610,7 +610,8 @@ describe('PaneContainer', () => {
       document.body.appendChild(target)
 
       const { mount } = await import('svelte')
-      const { workspaceUIState, enterFocusMode } = await import('../../stores/workspace-ui-store.svelte')
+      const { workspaceUIState, enterFocusMode: _enterFocusMode } =
+        await import('../../stores/workspace-ui-store.svelte')
       const { layoutState } = await import('../../stores/layout-store.svelte')
 
       // Setup multi-pane layout
@@ -671,7 +672,8 @@ describe('PaneContainer', () => {
       document.body.appendChild(target)
 
       const { mount } = await import('svelte')
-      const { workspaceUIState, enterFocusMode } = await import('../../stores/workspace-ui-store.svelte')
+      const { workspaceUIState, enterFocusMode } =
+        await import('../../stores/workspace-ui-store.svelte')
       const { layoutState } = await import('../../stores/layout-store.svelte')
 
       // Setup multi-pane layout

@@ -17,7 +17,7 @@
     onEditRequest,
     onRename,
     onColorChange,
-    onDblClick    // NEW
+    onDblClick // NEW
   }: {
     paneId: number
     name: string
@@ -26,7 +26,7 @@
     onEditRequest?: () => void
     onRename?: (name: string) => void
     onColorChange?: (color: PaneColor | undefined) => void
-    onDblClick?: () => void    // NEW
+    onDblClick?: () => void // NEW
   } = $props()
 
   // Fallback: if name is empty or whitespace-only
@@ -85,7 +85,7 @@
     // Only trigger on left-click (patch: left-click only)
     if (e.button !== 0) return
     // Guard: jangan trigger single-click jika ini adalah bagian dari double-click
-    if (e.detail === 2) return  // Let ondblclick handle double-clicks
+    if (e.detail === 2) return // Let ondblclick handle double-clicks
     // Emit edit request to parent - parent decides how to handle (AC #2)
     // Parent can call startEditExternally() via bind:this if it wants inline edit
     onEditRequest?.()
