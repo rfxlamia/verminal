@@ -7,18 +7,28 @@ vi.mock('fs', async () => {
     ...actual,
     existsSync: vi.fn(),
     readdirSync: vi.fn(),
-    readFileSync: vi.fn()
+    readFileSync: vi.fn(),
+    mkdirSync: vi.fn(),
+    promises: {
+      mkdir: vi.fn().mockResolvedValue(undefined)
+    }
   }
 })
 
 import * as fs from 'fs'
-import { listLayouts, loadLayout } from './layout-manager'
+import { listLayouts, loadLayout, saveLayout } from './layout-manager'
 import * as configManager from '../config-manager'
-import type { SavedLayoutSummary } from '../../shared/ipc-contract'
+import { atomicWrite } from '../fs/atomic-write'
+import type { SavedLayoutSummary, SavedLayoutData } from '../../shared/ipc-contract'
 
 // Mock config-manager
 vi.mock('../config-manager', () => ({
   getConfigPath: vi.fn()
+}))
+
+// Mock atomic-write
+vi.mock('../fs/atomic-write', () => ({
+  atomicWrite: vi.fn()
 }))
 
 describe('layout-manager', () => {
@@ -395,6 +405,96 @@ color = "teal"
         expect(result.data.panes[1].color).toBe('green')
         expect(result.data.panes[2].color).toBe('teal')
       }
+    })
+  })
+
+  describe('saveLayout', () => {
+    it('returns error for layout name with path traversal', async () => {
+      const data: SavedLayoutData = {
+        name: 'test',
+        layout_name: 'single',
+        panes: [{ pane_id: 1 }]
+      }
+      const result = await saveLayout('../../../etc/passwd', data)
+      expect(result.ok).toBe(false)
+      if (!result.ok) {
+        expect(result.error.code).toBe('INVALID_LAYOUT_NAME')
+      }
+    })
+
+    it('returns error for layout name with path separators', async () => {
+      const data: SavedLayoutData = {
+        name: 'test',
+        layout_name: 'single',
+        panes: [{ pane_id: 1 }]
+      }
+      const result = await saveLayout('layouts/test', data)
+      expect(result.ok).toBe(false)
+      if (!result.ok) {
+        expect(result.error.code).toBe('INVALID_LAYOUT_NAME')
+      }
+    })
+
+    it('returns error for layout name starting with dot', async () => {
+      const data: SavedLayoutData = {
+        name: 'test',
+        layout_name: 'single',
+        panes: [{ pane_id: 1 }]
+      }
+      const result = await saveLayout('.hidden', data)
+      expect(result.ok).toBe(false)
+      if (!result.ok) {
+        expect(result.error.code).toBe('INVALID_LAYOUT_NAME')
+      }
+    })
+
+    it('returns error for empty layout name', async () => {
+      const data: SavedLayoutData = {
+        name: 'test',
+        layout_name: 'single',
+        panes: [{ pane_id: 1 }]
+      }
+      const result = await saveLayout('', data)
+      expect(result.ok).toBe(false)
+      if (!result.ok) {
+        expect(result.error.code).toBe('INVALID_LAYOUT_NAME')
+      }
+    })
+
+    it('returns error for whitespace-only layout name', async () => {
+      const data: SavedLayoutData = {
+        name: 'test',
+        layout_name: 'single',
+        panes: [{ pane_id: 1 }]
+      }
+      const result = await saveLayout('   ', data)
+      expect(result.ok).toBe(false)
+      if (!result.ok) {
+        expect(result.error.code).toBe('INVALID_LAYOUT_NAME')
+      }
+    })
+
+    it('creates layouts directory if it does not exist', async () => {
+      vi.mocked(fs.existsSync).mockReturnValue(false)
+      vi.mocked(fs.promises.mkdir).mockResolvedValue(undefined)
+      const atomicWriteMock = vi.mocked(atomicWrite).mockImplementation(() => undefined)
+
+      const data: SavedLayoutData = {
+        name: 'dev-workspace',
+        layout_name: 'grid',
+        panes: [
+          { pane_id: 1, name: 'Server', color: 'blue' },
+          { pane_id: 2, name: 'Tests', color: 'green' }
+        ]
+      }
+
+      await saveLayout('dev-workspace', data)
+
+      expect(fs.promises.mkdir).toHaveBeenCalledWith(
+        '/home/test/.verminal/layouts',
+        { recursive: true }
+      )
+      expect(atomicWriteMock).toHaveBeenCalled()
     })
   })
 })
