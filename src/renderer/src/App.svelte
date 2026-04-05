@@ -4,6 +4,7 @@
   import QuitDialog from './components/workspace/QuitDialog.svelte'
   import CommandCenter from './components/command-center/CommandCenter.svelte'
   import { layoutState } from './stores/layout-store.svelte'
+  import { workspaceUIState, enterFocusMode } from './stores/workspace-ui-store.svelte'
   import { openCommandCenter } from './stores/command-center-store.svelte'
   import { serializeLayoutForSave } from './lib/layout-serializer'
   import type { SavedLayoutData } from '../shared/ipc-contract'
@@ -62,6 +63,18 @@
     if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'S') {
       event.preventDefault()
       void saveCurrentLayout()
+    }
+
+    // Ctrl+Shift+F → toggle Focus Mode (NEW)
+    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'F') {
+      event.preventDefault()
+      const paneId = workspaceUIState.focusedPaneId
+      const totalPanes = layoutState.panes.length
+      // AC #4 guard: must have more than 1 pane
+      // AC #5 guard: handled internally by enterFocusMode
+      if (paneId !== null && totalPanes > 1) {
+        enterFocusMode(paneId)
+      }
     }
   }
 
