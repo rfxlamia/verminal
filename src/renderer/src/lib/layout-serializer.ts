@@ -1,4 +1,5 @@
 import type { SavedLayoutData, SavedPaneData } from '../../../shared/ipc-contract'
+import { isValidPaneColor } from '../../../shared/ipc-contract'
 import type { LayoutState } from '../stores/layout-store.svelte'
 
 /**
@@ -9,7 +10,8 @@ export function serializeLayoutForSave(displayName: string, state: LayoutState):
   const panes: SavedPaneData[] = state.panes.map((pane) => {
     const out: SavedPaneData = { pane_id: pane.paneId }
     if (pane.name) out.name = pane.name
-    if (pane.color) out.color = pane.color
+    // Only include color if it's a valid PaneColor
+    if (pane.color && isValidPaneColor(pane.color)) out.color = pane.color
     return out
   })
 

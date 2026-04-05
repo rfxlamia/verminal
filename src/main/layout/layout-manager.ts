@@ -236,7 +236,8 @@ export async function saveLayout(name: string, data: SavedLayoutData): Promise<R
 
   const panes = data.panes.map((pane) => {
     const obj: Record<string, unknown> = {}
-    if (pane.pane_id !== undefined) obj.pane_id = pane.pane_id
+    // Only include pane_id if it's a positive number
+    if (pane.pane_id !== undefined && pane.pane_id > 0) obj.pane_id = pane.pane_id
     if (pane.name) obj.name = pane.name
     if (pane.color) obj.color = pane.color
     if (pane.command) obj.command = pane.command
@@ -251,7 +252,18 @@ export async function saveLayout(name: string, data: SavedLayoutData): Promise<R
 
   const content = stringify(tomlObj)
   const filePath = path.join(layoutsDir, `${name}.toml`)
-  await atomicWrite(filePath, content)
+
+  try {
+    await atomicWrite(filePath, content)
+  } catch (error) {
+    return {
+      ok: false,
+      error: {
+        code: 'LAYOUT_SAVE_FAILED',
+        message: `Failed to save layout: ${(error as Error).message}`
+      }
+    }
+  }
 
   return { ok: true, data: undefined }
 }

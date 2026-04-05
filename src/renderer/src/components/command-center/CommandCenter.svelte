@@ -488,11 +488,20 @@
       const newPanes = layoutState.panes
       savedLayout.panes.forEach((savedPane, index) => {
         // Match by pane_id if available, fallback to array index for legacy layouts
-        const pane =
-          savedPane.pane_id !== undefined
-            ? newPanes.find((p) => p.paneId === savedPane.pane_id)
-            : newPanes[index]
-        if (!pane) return
+        let pane
+        if (savedPane.pane_id !== undefined) {
+          pane = newPanes.find((p) => p.paneId === savedPane.pane_id)
+        }
+        // Fallback to index-based matching for legacy layouts (with bounds check)
+        if (!pane && index >= 0 && index < newPanes.length) {
+          pane = newPanes[index]
+        }
+        if (!pane) {
+          console.warn(
+            `[CommandCenter] Cannot restore pane identity: pane ${savedPane.pane_id ?? index} not found`
+          )
+          return
+        }
         if (savedPane.name) renamePaneInLayout(pane.paneId, savedPane.name)
         if (savedPane.color) recolorPaneInLayout(pane.paneId, savedPane.color)
       })

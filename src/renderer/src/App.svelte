@@ -48,6 +48,16 @@
   })
 
   function handleGlobalKeydown(event: KeyboardEvent): void {
+    // Guard: ignore shortcuts when typing in input fields
+    const target = event.target as HTMLElement
+    if (
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      target.isContentEditable
+    ) {
+      return
+    }
+
     // Ctrl+Shift+S → save current layout
     if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'S') {
       event.preventDefault()
@@ -62,14 +72,14 @@
       return
     }
 
-    // Guard: layout must have a valid name
-    if (!layoutState.layoutName) {
+    // Guard: layout must have a valid name (non-empty after trim)
+    if (!layoutState.layoutName?.trim()) {
       console.error('[App] Cannot save layout: no active layout')
       return
     }
 
     // Use layoutName as the save name (will be enhanced with custom naming in Epic 7)
-    const name = layoutState.layoutName
+    const name = layoutState.layoutName.trim()
     const data: SavedLayoutData = serializeLayoutForSave(name, layoutState)
     const result = await window.api.layout.save(name, data)
     if (!result.ok) {
