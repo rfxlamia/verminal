@@ -146,7 +146,7 @@ describe('IpcContract', () => {
 
   it('has layout namespace with save, load, list, delete', () => {
     expectTypeOf<IpcContract['layout']['save']>().toMatchTypeOf<
-      (name: string, data: unknown) => Promise<Result<void>>
+      (name: string, data: SavedLayoutData) => Promise<Result<void>>
     >()
     expectTypeOf<IpcContract['layout']['load']>().toMatchTypeOf<
       (name: string) => Promise<Result<SavedLayoutData>>
