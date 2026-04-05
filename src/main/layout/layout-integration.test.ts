@@ -28,8 +28,14 @@ describe('Layout TOML Integration', () => {
   })
 
   afterEach(() => {
-    // Clean up temp directory
-    fs.rmSync(tmpDir, { recursive: true, force: true })
+    // Clean up temp directory with error handling
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+    } catch {
+      // Ignore cleanup errors — temp files will be cleaned by OS eventually
+    }
+    // Restore all mocks to prevent state leakage
+    vi.restoreAllMocks()
   })
 
   it('produces valid TOML with snake_case keys via saveLayout() (AC #3, #4)', async () => {
@@ -82,14 +88,15 @@ describe('Layout TOML Integration', () => {
       ]
     }
 
-    // Save twice with same data
+    // Save twice to the SAME file — should produce identical output (AC #5)
     await saveLayout('monitoring', data)
-    await saveLayout('monitoring-v2', data)
-
     const content1 = fs.readFileSync(path.join(layoutsDir, 'monitoring.toml'), 'utf-8')
-    const content2 = fs.readFileSync(path.join(layoutsDir, 'monitoring-v2.toml'), 'utf-8')
 
-    // Byte-for-byte identical (AC #5 — git diff empty)
+    // Overwrite with same data
+    await saveLayout('monitoring', data)
+    const content2 = fs.readFileSync(path.join(layoutsDir, 'monitoring.toml'), 'utf-8')
+
+    // Byte-for-byte identical (AC #5 — git diff empty on repeated save)
     expect(content1).toBe(content2)
   })
 
@@ -103,11 +110,13 @@ describe('Layout TOML Integration', () => {
     await saveLayout('test-layout', data)
     const content = fs.readFileSync(path.join(layoutsDir, 'test-layout.toml'), 'utf-8')
 
-    // Ephemeral fields must NOT appear
+    // Ephemeral fields must NOT appear (both snake_case and camelCase variants)
     expect(content).not.toContain('is_focus_mode')
     expect(content).not.toContain('focused_pane_id')
     expect(content).not.toContain('isFocusMode')
+    expect(content).not.toContain('focusedPaneId')
     expect(content).not.toContain('sessionId')
+    expect(content).not.toContain('session_id')
   })
 
   it('loads saved layout correctly via loadLayout()', async () => {
@@ -169,7 +178,7 @@ describe('Fixture File Verification', () => {
 
     // Each fixture must be loadable via loadLayout
     for (const file of tomlFiles) {
-      const layoutName = file.slice(0, -5) // Remove .toml extension
+      const layoutName = path.basename(file, '.toml') // Safe extraction of layout name
 
       // Copy fixture to temp layouts dir for loading
       const srcPath = path.join(fixtureDir, file)
