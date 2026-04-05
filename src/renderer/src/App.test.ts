@@ -34,7 +34,16 @@ describe('App.svelte', () => {
     // @ts-expect-error - mocking window.api
     window.api = {
       quit: { onShowDialog: mockOnShowDialog, confirm: vi.fn(), cancel: vi.fn() },
-      commandCenter: { onOpen: mockCommandCenterOnOpen }
+      commandCenter: { onOpen: mockCommandCenterOnOpen },
+      layout: {
+        list: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+        load: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { name: 'test', layout_name: 'single', panes: [{}] }
+        }),
+        save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+        delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+      }
     }
 
     render(App)
@@ -57,7 +66,16 @@ describe('App.svelte', () => {
     window.api = {
       quit: { onShowDialog: mockOnShowDialog, confirm: vi.fn(), cancel: vi.fn() },
       commandCenter: { onOpen: mockCommandCenterOnOpen },
-      pty: { spawn: mockPtySpawn }
+      pty: { spawn: mockPtySpawn },
+      layout: {
+        list: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+        load: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { name: 'test', layout_name: 'single', panes: [{}] }
+        }),
+        save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+        delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+      }
     }
 
     render(App)
@@ -76,7 +94,16 @@ describe('App.svelte', () => {
     // @ts-expect-error - mocking window.api
     window.api = {
       quit: { onShowDialog: mockOnShowDialog, confirm: vi.fn(), cancel: vi.fn() },
-      commandCenter: { onOpen: mockCommandCenterOnOpen }
+      commandCenter: { onOpen: mockCommandCenterOnOpen },
+      layout: {
+        list: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+        load: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { name: 'test', layout_name: 'single', panes: [{}] }
+        }),
+        save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+        delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+      }
     }
 
     render(App)
@@ -100,7 +127,16 @@ describe('App.svelte', () => {
     // @ts-expect-error - mocking window.api
     window.api = {
       quit: { onShowDialog: mockOnShowDialog, confirm: vi.fn(), cancel: vi.fn() },
-      commandCenter: { onOpen: mockCommandCenterOnOpen }
+      commandCenter: { onOpen: mockCommandCenterOnOpen },
+      layout: {
+        list: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+        load: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { name: 'test', layout_name: 'single', panes: [{}] }
+        }),
+        save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+        delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+      }
     }
 
     render(App)
@@ -139,7 +175,16 @@ describe('App.svelte', () => {
     // @ts-expect-error - mocking window.api
     window.api = {
       quit: { onShowDialog: mockOnShowDialog, confirm: vi.fn(), cancel: vi.fn() },
-      commandCenter: { onOpen: mockCommandCenterOnOpen }
+      commandCenter: { onOpen: mockCommandCenterOnOpen },
+      layout: {
+        list: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+        load: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { name: 'test', layout_name: 'single', panes: [{}] }
+        }),
+        save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+        delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+      }
     }
 
     render(App)
@@ -173,7 +218,16 @@ describe('App.svelte', () => {
     // @ts-expect-error - mocking window.api
     window.api = {
       quit: { onShowDialog: mockOnShowDialog, confirm: vi.fn(), cancel: vi.fn() },
-      commandCenter: { onOpen: mockCommandCenterOnOpen }
+      commandCenter: { onOpen: mockCommandCenterOnOpen },
+      layout: {
+        list: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+        load: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { name: 'test', layout_name: 'single', panes: [{}] }
+        }),
+        save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+        delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+      }
     }
 
     render(App)

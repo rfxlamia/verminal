@@ -8,6 +8,7 @@ import { registerGlobalShortcuts, unregisterGlobalShortcuts } from './app/shortc
 import { initCrashLogger } from './logging/crash-log'
 import { handleShellDetect } from './shell/shell-manager'
 import { registerPtyIpcHandlers } from './pty/pty-ipc-handler'
+import { registerLayoutIpcHandlers } from './layout/layout-ipc-handler'
 import { getActiveSessionIds, killSession } from './pty/pty-manager'
 
 // Initialize crash handler BEFORE any async operations
@@ -76,6 +77,9 @@ app.whenReady().then(() => {
 
   // Register PTY IPC handlers
   registerPtyIpcHandlers()
+
+  // Register Layout IPC handlers
+  registerLayoutIpcHandlers()
 
   // Track mainWindow reference for quit handlers
   let mainWindow: BrowserWindow | null = null

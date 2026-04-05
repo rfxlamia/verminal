@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { SavedLayoutSummary } from '../shared/ipc-contract'
 
 const mockExposeInMainWorld = vi.fn()
 const mockInvoke = vi.fn()
@@ -119,5 +120,47 @@ describe('preload bridge wiring', () => {
 
     unsubscribe()
     expect(mockRemoveListener).toHaveBeenCalledWith('command-center:open', expect.any(Function))
+  })
+
+  it('invokes layout:list through ipcRenderer.invoke and returns SavedLayoutSummary[]', async () => {
+    const mockResult = {
+      ok: true,
+      data: [
+        { name: 'dev', layout_name: 'horizontal' },
+        { name: 'work', layout_name: 'grid' }
+      ]
+    }
+    mockInvoke.mockResolvedValue(mockResult)
+
+    await import('./index')
+
+    const apiExposeCall = mockExposeInMainWorld.mock.calls.find((call) => call[0] === 'api')
+    const api = apiExposeCall?.[1] as {
+      layout: { list: () => Promise<{ ok: true; data: SavedLayoutSummary[] }> }
+    }
+
+    const result = await api.layout.list()
+
+    expect(mockInvoke).toHaveBeenCalledWith('layout:list')
+    // Verify the result structure matches SavedLayoutSummary[]
+    if (result.ok) {
+      expect(Array.isArray(result.data)).toBe(true)
+      expect(result.data).toHaveLength(2)
+      expect(result.data[0]).toHaveProperty('name')
+      expect(result.data[0]).toHaveProperty('layout_name')
+    }
+  })
+
+  it('invokes layout:load with name through ipcRenderer.invoke', async () => {
+    await import('./index')
+
+    const apiExposeCall = mockExposeInMainWorld.mock.calls.find((call) => call[0] === 'api')
+    const api = apiExposeCall?.[1] as {
+      layout: { load: (name: string) => Promise<unknown> }
+    }
+
+    await api.layout.load('dev-workspace')
+
+    expect(mockInvoke).toHaveBeenCalledWith('layout:load', 'dev-workspace')
   })
 })

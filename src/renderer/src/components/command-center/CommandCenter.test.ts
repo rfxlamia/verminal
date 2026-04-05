@@ -1,16 +1,33 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { tick } from 'svelte'
 import { resetCommandCenterState } from '../../stores/command-center-store.svelte'
+import type { SavedLayoutSummary } from '../../../../shared/ipc-contract'
 
 describe('CommandCenter', () => {
   beforeEach(() => {
     vi.resetModules()
     document.body.innerHTML = ''
     resetCommandCenterState()
+
+    // Default stub for window.api.layout to prevent unhandled errors
+    vi.stubGlobal('window', {
+      api: {
+        layout: {
+          list: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+          load: vi.fn().mockResolvedValue({
+            ok: true,
+            data: { name: 'test', layout_name: 'single', panes: [{}] }
+          }),
+          save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+          delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+        }
+      }
+    })
   })
 
   afterEach(() => {
     document.body.innerHTML = ''
+    vi.unstubAllGlobals()
   })
 
   // Helper to get fresh component after resetModules
@@ -217,6 +234,10 @@ describe('CommandCenter', () => {
         .fn()
         .mockResolvedValueOnce({ ok: true, data: { sessionId: 101 } })
         .mockResolvedValueOnce({ ok: true, data: { sessionId: 102 } })
+      const mockLayoutList = vi.fn().mockResolvedValue({ ok: true, data: [] })
+      const mockLayoutLoad = vi
+        .fn()
+        .mockResolvedValue({ ok: true, data: { name: 'test', layout_name: 'single', panes: [{}] } })
 
       vi.stubGlobal('window', {
         api: {
@@ -225,6 +246,12 @@ describe('CommandCenter', () => {
           pty: {
             spawn: mockPtySpawn,
             kill: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+          },
+          layout: {
+            list: mockLayoutList,
+            load: mockLayoutLoad,
+            save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+            delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
           }
         }
       })
@@ -287,12 +314,22 @@ describe('CommandCenter', () => {
         ok: false,
         error: { code: 'DETECT_ERROR', message: 'No shell found' }
       })
+      const mockLayoutList = vi.fn().mockResolvedValue({ ok: true, data: [] })
 
       vi.stubGlobal('window', {
         api: {
           shell: { detect: mockShellDetect },
           app: { getPaths: vi.fn() },
-          pty: { spawn: vi.fn(), kill: vi.fn() }
+          pty: { spawn: vi.fn(), kill: vi.fn() },
+          layout: {
+            list: mockLayoutList,
+            load: vi.fn().mockResolvedValue({
+              ok: true,
+              data: { name: 'test', layout_name: 'single', panes: [{}] }
+            }),
+            save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+            delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+          }
         }
       })
 
@@ -372,6 +409,168 @@ describe('CommandCenter', () => {
       // Should have requested workspace replace confirmation
       expect(workspaceReplaceState.visible).toBe(true)
       expect(workspaceReplaceState.sessionCount).toBe(1)
+    })
+  })
+
+  describe('layout preview', () => {
+    it('renders LayoutPreview component when open', async () => {
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter } = await import('../../stores/command-center-store.svelte')
+
+      openCommandCenter()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+
+      const preview = target.querySelector('.layout-preview')
+      expect(preview).not.toBeNull()
+    })
+
+    it('shows correct preview for selected preset', async () => {
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter } = await import('../../stores/command-center-store.svelte')
+
+      openCommandCenter()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+      await tick()
+
+      // Preset 1 (single) is selected by default
+      const previewGrid = target.querySelector('.preview-grid--1')
+      expect(previewGrid).not.toBeNull()
+    })
+
+    it('does not call layout.load or pty.spawn for selection preview', async () => {
+      const mockLayoutList = vi.fn().mockResolvedValue({ ok: true, data: [] })
+      const mockLayoutLoad = vi.fn().mockResolvedValue({
+        ok: true,
+        data: { name: 'test', layout_name: 'single', panes: [{}] }
+      })
+      const mockPtySpawn = vi.fn().mockResolvedValue({ ok: true, data: { sessionId: 1 } })
+
+      vi.stubGlobal('window', {
+        api: {
+          layout: {
+            list: mockLayoutList,
+            load: mockLayoutLoad,
+            save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+            delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+          },
+          pty: {
+            spawn: mockPtySpawn,
+            kill: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+          },
+          shell: { detect: vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] }) },
+          app: {
+            getPaths: vi
+              .fn()
+              .mockResolvedValue({ ok: true, data: { home: '/', userData: '', logsDir: '' } })
+          }
+        }
+      })
+
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter } = await import('../../stores/command-center-store.svelte')
+
+      openCommandCenter()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+      await tick()
+
+      // Select a different preset (just selection, not submit)
+      const container = target.querySelector('.preset-launcher')
+      ;(container as HTMLElement).focus()
+
+      const keydownEvent = new KeyboardEvent('keydown', { key: '3', bubbles: true })
+      container?.dispatchEvent(keydownEvent)
+
+      await tick()
+
+      // layout:load and pty:spawn should NOT be called for selection preview
+      expect(mockLayoutLoad).not.toHaveBeenCalled()
+      expect(mockPtySpawn).not.toHaveBeenCalled()
+
+      vi.unstubAllGlobals()
+    })
+
+    it('shows correct preview for saved layouts when selected', async () => {
+      const mockLayouts: SavedLayoutSummary[] = [
+        { name: 'dev-workspace', layout_name: 'grid' },
+        { name: 'personal', layout_name: 'single' }
+      ]
+
+      const mockLayoutList = vi.fn().mockResolvedValue({ ok: true, data: mockLayouts })
+
+      vi.stubGlobal('window', {
+        api: {
+          layout: {
+            list: mockLayoutList,
+            load: vi.fn().mockResolvedValue({
+              ok: true,
+              data: { name: 'test', layout_name: 'single', panes: [{}] }
+            }),
+            save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+            delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+          },
+          shell: { detect: vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] }) },
+          app: {
+            getPaths: vi
+              .fn()
+              .mockResolvedValue({ ok: true, data: { home: '/', userData: '', logsDir: '' } })
+          },
+          pty: {
+            spawn: vi.fn().mockResolvedValue({ ok: true, data: { sessionId: 1 } }),
+            kill: vi.fn()
+          }
+        }
+      })
+
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter } = await import('../../stores/command-center-store.svelte')
+
+      openCommandCenter()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+      await tick()
+
+      // Select first saved layout (grid) - first item is already selected by default
+      // so we need to click the second one to select it (which triggers onSelect, not onSubmit)
+      const items = target.querySelectorAll('.saved-layout-item')
+      expect(items.length).toBe(2)
+
+      // Click second item to select it (first is already selected)
+      ;(items[1] as HTMLElement).click()
+
+      await tick()
+
+      // Preview should update to show single layout
+      const previewCells = target.querySelectorAll('.preview-cell')
+      expect(previewCells.length).toBe(1)
+
+      vi.unstubAllGlobals()
     })
   })
 })

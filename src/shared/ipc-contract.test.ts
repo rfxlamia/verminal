@@ -1,5 +1,12 @@
 import { describe, it, expectTypeOf } from 'vitest'
-import type { Result, IpcContract } from './ipc-contract'
+import type {
+  Result,
+  IpcContract,
+  SavedLayoutData,
+  SavedPaneData,
+  LayoutName,
+  SavedLayoutSummary
+} from './ipc-contract'
 
 describe('Result<T>', () => {
   it('allows ok branch with data', () => {
@@ -10,6 +17,98 @@ describe('Result<T>', () => {
   it('allows error branch with code and message', () => {
     const r: Result<string> = { ok: false, error: { code: 'ERR', message: 'fail' } }
     expectTypeOf(r).toMatchTypeOf<Result<string>>()
+  })
+})
+
+describe('LayoutName', () => {
+  it('allows valid layout names', () => {
+    const single: LayoutName = 'single'
+    const horizontal: LayoutName = 'horizontal'
+    const mixed: LayoutName = 'mixed'
+    const grid: LayoutName = 'grid'
+
+    expectTypeOf(single).toMatchTypeOf<LayoutName>()
+    expectTypeOf(horizontal).toMatchTypeOf<LayoutName>()
+    expectTypeOf(mixed).toMatchTypeOf<LayoutName>()
+    expectTypeOf(grid).toMatchTypeOf<LayoutName>()
+  })
+})
+
+describe('SavedLayoutSummary', () => {
+  it('requires name and layout_name', () => {
+    const summary: SavedLayoutSummary = {
+      name: 'dev-workspace',
+      layout_name: 'horizontal'
+    }
+    expectTypeOf(summary).toMatchTypeOf<SavedLayoutSummary>()
+  })
+
+  it('allows all valid layout_name values', () => {
+    const single: SavedLayoutSummary = { name: 'single-ws', layout_name: 'single' }
+    const horizontal: SavedLayoutSummary = { name: 'horizontal-ws', layout_name: 'horizontal' }
+    const mixed: SavedLayoutSummary = { name: 'mixed-ws', layout_name: 'mixed' }
+    const grid: SavedLayoutSummary = { name: 'grid-ws', layout_name: 'grid' }
+
+    expectTypeOf(single).toMatchTypeOf<SavedLayoutSummary>()
+    expectTypeOf(horizontal).toMatchTypeOf<SavedLayoutSummary>()
+    expectTypeOf(mixed).toMatchTypeOf<SavedLayoutSummary>()
+    expectTypeOf(grid).toMatchTypeOf<SavedLayoutSummary>()
+  })
+})
+
+describe('SavedPaneData', () => {
+  it('allows pane with all optional fields', () => {
+    const pane: SavedPaneData = {
+      pane_id: 1,
+      name: 'Editor',
+      command: 'vim .',
+      color: 'blue'
+    }
+    expectTypeOf(pane).toMatchTypeOf<SavedPaneData>()
+  })
+
+  it('allows pane with minimal fields', () => {
+    const pane: SavedPaneData = {}
+    expectTypeOf(pane).toMatchTypeOf<SavedPaneData>()
+  })
+
+  it('allows pane with partial fields', () => {
+    const pane: SavedPaneData = { pane_id: 1, name: 'Terminal' }
+    expectTypeOf(pane).toMatchTypeOf<SavedPaneData>()
+  })
+})
+
+describe('SavedLayoutData', () => {
+  it('requires name, layout_name, and panes', () => {
+    const layout: SavedLayoutData = {
+      name: 'dev-workspace',
+      layout_name: 'horizontal',
+      panes: [{ pane_id: 1, name: 'Editor' }]
+    }
+    expectTypeOf(layout).toMatchTypeOf<SavedLayoutData>()
+  })
+
+  it('allows empty panes array', () => {
+    const layout: SavedLayoutData = {
+      name: 'empty',
+      layout_name: 'single',
+      panes: []
+    }
+    expectTypeOf(layout).toMatchTypeOf<SavedLayoutData>()
+  })
+
+  it('allows multiple panes', () => {
+    const layout: SavedLayoutData = {
+      name: 'grid-workspace',
+      layout_name: 'grid',
+      panes: [
+        { pane_id: 1, name: 'Top Left' },
+        { pane_id: 2 },
+        { pane_id: 3, command: 'npm run dev' },
+        { pane_id: 4, name: 'Bottom Right', color: 'green' }
+      ]
+    }
+    expectTypeOf(layout).toMatchTypeOf<SavedLayoutData>()
   })
 })
 
@@ -50,9 +149,11 @@ describe('IpcContract', () => {
       (name: string, data: unknown) => Promise<Result<void>>
     >()
     expectTypeOf<IpcContract['layout']['load']>().toMatchTypeOf<
-      (name: string) => Promise<Result<unknown>>
+      (name: string) => Promise<Result<SavedLayoutData>>
     >()
-    expectTypeOf<IpcContract['layout']['list']>().toMatchTypeOf<() => Promise<Result<string[]>>>()
+    expectTypeOf<IpcContract['layout']['list']>().toMatchTypeOf<
+      () => Promise<Result<SavedLayoutSummary[]>>
+    >()
     expectTypeOf<IpcContract['layout']['delete']>().toMatchTypeOf<
       (name: string) => Promise<Result<void>>
     >()

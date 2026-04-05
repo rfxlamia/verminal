@@ -25,10 +25,22 @@
   /* Command Center Design Tokens */
   --cc-surface-primary: #1c1c1c;
   --cc-surface-secondary: #2c2c2c;
+  --cc-surface: #2c2c2c;
+  --cc-surface-hover: #3c3c3c;
+  --cc-surface-active: #3c3c3c;
   --cc-text-primary: #f7f7f7;
   --cc-text-muted: #888888;
   --cc-backdrop: rgba(0, 0, 0, 0.6);
   --cc-shadow: rgba(0, 0, 0, 0.4);
+  --cc-border: #444444;
+  --cc-border-hover: #555555;
+  --cc-focus: #4a9eff;
+  --cc-accent: #4a9eff;
+  --cc-icon-bg: #555555;
+  --cc-preview-bg: #3c3c3c;
+  --cc-error-text: #ff6b6b;
+  --cc-error-bg: rgba(255, 107, 107, 0.1);
+  --cc-error-border: rgba(255, 107, 107, 0.3);
 }
 
 :root {

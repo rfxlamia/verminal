@@ -321,7 +321,7 @@ describe('PresetLauncher', () => {
   })
 
   describe('layout preview', () => {
-    it('shows 2 preview cells when selectedPreset is 2', async () => {
+    it('does NOT render layout-preview in PresetLauncher (preview is now in CommandCenter)', async () => {
       const PresetLauncher = await getPresetLauncher()
 
       const target = document.createElement('div')
@@ -344,11 +344,11 @@ describe('PresetLauncher', () => {
 
       await tick()
 
-      const previewCells = target.querySelectorAll('.preview-cell')
-      expect(previewCells.length).toBe(2)
+      const preview = target.querySelector('.layout-preview')
+      expect(preview).toBeNull()
     })
 
-    it('shows 4 preview cells when selectedPreset is 4', async () => {
+    it('does NOT render preview cells in PresetLauncher', async () => {
       const PresetLauncher = await getPresetLauncher()
 
       const target = document.createElement('div')
@@ -372,7 +372,7 @@ describe('PresetLauncher', () => {
       await tick()
 
       const previewCells = target.querySelectorAll('.preview-cell')
-      expect(previewCells.length).toBe(4)
+      expect(previewCells.length).toBe(0)
     })
   })
 
