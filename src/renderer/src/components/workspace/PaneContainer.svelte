@@ -1,7 +1,7 @@
 <script lang="ts">
   import TerminalView from './TerminalView.svelte'
   import PaneHeader, { type PaneHeaderExports } from './PaneHeader.svelte'
-  import { workspaceUIState, setFocusedPaneId } from '../../stores/workspace-ui-store.svelte'
+  import { workspaceUIState, setFocusedPaneId, enterFocusMode } from '../../stores/workspace-ui-store.svelte'
   import {
     layoutState,
     renamePaneInLayout,
@@ -34,10 +34,22 @@
   // Reference to PaneHeader for F2-triggered edit mode
   let paneHeaderRef: PaneHeaderExports | undefined = $state()
 
+  // Total pane count for single-pane guard (AC #4)
+  let totalPanes = $derived(layoutState.panes.length)
+
   // Handle edit request from PaneHeader (AC #2: click triggers edit request signal)
   function handleEditRequest(): void {
     // Parent orchestrates the edit - triggers inline edit mode
     paneHeaderRef?.startEditExternally()
+  }
+
+  // Handle double-click on header for Focus Mode activation (AC #1)
+  function handleHeaderDblClick(): void {
+    // AC #4: guard — harus ada lebih dari 1 pane
+    if (totalPanes <= 1) return
+    // AC #5: guard — jangan re-enter jika sudah focus mode
+    if (workspaceUIState.isFocusMode) return
+    enterFocusMode(paneId)
   }
 
   // Handle rename from PaneHeader edit mode
@@ -98,6 +110,7 @@
     onEditRequest={handleEditRequest}
     onRename={handleRename}
     onColorChange={handleColorChange}
+    onDblClick={handleHeaderDblClick}
     bind:this={paneHeaderRef}
   />
   <div class="pane-terminal-area">

@@ -602,4 +602,101 @@ describe('PaneContainer', () => {
       expect(colorLabel!.textContent).toBe('Purple')
     })
   })
+
+  describe('double-click focus mode', () => {
+    it('double-click on header triggers enterFocusMode with paneId', async () => {
+      const PaneContainer = await getPaneContainer()
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const { workspaceUIState, enterFocusMode } = await import('../../stores/workspace-ui-store.svelte')
+      const { layoutState } = await import('../../stores/layout-store.svelte')
+
+      // Setup multi-pane layout
+      layoutState.panes = [
+        { paneId: 1, sessionId: 101, name: 'Pane 1' },
+        { paneId: 2, sessionId: 102, name: 'Pane 2' }
+      ]
+
+      mount(PaneContainer, { target, props: { paneId: 1, sessionId: 101, resizeTick: 0 } })
+
+      // Reset focus mode
+      workspaceUIState.isFocusMode = false
+      workspaceUIState.focusedPaneId = null
+
+      // Simulate double-click on header
+      const header = target.querySelector('header.pane-header')
+      expect(header).not.toBeNull()
+
+      const dblClickEvent = new MouseEvent('dblclick', { bubbles: true })
+      header!.dispatchEvent(dblClickEvent)
+
+      // Verify focus mode activated
+      expect(workspaceUIState.isFocusMode).toBe(true)
+      expect(workspaceUIState.focusedPaneId).toBe(1)
+    })
+
+    it('does not enter focus mode if only 1 pane in layout (AC #4)', async () => {
+      const PaneContainer = await getPaneContainer()
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const { workspaceUIState } = await import('../../stores/workspace-ui-store.svelte')
+      const { layoutState } = await import('../../stores/layout-store.svelte')
+
+      // Setup single-pane layout
+      layoutState.panes = [{ paneId: 1, sessionId: 101, name: 'Pane 1' }]
+
+      mount(PaneContainer, { target, props: { paneId: 1, sessionId: 101, resizeTick: 0 } })
+
+      // Reset focus mode
+      workspaceUIState.isFocusMode = false
+
+      // Simulate double-click on header
+      const header = target.querySelector('header.pane-header')
+      expect(header).not.toBeNull()
+
+      const dblClickEvent = new MouseEvent('dblclick', { bubbles: true })
+      header!.dispatchEvent(dblClickEvent)
+
+      // Verify focus mode NOT activated (single-pane guard)
+      expect(workspaceUIState.isFocusMode).toBe(false)
+    })
+
+    it('does not re-enter focus mode if already active (AC #5)', async () => {
+      const PaneContainer = await getPaneContainer()
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const { workspaceUIState, enterFocusMode } = await import('../../stores/workspace-ui-store.svelte')
+      const { layoutState } = await import('../../stores/layout-store.svelte')
+
+      // Setup multi-pane layout
+      layoutState.panes = [
+        { paneId: 1, sessionId: 101, name: 'Pane 1' },
+        { paneId: 2, sessionId: 102, name: 'Pane 2' }
+      ]
+
+      mount(PaneContainer, { target, props: { paneId: 1, sessionId: 101, resizeTick: 0 } })
+
+      // Enter focus mode first
+      enterFocusMode(1)
+      expect(workspaceUIState.isFocusMode).toBe(true)
+      expect(workspaceUIState.focusedPaneId).toBe(1)
+
+      // Try to double-click again
+      const header = target.querySelector('header.pane-header')
+      expect(header).not.toBeNull()
+
+      const dblClickEvent = new MouseEvent('dblclick', { bubbles: true })
+      header!.dispatchEvent(dblClickEvent)
+
+      // Should still be focused on pane 1 (re-entry guard)
+      expect(workspaceUIState.isFocusMode).toBe(true)
+      expect(workspaceUIState.focusedPaneId).toBe(1)
+    })
+  })
 })
