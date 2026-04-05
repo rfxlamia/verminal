@@ -58,7 +58,7 @@ export interface IpcContract {
     onExit: (sessionId: number, cb: (code: number) => void) => UnsubscribeFn
   }
   layout: {
-    save: (name: string, data: unknown) => Promise<Result<void>>
+    save: (name: string, data: SavedLayoutData) => Promise<Result<void>>
     load: (name: string) => Promise<Result<SavedLayoutData>>
     list: () => Promise<Result<SavedLayoutSummary[]>>
     delete: (name: string) => Promise<Result<void>>

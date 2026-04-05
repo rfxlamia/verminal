@@ -251,7 +251,7 @@ export async function saveLayout(name: string, data: SavedLayoutData): Promise<R
 
   const content = stringify(tomlObj)
   const filePath = path.join(layoutsDir, `${name}.toml`)
-  atomicWrite(filePath, content)
+  await atomicWrite(filePath, content)
 
   return { ok: true, data: undefined }
 }
