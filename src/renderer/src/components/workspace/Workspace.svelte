@@ -38,6 +38,18 @@
   // Debounce window (50ms per UX-DR25 architecture spec)
   const RESIZE_DEBOUNCE_MS = 50
 
+  // Trigger resize when focus mode changes (after 200ms animation completes)
+  $effect(() => {
+    // Track focus mode changes - runs when isFocusMode changes
+    void isFocusMode
+    // Trigger resize after animation completes (200ms)
+    setTimeout(() => {
+      if (!isDestroyed) {
+        resizeTick++
+      }
+    }, 200)
+  })
+
   onMount(() => {
     // Set up ResizeObserver at workspace container level
     resizeObserver = new ResizeObserver((entries) => {

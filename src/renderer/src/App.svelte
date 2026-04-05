@@ -72,7 +72,9 @@
       const totalPanes = layoutState.panes.length
       // AC #4 guard: must have more than 1 pane
       // AC #5 guard: handled internally by enterFocusMode
-      if (paneId !== null && totalPanes > 1) {
+      // Validate paneId exists in current panes array
+      const paneExists = layoutState.panes.some((p) => p.paneId === paneId)
+      if (paneId !== null && totalPanes > 1 && paneExists) {
         enterFocusMode(paneId)
       }
     }

@@ -53,6 +53,9 @@
     if (totalPanes <= 1) return
     // AC #5: guard — jangan re-enter jika sudah focus mode
     if (workspaceUIState.isFocusMode) return
+    // Validate this paneId still exists in current layout
+    const paneExists = layoutState.panes.some((p) => p.paneId === paneId)
+    if (!paneExists) return
     enterFocusMode(paneId)
   }
 
