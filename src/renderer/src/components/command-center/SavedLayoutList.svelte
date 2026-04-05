@@ -67,9 +67,9 @@
           onSelect(layouts[layouts.length - 1].name)
         }
       }
-    } else if (event.key === 'Enter' && selectedLayout) {
+    } else if (event.key === 'Enter' && validSelectedLayout) {
       event.preventDefault()
-      onSubmit(selectedLayout)
+      onSubmit(validSelectedLayout)
     }
   }
 

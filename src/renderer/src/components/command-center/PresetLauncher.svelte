@@ -22,6 +22,7 @@
     onSelect,
     onSubmit,
     onNavigateToNextSection
+    // Note: onNavigateToPrevSection tidak digunakan di PresetLauncher (wrap internal)
   }: Props = $props()
 
   let containerEl: HTMLDivElement | null = $state(null)

@@ -64,23 +64,31 @@
   // Cross-section navigation handlers (AC #1)
   function handleNavigateFromPreset(direction: 'next' | 'prev'): void {
     if (direction === 'next') {
-      if (savedLayouts.length > 0) {
+      if (savedLayouts.length > 0 && savedLayouts[0]) {
         // Pindah ke saved layouts section
         activeSelectionSource = 'saved'
         if (!selectedLayout || !savedLayouts.find((l) => l.name === selectedLayout)) {
           selectedLayout = savedLayouts[0].name
         }
         queueMicrotask(() => {
-          const savedListEl = backdropEl?.querySelector<HTMLElement>('.saved-layout-list')
-          savedListEl?.focus()
+          try {
+            const savedListEl = backdropEl?.querySelector<HTMLElement>('.saved-layout-list')
+            savedListEl?.focus()
+          } catch {
+            // Focus operation failed, ignore
+          }
         })
       } else {
         // Tidak ada saved layouts → wrap ke preset 1
         selectedPreset = 1
         activeSelectionSource = 'preset'
         queueMicrotask(() => {
-          const firstBtn = backdropEl?.querySelector<HTMLElement>('.preset-btn')
-          firstBtn?.focus()
+          try {
+            const firstBtn = backdropEl?.querySelector<HTMLElement>('.preset-btn')
+            firstBtn?.focus()
+          } catch {
+            // Focus operation failed, ignore
+          }
         })
       }
     }
@@ -94,17 +102,27 @@
       selectedPreset = 4
       activeSelectionSource = 'preset'
       queueMicrotask(() => {
-        // Focus pada tombol preset 4 (index 3)
-        const presetBtns = backdropEl?.querySelectorAll<HTMLElement>('.preset-btn')
-        presetBtns?.[3]?.focus()
+        try {
+          // Focus pada tombol preset 4 (index 3)
+          const presetBtns = backdropEl?.querySelectorAll<HTMLElement>('.preset-btn')
+          if (presetBtns && presetBtns.length >= 4) {
+            presetBtns[3]?.focus()
+          }
+        } catch {
+          // Focus operation failed, ignore
+        }
       })
     } else if (direction === 'next') {
       // Wrap dari saved layout terakhir → kembali ke preset 1
       selectedPreset = 1
       activeSelectionSource = 'preset'
       queueMicrotask(() => {
-        const firstBtn = backdropEl?.querySelector<HTMLElement>('.preset-btn')
-        firstBtn?.focus()
+        try {
+          const firstBtn = backdropEl?.querySelector<HTMLElement>('.preset-btn')
+          firstBtn?.focus()
+        } catch {
+          // Focus operation failed, ignore
+        }
       })
     }
   }
@@ -134,7 +152,7 @@
         return
       }
       closeAndRestoreFocus()
-    } else if (event.key === '?' || event.key === 'F1') {
+    } else if ((event.key === '?' || event.key === 'F1') && !event.repeat) {
       event.preventDefault()
       // Toggle cheatsheet visibility
       isCheatsheetOpen = !isCheatsheetOpen

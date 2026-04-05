@@ -11,9 +11,24 @@
   }
 
   let { onClose }: Props = $props()
+
+  let containerEl: HTMLDivElement | null = $state(null)
+
+  function handleClose(): void {
+    // Restore focus to parent before closing
+    const parentBtn =
+      containerEl?.parentElement?.querySelector<HTMLElement>('.cheatsheet-toggle-btn')
+    parentBtn?.focus()
+    onClose()
+  }
 </script>
 
-<div class="shortcut-cheatsheet" role="region" aria-label="Keyboard shortcuts">
+<div
+  bind:this={containerEl}
+  class="shortcut-cheatsheet"
+  role="region"
+  aria-label="Keyboard shortcuts"
+>
   <h3 class="cheatsheet-title">Keyboard Shortcuts</h3>
   <table class="cheatsheet-table" aria-label="Available shortcuts">
     <tbody>
@@ -47,7 +62,7 @@
       </tr>
     </tbody>
   </table>
-  <button class="cheatsheet-close-btn" onclick={onClose} aria-label="Close keyboard shortcuts">
+  <button class="cheatsheet-close-btn" onclick={handleClose} aria-label="Close keyboard shortcuts">
     Close shortcuts
   </button>
 </div>
