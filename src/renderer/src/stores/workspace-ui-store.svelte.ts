@@ -8,12 +8,19 @@
 
 export interface WorkspaceUIState {
   focusedPaneId: number | null
+  isFocusMode: boolean // NEW: true saat Focus Mode aktif
 }
 
 export const workspaceUIState = $state<WorkspaceUIState>({
-  focusedPaneId: null
+  focusedPaneId: null,
+  isFocusMode: false // default: tidak ada Focus Mode
 })
 
 export function setFocusedPaneId(paneId: number | null): void {
   workspaceUIState.focusedPaneId = paneId
+}
+
+// NEW function:
+export function setFocusMode(active: boolean): void {
+  workspaceUIState.isFocusMode = active
 }

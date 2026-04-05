@@ -51,4 +51,24 @@ describe('workspace-ui-store', () => {
       expect(stateRef.focusedPaneId).toBe(42)
     })
   })
+
+  describe('WorkspaceUIState - focus mode', () => {
+    it('initializes with isFocusMode: false', async () => {
+      const { workspaceUIState } = await import('./workspace-ui-store.svelte')
+      expect(workspaceUIState.isFocusMode).toBe(false)
+    })
+
+    it('setFocusMode(true) sets isFocusMode to true', async () => {
+      const { workspaceUIState, setFocusMode } = await import('./workspace-ui-store.svelte')
+      setFocusMode(true)
+      expect(workspaceUIState.isFocusMode).toBe(true)
+    })
+
+    it('setFocusMode(false) sets isFocusMode to false', async () => {
+      const { workspaceUIState, setFocusMode } = await import('./workspace-ui-store.svelte')
+      setFocusMode(true)
+      setFocusMode(false)
+      expect(workspaceUIState.isFocusMode).toBe(false)
+    })
+  })
 })
