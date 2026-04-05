@@ -146,18 +146,12 @@
     }
   }
 
-  /* Non-focused panes: dimmed (Peripheral Dimming akan di Story 6.2) */
-  /* Note: opacity dimming ke 10% adalah scope Story 6.2 -- jangan implement di sini */
+  /* Non-focused panes: dimmed (Peripheral Dimming - Story 6.2) */
+  /* Background panes fade to 10% opacity while remaining visible (AC #2, #3) */
   .workspace-container.focus-mode-active .pane-wrapper.is-dimmed {
-    /* pointer-events none agar pane background tidak interactable saat focus mode */
-    /* Tapi ini bisa dibahas kembali di Story 6.3 untuk pulse notification */
-    visibility: visible; /* masih visible, tapi akan dimmed di Story 6.2 */
-  }
-
-  /* Peripheral Dimming: background panes fade to 10% opacity (AC #2) */
-  .workspace-container.focus-mode-active .pane-wrapper.is-dimmed {
-    opacity: 0.1;
-    transition: opacity 200ms ease-out;
+    visibility: visible; /* AC #3: panes remain visible, not hidden */
+    opacity: 0.1; /* AC #2: 10% opacity for background panes */
+    transition: opacity 200ms ease-out; /* AC #4: smooth transition */
   }
 
   /* Focused pane stays at full opacity (AC #1) */
