@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import type { SavedLayoutData } from '../shared/ipc-contract'
 
 // Custom APIs for renderer matching IpcContract
 const api = {
@@ -32,7 +33,7 @@ const api = {
     }
   },
   layout: {
-    save: (name: string, data: unknown) => ipcRenderer.invoke('layout:save', name, data),
+    save: (name: string, data: SavedLayoutData) => ipcRenderer.invoke('layout:save', name, data),
     load: (name: string) => ipcRenderer.invoke('layout:load', name),
     list: () => ipcRenderer.invoke('layout:list'),
     delete: (name: string) => ipcRenderer.invoke('layout:delete', name)

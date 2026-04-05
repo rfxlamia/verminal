@@ -223,10 +223,7 @@ export function loadLayout(name: string): Result<SavedLayoutData> {
   }
 }
 
-export async function saveLayout(
-  name: string,
-  data: SavedLayoutData
-): Promise<Result<void>> {
+export async function saveLayout(name: string, data: SavedLayoutData): Promise<Result<void>> {
   if (!isValidLayoutName(name)) {
     return {
       ok: false,

@@ -490,10 +490,9 @@ color = "teal"
 
       await saveLayout('dev-workspace', data)
 
-      expect(fs.promises.mkdir).toHaveBeenCalledWith(
-        '/home/test/.verminal/layouts',
-        { recursive: true }
-      )
+      expect(fs.promises.mkdir).toHaveBeenCalledWith('/home/test/.verminal/layouts', {
+        recursive: true
+      })
       expect(atomicWriteMock).toHaveBeenCalled()
     })
   })

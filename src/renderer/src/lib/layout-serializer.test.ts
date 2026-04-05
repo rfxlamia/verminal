@@ -81,7 +81,16 @@ describe('serializeLayoutForSave', () => {
   })
 
   it('includes all valid color options', () => {
-    const validColors = ['gray', 'red', 'orange', 'amber', 'green', 'teal', 'blue', 'purple'] as const
+    const validColors = [
+      'gray',
+      'red',
+      'orange',
+      'amber',
+      'green',
+      'teal',
+      'blue',
+      'purple'
+    ] as const
     validColors.forEach((color, index) => {
       const state: LayoutState = {
         layoutName: 'single',
