@@ -24,3 +24,14 @@ export function setFocusedPaneId(paneId: number | null): void {
 export function setFocusMode(active: boolean): void {
   workspaceUIState.isFocusMode = active
 }
+
+/**
+ * Activate Focus Mode on the given pane.
+ * Guard: no-op if paneId is null or Focus Mode already active (AC #4, #5).
+ */
+export function enterFocusMode(paneId: number | null): void {
+  if (paneId === null) return
+  if (workspaceUIState.isFocusMode) return // already in focus mode
+  workspaceUIState.focusedPaneId = paneId
+  workspaceUIState.isFocusMode = true
+}

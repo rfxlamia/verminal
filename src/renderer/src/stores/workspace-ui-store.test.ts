@@ -71,4 +71,27 @@ describe('workspace-ui-store', () => {
       expect(workspaceUIState.isFocusMode).toBe(false)
     })
   })
+
+  describe('enterFocusMode', () => {
+    it('sets isFocusMode: true and focusedPaneId to the given paneId', async () => {
+      const { workspaceUIState, enterFocusMode } = await import('./workspace-ui-store.svelte')
+      enterFocusMode(3)
+      expect(workspaceUIState.isFocusMode).toBe(true)
+      expect(workspaceUIState.focusedPaneId).toBe(3)
+    })
+
+    it('does nothing if paneId is null (guard)', async () => {
+      const { workspaceUIState, enterFocusMode } = await import('./workspace-ui-store.svelte')
+      enterFocusMode(null)
+      expect(workspaceUIState.isFocusMode).toBe(false)
+    })
+
+    it('does nothing if already in focus mode (re-entry guard, AC #5)', async () => {
+      const { workspaceUIState, enterFocusMode } = await import('./workspace-ui-store.svelte')
+      enterFocusMode(1)
+      const before = { ...workspaceUIState }
+      enterFocusMode(2) // different pane while already focused
+      expect(workspaceUIState.focusedPaneId).toBe(before.focusedPaneId)
+    })
+  })
 })
