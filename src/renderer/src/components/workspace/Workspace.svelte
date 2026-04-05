@@ -153,4 +153,23 @@
     /* Tapi ini bisa dibahas kembali di Story 6.3 untuk pulse notification */
     visibility: visible; /* masih visible, tapi akan dimmed di Story 6.2 */
   }
+
+  /* Peripheral Dimming: background panes fade to 10% opacity (AC #2) */
+  .workspace-container.focus-mode-active .pane-wrapper.is-dimmed {
+    opacity: 0.1;
+    transition: opacity 200ms ease-out;
+  }
+
+  /* Focused pane stays at full opacity (AC #1) */
+  .workspace-container.focus-mode-active .pane-wrapper.is-focus-target {
+    opacity: 1;
+    z-index: 10;
+  }
+
+  /* Reduced motion: skip transition (AC #5) */
+  @media (prefers-reduced-motion: reduce) {
+    .workspace-container.focus-mode-active .pane-wrapper.is-dimmed {
+      transition: none;
+    }
+  }
 </style>
