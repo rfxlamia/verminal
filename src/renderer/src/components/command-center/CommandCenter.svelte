@@ -13,7 +13,9 @@
     initSinglePaneLayout,
     initHorizontalSplitLayout,
     initMixedSplitLayout,
-    initGridLayout
+    initGridLayout,
+    renamePaneInLayout,
+    recolorPaneInLayout
   } from '../../stores/layout-store.svelte'
   import {
     requestWorkspaceReplace,
@@ -481,6 +483,19 @@
           // Fallback to single pane if unknown layout
           initSinglePaneLayout(newSessionIds[0])
       }
+
+      // Step 9b: Restore pane identity (name and color) from saved layout
+      const newPanes = layoutState.panes
+      savedLayout.panes.forEach((savedPane, index) => {
+        // Match by pane_id if available, fallback to array index for legacy layouts
+        const pane =
+          savedPane.pane_id !== undefined
+            ? newPanes.find((p) => p.paneId === savedPane.pane_id)
+            : newPanes[index]
+        if (!pane) return
+        if (savedPane.name) renamePaneInLayout(pane.paneId, savedPane.name)
+        if (savedPane.color) recolorPaneInLayout(pane.paneId, savedPane.color)
+      })
 
       // Step 10: Kill old sessions fire-and-forget
       for (const sessionId of oldSessionIds) {

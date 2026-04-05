@@ -6,10 +6,15 @@
  * Defines pane state and layout configuration
  */
 
+import type { PaneColor } from '../../../shared/ipc-contract'
+
+export type { PaneColor }
+
 export interface PaneState {
   paneId: number
   sessionId: number
   name: string
+  color?: PaneColor
 }
 
 export interface LayoutState {
@@ -229,4 +234,43 @@ export function resetLayoutState(): void {
   layoutState.panes = []
   layoutState.layoutName = ''
   _layoutInitLock = false
+}
+
+/**
+ * Renames a pane by its paneId.
+ * No-op if pane not found or newName is empty/whitespace.
+ */
+export function renamePaneInLayout(paneId: number, newName: string): void {
+  const pane = layoutState.panes.find((p) => p.paneId === paneId)
+  if (pane && newName.trim()) {
+    pane.name = newName.trim()
+  }
+}
+
+/**
+ * Changes the color of a pane by its paneId.
+ * No-op if pane not found.
+ * Setting color to undefined removes the color tag.
+ */
+export function recolorPaneInLayout(paneId: number, color: PaneColor | undefined): void {
+  // Runtime validation: only allow valid PaneColor values or undefined
+  if (color !== undefined) {
+    const validColors: PaneColor[] = [
+      'gray',
+      'red',
+      'orange',
+      'amber',
+      'green',
+      'teal',
+      'blue',
+      'purple'
+    ]
+    if (!validColors.includes(color)) {
+      return
+    }
+  }
+  const pane = layoutState.panes.find((p) => p.paneId === paneId)
+  if (pane) {
+    pane.color = color
+  }
 }

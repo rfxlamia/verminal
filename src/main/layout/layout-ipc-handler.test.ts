@@ -7,7 +7,8 @@ import type { Result, SavedLayoutData, SavedLayoutSummary } from '../../shared/i
 // Mock layout-manager
 vi.mock('./layout-manager', () => ({
   listLayouts: vi.fn(),
-  loadLayout: vi.fn()
+  loadLayout: vi.fn(),
+  saveLayout: vi.fn()
 }))
 
 // Mock electron's ipcMain
@@ -100,6 +101,45 @@ describe('layout-ipc-handler', () => {
 
       // Verify loadLayout was called with just the name (not an object)
       expect(layoutManager.loadLayout).toHaveBeenCalledWith('test-layout')
+    })
+
+    it('registers layout:save handler', () => {
+      registerLayoutIpcHandlers()
+
+      expect(ipcMain.handle).toHaveBeenCalledWith('layout:save', expect.any(Function))
+    })
+
+    it('layout:save handler calls saveLayout with name and data arguments', async () => {
+      const mockResult: Result<void> = { ok: true, data: undefined }
+      vi.mocked(layoutManager.saveLayout).mockResolvedValue(mockResult)
+
+      registerLayoutIpcHandlers()
+
+      // Get the registered handler
+      type SaveHandler = (
+        event: IpcMainInvokeEvent,
+        name: string,
+        data: SavedLayoutData
+      ) => Promise<Result<void>>
+      const saveHandler = vi
+        .mocked(ipcMain.handle)
+        .mock.calls.find((call) => call[0] === 'layout:save')?.[1] as SaveHandler
+
+      expect(saveHandler).toBeDefined()
+
+      const mockEvent = {} as IpcMainInvokeEvent
+      const mockData: SavedLayoutData = {
+        name: 'dev-workspace',
+        layout_name: 'grid',
+        panes: [
+          { pane_id: 1, name: 'Server', color: 'blue' },
+          { pane_id: 2, name: 'Tests', color: 'green' }
+        ]
+      }
+      const result = await saveHandler(mockEvent, 'dev-workspace', mockData)
+
+      expect(layoutManager.saveLayout).toHaveBeenCalledWith('dev-workspace', mockData)
+      expect(result).toEqual(mockResult)
     })
   })
 })

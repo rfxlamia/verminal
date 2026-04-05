@@ -1,13 +1,15 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import { parse } from 'smol-toml'
+import { parse, stringify } from 'smol-toml'
 import type {
   Result,
   SavedLayoutData,
   SavedLayoutSummary,
   LayoutName
 } from '../../shared/ipc-contract'
+import { isValidPaneColor } from '../../shared/ipc-contract'
 import { getConfigPath } from '../config-manager'
+import { atomicWrite } from '../fs/atomic-write'
 
 function getLayoutsDir(): string {
   return path.join(getConfigPath(), 'layouts')
@@ -91,7 +93,10 @@ function validateSavedLayoutData(data: unknown): SavedLayoutData {
       pane_id: paneObj.pane_id as number | undefined,
       name: typeof paneObj.name === 'string' ? paneObj.name : undefined,
       command: typeof paneObj.command === 'string' ? paneObj.command : undefined,
-      color: typeof paneObj.color === 'string' ? paneObj.color : undefined
+      color:
+        typeof paneObj.color === 'string' && isValidPaneColor(paneObj.color)
+          ? paneObj.color
+          : undefined
     }
   })
 
@@ -216,4 +221,37 @@ export function loadLayout(name: string): Result<SavedLayoutData> {
       }
     }
   }
+}
+
+export async function saveLayout(name: string, data: SavedLayoutData): Promise<Result<void>> {
+  if (!isValidLayoutName(name)) {
+    return {
+      ok: false,
+      error: { code: 'LAYOUT_INVALID_NAME', message: `Invalid layout name: "${name}"` }
+    }
+  }
+
+  const layoutsDir = getLayoutsDir()
+  await fs.promises.mkdir(layoutsDir, { recursive: true })
+
+  const panes = data.panes.map((pane) => {
+    const obj: Record<string, unknown> = {}
+    if (pane.pane_id !== undefined) obj.pane_id = pane.pane_id
+    if (pane.name) obj.name = pane.name
+    if (pane.color) obj.color = pane.color
+    if (pane.command) obj.command = pane.command
+    return obj
+  })
+
+  const tomlObj = {
+    name: data.name,
+    layout_name: data.layout_name,
+    panes
+  }
+
+  const content = stringify(tomlObj)
+  const filePath = path.join(layoutsDir, `${name}.toml`)
+  await atomicWrite(filePath, content)
+
+  return { ok: true, data: undefined }
 }

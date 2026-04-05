@@ -5,6 +5,8 @@
   import CommandCenter from './components/command-center/CommandCenter.svelte'
   import { layoutState } from './stores/layout-store.svelte'
   import { openCommandCenter } from './stores/command-center-store.svelte'
+  import { serializeLayoutForSave } from './lib/layout-serializer'
+  import type { SavedLayoutData } from '../shared/ipc-contract'
 
   // Local state for inline recoverable errors
   let startupError = $state('')
@@ -44,9 +46,40 @@
     isMounted = false
     unsubCommandCenter?.()
   })
+
+  function handleGlobalKeydown(event: KeyboardEvent): void {
+    // Ctrl+Shift+S → save current layout
+    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'S') {
+      event.preventDefault()
+      void saveCurrentLayout()
+    }
+  }
+
+  async function saveCurrentLayout(): Promise<void> {
+    // Guard: IPC bridge must be available
+    if (!window.api?.layout?.save) {
+      console.error('[App] Layout save API not available')
+      return
+    }
+
+    // Guard: layout must have a valid name
+    if (!layoutState.layoutName) {
+      console.error('[App] Cannot save layout: no active layout')
+      return
+    }
+
+    // Use layoutName as the save name (will be enhanced with custom naming in Epic 7)
+    const name = layoutState.layoutName
+    const data: SavedLayoutData = serializeLayoutForSave(name, layoutState)
+    const result = await window.api.layout.save(name, data)
+    if (!result.ok) {
+      console.error('[App] Save layout failed:', result.error.message)
+    }
+  }
 </script>
 
 <!-- App shell - contains error area and workspace -->
+<svelte:window onkeydown={handleGlobalKeydown} />
 <div class="app-shell">
   {#if startupError}
     <div class="startup-error" role="alert">
