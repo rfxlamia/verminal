@@ -418,7 +418,7 @@ color = "teal"
       const result = await saveLayout('../../../etc/passwd', data)
       expect(result.ok).toBe(false)
       if (!result.ok) {
-        expect(result.error.code).toBe('INVALID_LAYOUT_NAME')
+        expect(result.error.code).toBe('LAYOUT_INVALID_NAME')
       }
     })
 
@@ -431,7 +431,7 @@ color = "teal"
       const result = await saveLayout('layouts/test', data)
       expect(result.ok).toBe(false)
       if (!result.ok) {
-        expect(result.error.code).toBe('INVALID_LAYOUT_NAME')
+        expect(result.error.code).toBe('LAYOUT_INVALID_NAME')
       }
     })
 
@@ -444,7 +444,7 @@ color = "teal"
       const result = await saveLayout('.hidden', data)
       expect(result.ok).toBe(false)
       if (!result.ok) {
-        expect(result.error.code).toBe('INVALID_LAYOUT_NAME')
+        expect(result.error.code).toBe('LAYOUT_INVALID_NAME')
       }
     })
 
@@ -457,7 +457,7 @@ color = "teal"
       const result = await saveLayout('', data)
       expect(result.ok).toBe(false)
       if (!result.ok) {
-        expect(result.error.code).toBe('INVALID_LAYOUT_NAME')
+        expect(result.error.code).toBe('LAYOUT_INVALID_NAME')
       }
     })
 
@@ -470,7 +470,7 @@ color = "teal"
       const result = await saveLayout('   ', data)
       expect(result.ok).toBe(false)
       if (!result.ok) {
-        expect(result.error.code).toBe('INVALID_LAYOUT_NAME')
+        expect(result.error.code).toBe('LAYOUT_INVALID_NAME')
       }
     })
 

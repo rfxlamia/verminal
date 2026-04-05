@@ -227,7 +227,7 @@ export async function saveLayout(name: string, data: SavedLayoutData): Promise<R
   if (!isValidLayoutName(name)) {
     return {
       ok: false,
-      error: { code: 'INVALID_LAYOUT_NAME', message: `Invalid layout name: "${name}"` }
+      error: { code: 'LAYOUT_INVALID_NAME', message: `Invalid layout name: "${name}"` }
     }
   }
 

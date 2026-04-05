@@ -406,12 +406,13 @@
       }
 
       // Step 9b: Restore pane identity (name and color) from saved layout
-      savedLayout.panes.forEach((savedPane) => {
+      const newPanes = layoutState.panes
+      savedLayout.panes.forEach((savedPane, index) => {
         // Match by pane_id if available, fallback to array index for legacy layouts
         const pane =
           savedPane.pane_id !== undefined
-            ? layoutState.panes.find((p) => p.paneId === savedPane.pane_id)
-            : undefined
+            ? newPanes.find((p) => p.paneId === savedPane.pane_id)
+            : newPanes[index]
         if (!pane) return
         if (savedPane.name) renamePaneInLayout(pane.paneId, savedPane.name)
         if (savedPane.color) recolorPaneInLayout(pane.paneId, savedPane.color)
