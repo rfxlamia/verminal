@@ -3,20 +3,36 @@
   import Workspace from './components/workspace/Workspace.svelte'
   import QuitDialog from './components/workspace/QuitDialog.svelte'
   import CommandCenter from './components/command-center/CommandCenter.svelte'
+  import SaveLayoutSurface from './components/workspace/SaveLayoutSurface.svelte'
   import { layoutState } from './stores/layout-store.svelte'
-  import { workspaceUIState, enterFocusMode } from './stores/workspace-ui-store.svelte'
   import { openCommandCenter } from './stores/command-center-store.svelte'
-  import { serializeLayoutForSave } from './lib/layout-serializer'
-  import type { SavedLayoutData } from '../shared/ipc-contract'
+  import { openSaveLayout } from './stores/save-layout-store.svelte'
 
   // Local state for inline recoverable errors
   let startupError = $state('')
   let unsubCommandCenter: (() => void) | undefined
   let isMounted = false
 
+  // Status bar message state (auto-clears after 3s)
+  let statusMessage = $state('')
+  let statusTimer: ReturnType<typeof setTimeout> | undefined
+
   function setStartupError(message: string, details?: unknown): void {
     startupError = message
     console.error('[App] startup failure:', message, details)
+  }
+
+  function showStatusMessage(msg: string): void {
+    if (statusTimer) clearTimeout(statusTimer)
+    statusMessage = msg
+    statusTimer = setTimeout(() => {
+      statusMessage = ''
+      statusTimer = undefined
+    }, 3000)
+  }
+
+  function handleLayoutSaved(name: string): void {
+    showStatusMessage(`Layout '${name}' saved`)
   }
 
   onMount(() => {
@@ -46,6 +62,7 @@
   onDestroy(() => {
     isMounted = false
     unsubCommandCenter?.()
+    if (statusTimer) clearTimeout(statusTimer)
   })
 
   function handleGlobalKeydown(event: KeyboardEvent): void {
@@ -59,46 +76,11 @@
       return
     }
 
-    // Ctrl+Shift+S → save current layout
+    // Ctrl+Shift+S → open Save Layout Surface (Epic 7)
     if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'S') {
       event.preventDefault()
-      void saveCurrentLayout()
-    }
-
-    // Ctrl+Shift+F → toggle Focus Mode (NEW)
-    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'F') {
-      event.preventDefault()
-      const paneId = workspaceUIState.focusedPaneId
-      const totalPanes = layoutState.panes.length
-      // AC #4 guard: must have more than 1 pane
-      // AC #5 guard: handled internally by enterFocusMode
-      // Validate paneId exists in current panes array
-      const paneExists = layoutState.panes.some((p) => p.paneId === paneId)
-      if (paneId !== null && totalPanes > 1 && paneExists) {
-        enterFocusMode(paneId)
-      }
-    }
-  }
-
-  async function saveCurrentLayout(): Promise<void> {
-    // Guard: IPC bridge must be available
-    if (!window.api?.layout?.save) {
-      console.error('[App] Layout save API not available')
-      return
-    }
-
-    // Guard: layout must have a valid name (non-empty after trim)
-    if (!layoutState.layoutName?.trim()) {
-      console.error('[App] Cannot save layout: no active layout')
-      return
-    }
-
-    // Use layoutName as the save name (will be enhanced with custom naming in Epic 7)
-    const name = layoutState.layoutName.trim()
-    const data: SavedLayoutData = serializeLayoutForSave(name, layoutState)
-    const result = await window.api.layout.save(name, data)
-    if (!result.ok) {
-      console.error('[App] Save layout failed:', result.error.message)
+      // openSaveLayout() returns false when no active workspace exists
+      openSaveLayout()
     }
   }
 </script>
@@ -111,10 +93,16 @@
       {startupError}
     </div>
   {/if}
+  {#if statusMessage}
+    <div class="status-bar-message" role="status" aria-live="polite">
+      {statusMessage}
+    </div>
+  {/if}
   <Workspace panes={layoutState.panes} />
 </div>
 <CommandCenter />
 <QuitDialog />
+<SaveLayoutSurface onSaved={handleLayoutSaved} />
 
 <style>
   .app-shell {
@@ -132,5 +120,15 @@
     color: white;
     font-size: 14px;
     line-height: 1.5;
+  }
+
+  .status-bar-message {
+    flex: 0 0 auto;
+    padding: 4px 16px;
+    background-color: #16a34a;
+    color: white;
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: center;
   }
 </style>

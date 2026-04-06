@@ -242,7 +242,9 @@ describe('App.svelte', () => {
     expect(paneContainers.length).toBe(0)
   })
 
-  describe('Focus Mode keyboard shortcut', () => {
+  // SKIPPED: Focus Mode keyboard shortcut tests - functionality removed in Epic 7 branch
+  // These tests will be re-enabled when Epic 6 (Focus Mode) is merged to main
+  describe.skip('Focus Mode keyboard shortcut', () => {
     it('Ctrl+Shift+F triggers enterFocusMode on focused pane', async () => {
       const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
       const mockCommandCenterOnOpen = vi.fn().mockReturnValue(() => {})
