@@ -1511,10 +1511,7 @@ describe('Workspace', () => {
   })
 
   describe('Peripheral Dimming - reduced motion', () => {
-    it('CSS contains reduced motion media query (verified at build time)', async () => {
-      // This test verifies the CSS structure is in place
-      // The actual @media (prefers-reduced-motion: reduce) rule
-      // is defined in Workspace.svelte and validated by the Svelte compiler
+    it('renders correctly when focus mode is active', async () => {
       const Workspace = await getWorkspace()
       const target = document.createElement('div')
       target.style.width = '800px'
@@ -1538,13 +1535,21 @@ describe('Workspace', () => {
 
       await vi.runAllTimersAsync()
 
-      // Verify focus mode is active - CSS rules are applied at build time
+      // Verify focus mode is active
       const workspace = target.querySelector('.workspace-container.focus-mode-active')
       expect(workspace).toBeTruthy()
 
-      // Verify dimmed pane exists
+      // Verify focused pane has correct class
+      const focusedPane = target.querySelector('.pane-wrapper.is-focus-target')
+      expect(focusedPane).toBeTruthy()
+
+      // Verify dimmed pane has correct class
       const dimmedPane = target.querySelector('.pane-wrapper.is-dimmed')
       expect(dimmedPane).toBeTruthy()
+
+      // Note: CSS @media (prefers-reduced-motion) rule validation is done
+      // via visual/manual testing since scoped Svelte CSS is not queryable
+      // in the unit test environment. The rule exists in Workspace.svelte.
     })
   })
 })
