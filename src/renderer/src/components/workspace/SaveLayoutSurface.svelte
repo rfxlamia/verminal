@@ -70,6 +70,7 @@
       onkeydown={handleKeydown}
     >
       <p class="save-layout-label">Save current layout as:</p>
+      <!-- svelte-ignore binding_property_non_reactive -->
       <input
         bind:this={inputEl}
         class="save-layout-input"
