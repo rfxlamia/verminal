@@ -1,8 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, waitFor, cleanup } from '@testing-library/svelte'
+import { render, waitFor, cleanup, fireEvent } from '@testing-library/svelte'
 import { resetLayoutState } from './stores/layout-store.svelte'
 import { resetCommandCenterState } from './stores/command-center-store.svelte'
+
+// Mock save-layout-store before importing App
+vi.mock('./stores/save-layout-store.svelte', () => ({
+  openSaveLayout: vi.fn(),
+  closeSaveLayout: vi.fn(),
+  saveCurrent: vi.fn(),
+  saveLayoutState: { isOpen: false, nameInput: '', validationError: '', isSaving: false }
+}))
+
 import App from './App.svelte'
+import * as saveLayoutStore from './stores/save-layout-store.svelte'
 
 // Mock ResizeObserver for jsdom
 class MockResizeObserver {
@@ -240,5 +250,35 @@ describe('App.svelte', () => {
     // But no panes should be rendered
     const paneContainers = document.querySelectorAll('.pane-container')
     expect(paneContainers.length).toBe(0)
+  })
+
+  it('Ctrl+Shift+S calls openSaveLayout() instead of direct layout.save', async () => {
+    const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
+    const mockCommandCenterOnOpen = vi.fn().mockReturnValue(() => {})
+    const mockLayoutSave = vi.fn().mockResolvedValue({ ok: true, data: undefined })
+
+    // Reset the mock before test
+    vi.mocked(saveLayoutStore.openSaveLayout).mockReset()
+
+    // @ts-expect-error - mocking window.api
+    window.api = {
+      quit: { onShowDialog: mockOnShowDialog, confirm: vi.fn(), cancel: vi.fn() },
+      commandCenter: { onOpen: mockCommandCenterOnOpen },
+      layout: {
+        list: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+        load: vi.fn().mockResolvedValue({
+          ok: true,
+          data: { name: 'test', layout_name: 'single', panes: [{}] }
+        }),
+        save: mockLayoutSave,
+        delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+      }
+    }
+
+    render(App)
+    await fireEvent.keyDown(window, { key: 'S', ctrlKey: true, shiftKey: true })
+
+    expect(saveLayoutStore.openSaveLayout).toHaveBeenCalledOnce()
+    expect(mockLayoutSave).not.toHaveBeenCalled()
   })
 })
