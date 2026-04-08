@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, cleanup } from '@testing-library/svelte'
 import StatusBar from './StatusBar.svelte'
-import { workspaceUIState, setFocusMode, setFocusedPaneId } from '../../stores/workspace-ui-store.svelte'
+import { setFocusMode, setFocusedPaneId } from '../../stores/workspace-ui-store.svelte'
 import { layoutState } from '../../stores/layout-store.svelte'
 
 describe('Focus Mode Status Display', () => {
@@ -70,9 +70,7 @@ describe('Focus Mode Status Display', () => {
   })
 
   it('removes focus indicator when focus mode exits', async () => {
-    layoutState.panes = [
-      { paneId: 1, sessionId: 101, name: 'Server' }
-    ]
+    layoutState.panes = [{ paneId: 1, sessionId: 101, name: 'Server' }]
     setFocusedPaneId(1)
     setFocusMode(true)
 
@@ -104,9 +102,7 @@ describe('Focus Mode Status Display', () => {
   })
 
   it('focus indicator has no animation (respects prefers-reduced-motion)', async () => {
-    layoutState.panes = [
-      { paneId: 1, sessionId: 101, name: 'Server' }
-    ]
+    layoutState.panes = [{ paneId: 1, sessionId: 101, name: 'Server' }]
     setFocusedPaneId(1)
     setFocusMode(true)
 

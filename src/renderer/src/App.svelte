@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte'
   import Workspace from './components/workspace/Workspace.svelte'
+  import StatusBar from './components/status-bar/StatusBar.svelte'
   import QuitDialog from './components/workspace/QuitDialog.svelte'
   import CommandCenter from './components/command-center/CommandCenter.svelte'
   import SaveLayoutSurface from './components/workspace/SaveLayoutSurface.svelte'
@@ -102,6 +103,7 @@
     </div>
   {/if}
   <Workspace panes={layoutState.panes} />
+  <StatusBar />
 </div>
 <CommandCenter />
 <QuitDialog />

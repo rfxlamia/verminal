@@ -7,9 +7,7 @@
     if (!workspaceUIState.isFocusMode || workspaceUIState.focusedPaneId === null) {
       return null
     }
-    const pane = layoutState.panes.find(
-      (p) => p.paneId === workspaceUIState.focusedPaneId
-    )
+    const pane = layoutState.panes.find((p) => p.paneId === workspaceUIState.focusedPaneId)
     return pane?.name || `Pane ${workspaceUIState.focusedPaneId}`
   })
 
@@ -24,16 +22,15 @@
       <span class="status-item">{layoutState.layoutName}</span>
     {/if}
     {#if layoutState.panes.length > 0}
-      <span class="status-item">{layoutState.panes.length} pane{layoutState.panes.length !== 1 ? 's' : ''}</span>
+      <span class="status-item"
+        >{layoutState.panes.length} pane{layoutState.panes.length !== 1 ? 's' : ''}</span
+      >
     {/if}
   </div>
 
   <div class="status-bar-right">
     {#if isFocusModeActive && focusedPaneName()}
-      <span
-        class="focus-indicator"
-        data-testid="focus-indicator"
-      >
+      <span class="focus-indicator" data-testid="focus-indicator">
         [FOCUS: {focusedPaneName()}]
       </span>
     {/if}
@@ -46,8 +43,8 @@
     justify-content: space-between;
     align-items: center;
     padding: 4px 16px;
-    background-color: #1C1C1C;
-    color: #F7F7F7;
+    background-color: #1c1c1c;
+    color: #f7f7f7;
     font-family: 'Work Sans', sans-serif;
     font-size: 13px;
     line-height: 1.5;
@@ -67,7 +64,7 @@
   }
 
   .focus-indicator {
-    color: #6EE7E7; /* cyan accent per UX spec */
+    color: #6ee7e7; /* cyan accent per UX spec */
     font-weight: 600;
   }
 </style>
