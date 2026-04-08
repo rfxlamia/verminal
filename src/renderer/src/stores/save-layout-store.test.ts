@@ -16,113 +16,121 @@ vi.mock('../lib/layout-serializer', () => ({
   }))
 }))
 
-// Import after mock setup
-const { openSaveLayout, closeSaveLayout, saveCurrent, saveLayoutState, validateName } =
-  await import('./save-layout-store.svelte')
-const { layoutState } = await import('./layout-store.svelte')
+// Import after mock setup - use dynamic import for proper test isolation
+// Store references will be re-imported in beforeEach for fresh state
+let storeModule: typeof import('./save-layout-store.svelte')
+let layoutModule: typeof import('./layout-store.svelte')
 
 describe('save-layout-store', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    // Reset mocks
     mockSave.mockReset()
-    closeSaveLayout()
-    layoutState.layoutName = 'horizontal'
-    layoutState.panes = [{ paneId: 1, sessionId: 11, name: 'Code' }]
+
+    // Re-import modules to get fresh state for each test
+    // This ensures test isolation by creating new module instances
+    storeModule = await import('./save-layout-store.svelte')
+    layoutModule = await import('./layout-store.svelte')
+
+    // Close any open surface and reset layout state
+    storeModule.closeSaveLayout()
+    layoutModule.layoutState.layoutName = 'horizontal'
+    layoutModule.layoutState.panes = [{ paneId: 1, sessionId: 11, name: 'Code' }]
   })
 
   it('starts closed', () => {
-    expect(saveLayoutState.isOpen).toBe(false)
+    expect(storeModule.saveLayoutState.isOpen).toBe(false)
   })
 
   it('openSaveLayout returns false and stays closed when no active workspace exists', () => {
-    layoutState.layoutName = ''
-    layoutState.panes = []
-    expect(openSaveLayout()).toBe(false)
-    expect(saveLayoutState.isOpen).toBe(false)
+    layoutModule.layoutState.layoutName = ''
+    layoutModule.layoutState.panes = []
+    expect(storeModule.openSaveLayout()).toBe(false)
+    expect(storeModule.saveLayoutState.isOpen).toBe(false)
   })
 
   it('openSaveLayout sets isOpen=true and resets form', () => {
-    expect(openSaveLayout()).toBe(true)
-    expect(saveLayoutState.isOpen).toBe(true)
-    expect(saveLayoutState.nameInput).toBe('')
-    expect(saveLayoutState.validationError).toBe('')
-    expect(saveLayoutState.isSaving).toBe(false)
+    expect(storeModule.openSaveLayout()).toBe(true)
+    expect(storeModule.saveLayoutState.isOpen).toBe(true)
+    expect(storeModule.saveLayoutState.nameInput).toBe('')
+    expect(storeModule.saveLayoutState.validationError).toBe('')
+    expect(storeModule.saveLayoutState.isSaving).toBe(false)
   })
 
   it('closeSaveLayout sets isOpen=false', () => {
-    openSaveLayout()
-    closeSaveLayout()
-    expect(saveLayoutState.isOpen).toBe(false)
+    storeModule.openSaveLayout()
+    storeModule.closeSaveLayout()
+    expect(storeModule.saveLayoutState.isOpen).toBe(false)
   })
 
   describe('validateName', () => {
     it('returns error for empty name', () => {
-      expect(validateName('')).not.toBe('')
-      expect(validateName('   ')).not.toBe('')
+      expect(storeModule.validateName('')).not.toBe('')
+      expect(storeModule.validateName('   ')).not.toBe('')
     })
 
     it('returns error for name with leading/trailing space', () => {
       // trimmed !== raw → invalid
-      expect(validateName(' myLayout')).not.toBe('')
-      expect(validateName('myLayout ')).not.toBe('')
+      expect(storeModule.validateName(' myLayout')).not.toBe('')
+      expect(storeModule.validateName('myLayout ')).not.toBe('')
     })
 
     it('returns error for names with path separators', () => {
-      expect(validateName('my/layout')).not.toBe('')
-      expect(validateName('my\\layout')).not.toBe('')
+      expect(storeModule.validateName('my/layout')).not.toBe('')
+      expect(storeModule.validateName('my\\layout')).not.toBe('')
     })
 
     it('returns error for dot-prefixed names', () => {
-      expect(validateName('.hidden')).not.toBe('')
+      expect(storeModule.validateName('.hidden')).not.toBe('')
     })
 
     it('returns error for names with ".."', () => {
-      expect(validateName('my..layout')).not.toBe('')
-      expect(validateName('../etc')).not.toBe('')
+      expect(storeModule.validateName('my..layout')).not.toBe('')
+      expect(storeModule.validateName('../etc')).not.toBe('')
     })
 
     it('returns error for names longer than 255 chars', () => {
-      expect(validateName('a'.repeat(256))).not.toBe('')
+      expect(storeModule.validateName('a'.repeat(256))).not.toBe('')
     })
 
     it('returns empty string for valid names', () => {
-      expect(validateName('dev-setup')).toBe('')
-      expect(validateName('my workspace')).toBe('')
-      expect(validateName('layout 2025')).toBe('')
-      expect(validateName('a'.repeat(255))).toBe('')
+      expect(storeModule.validateName('dev-setup')).toBe('')
+      expect(storeModule.validateName('my workspace')).toBe('')
+      expect(storeModule.validateName('layout 2025')).toBe('')
+      expect(storeModule.validateName('a'.repeat(255))).toBe('')
     })
   })
 
   describe('saveCurrent', () => {
     it('returns NO_ACTIVE_LAYOUT when workspace is empty', async () => {
-      layoutState.layoutName = ''
-      layoutState.panes = []
-      saveLayoutState.isOpen = true
-      saveLayoutState.nameInput = 'my-layout'
-      const result = await saveCurrent()
+      layoutModule.layoutState.layoutName = ''
+      layoutModule.layoutState.panes = []
+      storeModule.saveLayoutState.isOpen = true
+      storeModule.saveLayoutState.nameInput = 'my-layout'
+      const result = await storeModule.saveCurrent()
       expect(result.ok).toBe(false)
       expect(result.error.code).toBe('NO_ACTIVE_LAYOUT')
       expect(mockSave).not.toHaveBeenCalled()
     })
 
     it('sets validationError and aborts if name invalid', async () => {
-      openSaveLayout()
-      saveLayoutState.nameInput = ''
-      const result = await saveCurrent()
+      storeModule.openSaveLayout()
+      storeModule.saveLayoutState.nameInput = ''
+      const result = await storeModule.saveCurrent()
       expect(result.ok).toBe(false)
-      expect(saveLayoutState.validationError).not.toBe('')
+      expect(storeModule.saveLayoutState.validationError).not.toBe('')
       expect(mockSave).not.toHaveBeenCalled()
-      expect(saveLayoutState.isOpen).toBe(true) // surface stays open
+      expect(storeModule.saveLayoutState.isOpen).toBe(true) // surface stays open
     })
 
     it('calls window.api.layout.save with correct args on valid input', async () => {
       mockSave.mockResolvedValue({ ok: true, data: undefined })
-      openSaveLayout()
-      saveLayoutState.nameInput = 'my-layout'
-      const result = await saveCurrent()
+      storeModule.openSaveLayout()
+      storeModule.saveLayoutState.nameInput = 'my-layout'
+      const result = await storeModule.saveCurrent()
       expect(mockSave).toHaveBeenCalledOnce()
       expect(mockSave).toHaveBeenCalledWith('my-layout', expect.any(Object))
       expect(result.ok).toBe(true)
-      expect(saveLayoutState.isOpen).toBe(false) // surface closes on success
+      expect(storeModule.saveLayoutState.isOpen).toBe(false) // surface closes on success
     })
 
     it('sets validationError and keeps surface open on IPC failure', async () => {
@@ -130,25 +138,49 @@ describe('save-layout-store', () => {
         ok: false,
         error: { code: 'SAVE_FAILED', message: 'disk full' }
       })
-      openSaveLayout()
-      saveLayoutState.nameInput = 'my-layout'
-      const result = await saveCurrent()
+      storeModule.openSaveLayout()
+      storeModule.saveLayoutState.nameInput = 'my-layout'
+      const result = await storeModule.saveCurrent()
       expect(result.ok).toBe(false)
-      expect(saveLayoutState.validationError).toContain('disk full')
-      expect(saveLayoutState.isOpen).toBe(true) // stays open for retry
+      expect(storeModule.saveLayoutState.validationError).toContain('disk full')
+      expect(storeModule.saveLayoutState.isOpen).toBe(true) // stays open for retry
     })
 
     it('sets isSaving=true during save and false after', async () => {
       let capturedisSaving = false
       mockSave.mockImplementation(async () => {
-        capturedisSaving = saveLayoutState.isSaving
+        capturedisSaving = storeModule.saveLayoutState.isSaving
         return { ok: true, data: undefined }
       })
-      openSaveLayout()
-      saveLayoutState.nameInput = 'my-layout'
-      await saveCurrent()
+      storeModule.openSaveLayout()
+      storeModule.saveLayoutState.nameInput = 'my-layout'
+      await storeModule.saveCurrent()
       expect(capturedisSaving).toBe(true)
-      expect(saveLayoutState.isSaving).toBe(false)
+      expect(storeModule.saveLayoutState.isSaving).toBe(false)
+    })
+
+    it('returns ALREADY_SAVING error on concurrent save calls', async () => {
+      // Start first save
+      mockSave.mockImplementation(async () => {
+        // Simulate slow save
+        await new Promise((resolve) => setTimeout(resolve, 100))
+        return { ok: true, data: undefined }
+      })
+      storeModule.openSaveLayout()
+      storeModule.saveLayoutState.nameInput = 'my-layout'
+
+      // Start first save
+      const firstSavePromise = storeModule.saveCurrent()
+
+      // Immediately try second save while first is in progress
+      const secondResult = await storeModule.saveCurrent()
+
+      // Second save should fail with ALREADY_SAVING
+      expect(secondResult.ok).toBe(false)
+      expect(secondResult.error.code).toBe('ALREADY_SAVING')
+
+      // Wait for first save to complete
+      await firstSavePromise
     })
   })
 })
