@@ -171,5 +171,28 @@ describe('workspace-ui-store', () => {
       vi.advanceTimersByTime(100) // t=500ms — 300ms since last notify, should be gone
       expect(workspaceUIState.pulsingPaneIds.has(2)).toBe(false)
     })
+
+    it('debounces with 3+ rapid calls: timer only fires once at 300ms after last call', async () => {
+      const { workspaceUIState, enterFocusMode, notifyBackgroundPaneOutput } =
+        await import('./workspace-ui-store.svelte')
+
+      enterFocusMode(1)
+
+      notifyBackgroundPaneOutput(2) // t=0ms
+      vi.advanceTimersByTime(50) // t=50ms
+      notifyBackgroundPaneOutput(2) // restart
+      vi.advanceTimersByTime(50) // t=100ms
+      notifyBackgroundPaneOutput(2) // restart
+      vi.advanceTimersByTime(50) // t=150ms
+      notifyBackgroundPaneOutput(2) // restart — last call at t=150ms
+
+      expect(workspaceUIState.pulsingPaneIds.has(2)).toBe(true)
+
+      vi.advanceTimersByTime(250) // t=400ms — only 250ms since last notify, still pulsing
+      expect(workspaceUIState.pulsingPaneIds.has(2)).toBe(true)
+
+      vi.advanceTimersByTime(50) // t=450ms — 300ms since last notify, should be gone
+      expect(workspaceUIState.pulsingPaneIds.has(2)).toBe(false)
+    })
   })
 })

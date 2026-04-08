@@ -192,9 +192,11 @@
         terminal.write(data)
       } catch (err) {
         console.error('[TerminalView] Failed to write to terminal:', err)
+        return
       }
       // 6.3: Trigger pulse notification untuk background pane (AC #1)
       // Guard di store: no-op jika tidak dalam Focus Mode atau ini focused pane
+      // Only trigger after successful write — pane should not pulse on write failure
       notifyBackgroundPaneOutput(paneId)
     })
 

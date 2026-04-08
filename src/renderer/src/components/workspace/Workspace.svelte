@@ -185,7 +185,7 @@
 
   /* Background pane pulse: 2 siklus dalam < 300ms (2 × 130ms = 260ms < 300ms) */
   .workspace-container.focus-mode-active .pane-wrapper.is-dimmed.is-pulsing {
-    animation: pulse-highlight 130ms ease-in-out 2;
+    animation: pulse-highlight 130ms ease-in-out 2 forwards;
   }
 
   /* Reduced motion: ganti animasi dengan static highlight (AC #4) */
