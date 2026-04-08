@@ -533,6 +533,65 @@ describe('TerminalView resize synchronization (Story 2.5)', () => {
   })
 })
 
+describe('Pulse notification on PTY data', () => {
+  beforeEach(() => {
+    // Set up window.api mock fresh for each test
+    mockPtyWrite = vi.fn()
+    mockOnDataUnsubscribe = vi.fn()
+    mockOnExitUnsubscribe = vi.fn()
+    onDataCallback = null
+    onExitCallback = null
+
+    mockOnData = vi.fn((sessionId: number, cb: (data: string) => void) => {
+      onDataCallback = cb
+      return mockOnDataUnsubscribe
+    })
+
+    mockOnExit = vi.fn((sessionId: number, cb: (code: number) => void) => {
+      onExitCallback = cb
+      return mockOnExitUnsubscribe
+    })
+
+    vi.stubGlobal('window', {
+      api: {
+        pty: {
+          write: mockPtyWrite,
+          onData: mockOnData,
+          onExit: mockOnExit,
+          resize: vi.fn()
+        }
+      }
+    })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    document.body.innerHTML = ''
+  })
+
+  it('calls notifyBackgroundPaneOutput when PTY data arrives', async () => {
+    const storeModule = await import('../../stores/workspace-ui-store.svelte')
+    const notifySpy = vi.spyOn(storeModule, 'notifyBackgroundPaneOutput')
+    const TerminalView = await getTerminalView()
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+
+    mount(TerminalView, {
+      target: container,
+      props: { paneId: 2, sessionId: 1 }
+    })
+
+    // Wait for the component to register the onData callback
+    await waitFor(() => mockOnData.mock.calls.length > 0, 2000)
+
+    expect(onDataCallback).not.toBeNull()
+    onDataCallback!('hello')
+
+    expect(mockTerminalWrite).toHaveBeenCalledWith('hello')
+    expect(notifySpy).toHaveBeenCalledWith(2)
+  })
+})
+
 describe('TerminalView focus preservation during resize (Story 3.6)', () => {
   // Note: Focus preservation tests are covered by integration tests.
   // The key behavior is:

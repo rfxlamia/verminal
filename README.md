@@ -2,9 +2,9 @@
 
 > Fast as vermin, fresh as spring. A tiling terminal that swarms your desktop.
 
-Most terminal emulators treat your workspace like a grid of numbered boxes. Pane 1. Pane 2. Pane 3. It's functional, sure, but it's also forgettable. Verminal is built on a different idea: your terminal should feel like *yours*.
+Most terminal emulators treat your workspace like a grid of numbered boxes. Pane 1. Pane 2. Pane 3. It's functional, sure, but it's also forgettable. Verminal is built on a different idea: your terminal should feel like _yours_.
 
-This isn't just another tiling terminal. It's a workspace with memory. Name your panes. Color-code them. Save layouts that remember exactly how you work. When you're deep in a project, you shouldn't be managing terminal windows. You should be *in* *the work.*
+This isn't just another tiling terminal. It's a workspace with memory. Name your panes. Color-code them. Save layouts that remember exactly how you work. When you're deep in a project, you shouldn't be managing terminal windows. You should be _in_ _the work._
 
 ![Verminal Tiling Layout](img/figma/crop-2-0.png)
 
@@ -38,15 +38,15 @@ Verminal brings three ideas together that usually live in separate tools.
 
 Verminal is built on a process-isolated architecture for security and performance:
 
-| Layer | Technology |
-| :--- | :--- |
-| Runtime | Electron + electron-vite |
-| Frontend | Svelte 5 (runes-based) + TypeScript |
-| PTY Engine | node-pty |
-| Renderer | @xterm/xterm + addons (WebGL, Fit, Web-links, Unicode11) |
-| Styling | Vanilla CSS |
-| Config | smol-toml (deterministic TOML) |
-| UI Components | bits-ui |
+| Layer         | Technology                                               |
+| :------------ | :------------------------------------------------------- |
+| Runtime       | Electron + electron-vite                                 |
+| Frontend      | Svelte 5 (runes-based) + TypeScript                      |
+| PTY Engine    | node-pty                                                 |
+| Renderer      | @xterm/xterm + addons (WebGL, Fit, Web-links, Unicode11) |
+| Styling       | Vanilla CSS                                              |
+| Config        | smol-toml (deterministic TOML)                           |
+| UI Components | bits-ui                                                  |
 
 **Main process** handles PTY management, filesystem access, and OS integration. **Preload bridge** is the typed IPC boundary. **Renderer** runs the Svelte UI and owns workspace state. **Shared** contains pure types and constants used everywhere.
 
@@ -97,4 +97,4 @@ Apache 2.0
 
 ---
 
-*Built for developers who spend too much time in terminals to tolerate a bad one.*
+_Built for developers who spend too much time in terminals to tolerate a bad one._

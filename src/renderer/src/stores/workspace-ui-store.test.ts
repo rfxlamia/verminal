@@ -1,9 +1,14 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 describe('workspace-ui-store', () => {
   beforeEach(() => {
     // Reset modules to get fresh state for each test
     vi.resetModules()
+  })
+
+  afterEach(() => {
+    vi.clearAllTimers()
+    vi.useRealTimers()
   })
 
   describe('workspaceUIState', () => {
@@ -92,6 +97,79 @@ describe('workspace-ui-store', () => {
       const before = { ...workspaceUIState }
       enterFocusMode(2) // different pane while already focused
       expect(workspaceUIState.focusedPaneId).toBe(before.focusedPaneId)
+    })
+  })
+
+  describe('notifyBackgroundPaneOutput()', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.clearAllTimers()
+      vi.useRealTimers()
+    })
+
+    it('adds paneId to pulsingPaneIds when focus mode is active and pane is background', async () => {
+      const { workspaceUIState, enterFocusMode, notifyBackgroundPaneOutput } =
+        await import('./workspace-ui-store.svelte')
+
+      enterFocusMode(1)
+
+      notifyBackgroundPaneOutput(2)
+
+      expect(workspaceUIState.pulsingPaneIds.has(2)).toBe(true)
+    })
+
+    it('does NOT add paneId to pulsingPaneIds for the focused pane', async () => {
+      const { workspaceUIState, enterFocusMode, notifyBackgroundPaneOutput } =
+        await import('./workspace-ui-store.svelte')
+
+      enterFocusMode(1)
+
+      notifyBackgroundPaneOutput(1) // pane 1 is the focused pane
+
+      expect(workspaceUIState.pulsingPaneIds.has(1)).toBe(false)
+    })
+
+    it('does NOT add paneId to pulsingPaneIds when focus mode is inactive', async () => {
+      const { workspaceUIState, notifyBackgroundPaneOutput } =
+        await import('./workspace-ui-store.svelte')
+
+      notifyBackgroundPaneOutput(2)
+
+      expect(workspaceUIState.pulsingPaneIds.has(2)).toBe(false)
+    })
+
+    it('removes paneId from pulsingPaneIds after 300ms', async () => {
+      const { workspaceUIState, enterFocusMode, notifyBackgroundPaneOutput } =
+        await import('./workspace-ui-store.svelte')
+
+      enterFocusMode(1)
+
+      notifyBackgroundPaneOutput(2)
+      expect(workspaceUIState.pulsingPaneIds.has(2)).toBe(true)
+
+      vi.advanceTimersByTime(300)
+      expect(workspaceUIState.pulsingPaneIds.has(2)).toBe(false)
+    })
+
+    it('debounces: timer restarts if notifyBackgroundPaneOutput is called again within 300ms', async () => {
+      const { workspaceUIState, enterFocusMode, notifyBackgroundPaneOutput } =
+        await import('./workspace-ui-store.svelte')
+
+      enterFocusMode(1)
+
+      notifyBackgroundPaneOutput(2) // t=0ms
+      vi.advanceTimersByTime(200) // t=200ms — still pulsing (not yet 300ms)
+      expect(workspaceUIState.pulsingPaneIds.has(2)).toBe(true)
+
+      notifyBackgroundPaneOutput(2) // restart timer at t=200ms
+      vi.advanceTimersByTime(200) // t=400ms — only 200ms since last notify, still pulsing
+      expect(workspaceUIState.pulsingPaneIds.has(2)).toBe(true)
+
+      vi.advanceTimersByTime(100) // t=500ms — 300ms since last notify, should be gone
+      expect(workspaceUIState.pulsingPaneIds.has(2)).toBe(false)
     })
   })
 })

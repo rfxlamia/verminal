@@ -100,6 +100,9 @@
       class="pane-wrapper"
       class:is-focus-target={isFocusMode && pane.paneId === focusedPaneId}
       class:is-dimmed={isFocusMode && pane.paneId !== focusedPaneId}
+      class:is-pulsing={isFocusMode &&
+        pane.paneId !== focusedPaneId &&
+        workspaceUIState.pulsingPaneIds.has(pane.paneId)}
       style:grid-column={panes.length === 3 && i === 0 ? '1 / -1' : undefined}
     >
       <PaneContainer paneId={pane.paneId} sessionId={pane.sessionId} {resizeTick} />
@@ -164,6 +167,32 @@
   @media (prefers-reduced-motion: reduce) {
     .workspace-container.focus-mode-active .pane-wrapper.is-dimmed {
       transition: none;
+    }
+  }
+
+  /* Pulse highlight animation keyframes — FR33 */
+  @keyframes pulse-highlight {
+    0% {
+      opacity: 0.1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+    100% {
+      opacity: 0.1;
+    }
+  }
+
+  /* Background pane pulse: 2 siklus dalam < 300ms (2 × 130ms = 260ms < 300ms) */
+  .workspace-container.focus-mode-active .pane-wrapper.is-dimmed.is-pulsing {
+    animation: pulse-highlight 130ms ease-in-out 2;
+  }
+
+  /* Reduced motion: ganti animasi dengan static highlight (AC #4) */
+  @media (prefers-reduced-motion: reduce) {
+    .workspace-container.focus-mode-active .pane-wrapper.is-dimmed.is-pulsing {
+      animation: none;
+      opacity: 0.25; /* static highlight sebagai pengganti pulse */
     }
   }
 </style>

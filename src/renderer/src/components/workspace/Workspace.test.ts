@@ -1552,4 +1552,76 @@ describe('Workspace', () => {
       // in the unit test environment. The rule exists in Workspace.svelte.
     })
   })
+
+  describe('Background Pane Pulse Notification', () => {
+    it('adds is-pulsing class to dimmed pane with active pulsingPaneIds', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '800px'
+      target.style.height = '600px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const { enterFocusMode, notifyBackgroundPaneOutput } =
+        await import('../../stores/workspace-ui-store.svelte')
+
+      enterFocusMode(1)
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 101 },
+            { paneId: 2, sessionId: 102 }
+          ]
+        }
+      })
+
+      await vi.runAllTimersAsync()
+
+      // Trigger pulse for pane 2 (background pane)
+      notifyBackgroundPaneOutput(2)
+
+      // Advance time just 1ms — far less than 300ms cleanup, so class stays
+      await vi.advanceTimersByTimeAsync(1)
+      await Promise.resolve() // flush Svelte reactive updates
+
+      const paneWrapper = target.querySelectorAll('.pane-wrapper')[1]
+      expect(paneWrapper?.classList.contains('is-pulsing')).toBe(true)
+    })
+
+    it('focused pane does NOT get is-pulsing class', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '800px'
+      target.style.height = '600px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const { enterFocusMode, notifyBackgroundPaneOutput } =
+        await import('../../stores/workspace-ui-store.svelte')
+
+      enterFocusMode(1)
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [
+            { paneId: 1, sessionId: 101 },
+            { paneId: 2, sessionId: 102 }
+          ]
+        }
+      })
+
+      await vi.runAllTimersAsync()
+
+      // notifyBackgroundPaneOutput for focused pane (guard di store: no-op)
+      notifyBackgroundPaneOutput(1)
+      await vi.advanceTimersByTimeAsync(1)
+      await Promise.resolve()
+
+      const paneWrapper = target.querySelectorAll('.pane-wrapper')[0]
+      expect(paneWrapper?.classList.contains('is-pulsing')).toBe(false)
+    })
+  })
 })

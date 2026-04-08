@@ -5,7 +5,10 @@
   import { WebglAddon } from '@xterm/addon-webgl'
   import { Unicode11Addon } from '@xterm/addon-unicode11'
   import { WebLinksAddon } from '@xterm/addon-web-links'
-  import { workspaceUIState } from '../../stores/workspace-ui-store.svelte'
+  import {
+    workspaceUIState,
+    notifyBackgroundPaneOutput
+  } from '../../stores/workspace-ui-store.svelte'
 
   // Props:
   let {
@@ -189,6 +192,9 @@
       } catch (err) {
         console.error('[TerminalView] Failed to write to terminal:', err)
       }
+      // 6.3: Trigger pulse notification untuk background pane (AC #1)
+      // Guard di store: no-op jika tidak dalam Focus Mode atau ini focused pane
+      notifyBackgroundPaneOutput(paneId)
     })
 
     // 8. Subscribe to exit events — set race guard flag (AC #7)
