@@ -65,3 +65,15 @@ export function notifyBackgroundPaneOutput(paneId: number): void {
   }, 300)
   _pulseTimers.set(paneId, timer)
 }
+
+/**
+ * Clears the pulse timer for a pane when the pane is destroyed.
+ * Prevents orphaned timers from firing after pane destruction.
+ */
+export function clearPanePulseTimer(paneId: number): void {
+  const existing = _pulseTimers.get(paneId)
+  if (existing) {
+    clearTimeout(existing)
+    _pulseTimers.delete(paneId)
+  }
+}

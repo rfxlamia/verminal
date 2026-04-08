@@ -7,7 +7,8 @@
   import { WebLinksAddon } from '@xterm/addon-web-links'
   import {
     workspaceUIState,
-    notifyBackgroundPaneOutput
+    notifyBackgroundPaneOutput,
+    clearPanePulseTimer
   } from '../../stores/workspace-ui-store.svelte'
 
   // Props:
@@ -211,6 +212,8 @@
     unsubscribeData?.()
     unsubscribeExit?.()
     // NOTE(Epic 3): ResizeObserver moved to Workspace - no local observer to clean up
+    // Clear pulse timer to prevent orphaned timer after pane destruction
+    clearPanePulseTimer(paneId)
     // Dispose terminal instance with error handling
     try {
       terminal?.dispose()
