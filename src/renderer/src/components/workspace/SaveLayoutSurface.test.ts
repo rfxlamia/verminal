@@ -6,7 +6,7 @@ import * as store from '../../stores/save-layout-store.svelte'
 vi.mock('../../stores/save-layout-store.svelte', () => ({
   saveLayoutState: { isOpen: false, nameInput: '', validationError: '', isSaving: false },
   closeSaveLayout: vi.fn(),
-  saveCurrent: vi.fn().mockResolvedValue({ ok: true, data: 'my-layout' }),
+  saveCurrent: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
   validateName: vi.fn().mockReturnValue('')
 }))
 
@@ -48,8 +48,11 @@ describe('SaveLayoutSurface', () => {
     render(SaveLayoutSurface, { props: { onSaved } })
     const input = screen.getByRole('textbox')
     fireEvent.keyDown(input, { key: 'Enter' })
-    await vi.waitFor(() => expect(store.saveCurrent).toHaveBeenCalled())
-    await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith('my-layout'))
+    // Wait for both async operations to complete in sequence
+    await vi.waitFor(() => {
+      expect(store.saveCurrent).toHaveBeenCalled()
+      expect(onSaved).toHaveBeenCalledWith('my-layout')
+    })
   })
 
   it('shows inline validation error when validationError is set', () => {

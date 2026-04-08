@@ -80,7 +80,10 @@
     if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'S') {
       event.preventDefault()
       // openSaveLayout() returns false when no active workspace exists
-      openSaveLayout()
+      const opened = openSaveLayout()
+      if (!opened) {
+        showStatusMessage('No active workspace to save')
+      }
     }
   }
 </script>

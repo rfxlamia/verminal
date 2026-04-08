@@ -65,8 +65,14 @@ export function closeSaveLayout(): void {
 /**
  * Validates name, calls window.api.layout.save(), closes surface on success.
  * Returns Result<string> where data is the saved layout name (for caller status msg).
+ * Guards against concurrent calls - returns error if save already in progress.
  */
 export async function saveCurrent(): Promise<Result<string>> {
+  // Guard: prevent concurrent save calls
+  if (saveLayoutState.isSaving) {
+    return { ok: false, error: { code: 'ALREADY_SAVING', message: 'Save already in progress' } }
+  }
+
   if (!hasActiveWorkspace()) {
     const message = 'No active workspace to save'
     saveLayoutState.validationError = message
@@ -85,6 +91,14 @@ export async function saveCurrent(): Promise<Result<string>> {
 
   try {
     const data = serializeLayoutForSave(name, layoutState)
+
+    // Guard: IPC bridge must be available
+    if (!window.api?.layout?.save) {
+      const message = 'Layout save API not available'
+      saveLayoutState.validationError = message
+      return { ok: false, error: { code: 'API_UNAVAILABLE', message } }
+    }
+
     const result = await window.api.layout.save(name, data)
 
     if (!result.ok) {
