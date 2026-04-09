@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { serializeLayoutForSave } from '../lib/layout-serializer'
 
 const mockSave = vi.fn()
 vi.stubGlobal('window', {
@@ -6,15 +7,6 @@ vi.stubGlobal('window', {
     layout: { save: mockSave }
   }
 })
-
-// Mock the layout-serializer module
-vi.mock('../lib/layout-serializer', () => ({
-  serializeLayoutForSave: vi.fn(() => ({
-    name: 'test-layout',
-    layout_name: 'horizontal',
-    panes: []
-  }))
-}))
 
 // Import after mock setup - use dynamic import for proper test isolation
 // Store references will be re-imported in beforeEach for fresh state
@@ -181,6 +173,36 @@ describe('save-layout-store', () => {
 
       // Wait for first save to complete
       await firstSavePromise
+    })
+
+    it('serializeLayoutForSave includes pane command from layoutState', async () => {
+      layoutModule.layoutState.panes = [
+        { paneId: 1, sessionId: 11, name: 'Dev', command: 'npm run dev' },
+        { paneId: 2, sessionId: 12, name: 'Logs', command: 'tail -f /var/log/syslog' }
+      ]
+      mockSave.mockResolvedValue({ ok: true, data: undefined })
+      storeModule.openSaveLayout()
+      storeModule.saveLayoutState.nameInput = 'test-layout'
+      await storeModule.saveCurrent()
+      expect(mockSave).toHaveBeenCalledWith(
+        'test-layout',
+        expect.objectContaining({
+          panes: expect.arrayContaining([
+            expect.objectContaining({ command: 'npm run dev' }),
+            expect.objectContaining({ command: 'tail -f /var/log/syslog' })
+          ])
+        })
+      )
+    })
+
+    it('pane without command serializes without command field', async () => {
+      layoutModule.layoutState.panes = [{ paneId: 1, sessionId: 11, name: 'Shell' }]
+      mockSave.mockResolvedValue({ ok: true, data: undefined })
+      storeModule.openSaveLayout()
+      storeModule.saveLayoutState.nameInput = 'test'
+      await storeModule.saveCurrent()
+      const savedData = mockSave.mock.calls[0][1]
+      expect(savedData.panes[0].command).toBeUndefined()
     })
   })
 })
