@@ -13,6 +13,7 @@
     closeSaveLayout,
     saveCurrent
   } from '../../stores/save-layout-store.svelte'
+  import { layoutState } from '../../stores/layout-store.svelte'
 
   interface Props {
     onSaved?: (name: string) => void
@@ -87,6 +88,34 @@
         <p id="save-layout-error" class="save-layout-error" role="alert">
           {saveLayoutState.validationError}
         </p>
+      {/if}
+      <!-- Pane Commands Section -->
+      {#if layoutState.panes.length > 0}
+        <details class="pane-commands">
+          <summary class="pane-commands-summary">
+            <span class="pane-commands-label">Pane Commands</span>
+            <span class="pane-commands-hint">(optional)</span>
+          </summary>
+          <div class="pane-commands-list">
+            {#each layoutState.panes as pane (pane.paneId)}
+              <div class="pane-command-row">
+                <span class="pane-name">{pane.name || `Pane ${pane.paneId}`}</span>
+                <input
+                  class="pane-command-input"
+                  type="text"
+                  placeholder="e.g. npm run dev"
+                  aria-label="Command for {pane.name || 'Pane ' + pane.paneId}"
+                  value={pane.command ?? ''}
+                  oninput={(e) => {
+                    const target = e.currentTarget as HTMLInputElement
+                    const cmd = target.value.trim()
+                    pane.command = cmd || undefined
+                  }}
+                />
+              </div>
+            {/each}
+          </div>
+        </details>
       {/if}
       <div class="save-layout-actions">
         <button
@@ -228,5 +257,88 @@
     padding: 1px 4px;
     font-size: 10px;
     font-family: monospace;
+  }
+
+  .pane-commands {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .pane-commands-summary {
+    padding: 8px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.04);
+    list-style: none;
+    user-select: none;
+  }
+
+  .pane-commands-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .pane-commands-summary::before {
+    content: '▶';
+    font-size: 8px;
+    transition: transform 150ms ease;
+  }
+
+  details[open] .pane-commands-summary::before {
+    transform: rotate(90deg);
+  }
+
+  .pane-commands-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+  }
+
+  .pane-commands-hint {
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 11px;
+  }
+
+  .pane-commands-list {
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .pane-command-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .pane-name {
+    flex: 0 0 80px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pane-command-input {
+    flex: 1;
+    padding: 5px 8px;
+    background-color: #111;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 12px;
+    font-family: monospace;
+    outline: none;
+  }
+
+  .pane-command-input:focus {
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+
+  .pane-command-input::placeholder {
+    color: rgba(255, 255, 255, 0.25);
   }
 </style>
