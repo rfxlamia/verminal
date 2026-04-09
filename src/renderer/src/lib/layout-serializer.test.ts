@@ -100,4 +100,22 @@ describe('serializeLayoutForSave', () => {
       expect(result.panes[0].color).toBe(color)
     })
   })
+
+  it('serializes command when pane has command', () => {
+    const state: LayoutState = {
+      layoutName: 'horizontal',
+      panes: [{ paneId: 1, sessionId: 11, name: 'Dev', command: 'npm run dev' }]
+    }
+    const result = serializeLayoutForSave('my-layout', state)
+    expect(result.panes[0].command).toBe('npm run dev')
+  })
+
+  it('does not include command when pane has no command', () => {
+    const state: LayoutState = {
+      layoutName: 'horizontal',
+      panes: [{ paneId: 1, sessionId: 11, name: 'Shell' }]
+    }
+    const result = serializeLayoutForSave('my-layout', state)
+    expect(result.panes[0].command).toBeUndefined()
+  })
 })

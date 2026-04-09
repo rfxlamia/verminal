@@ -15,6 +15,7 @@ export interface PaneState {
   sessionId: number
   name: string
   color?: PaneColor
+  command?: string
 }
 
 export interface LayoutState {
