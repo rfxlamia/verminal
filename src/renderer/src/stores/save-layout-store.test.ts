@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { serializeLayoutForSave } from '../lib/layout-serializer'
 
 const mockSave = vi.fn()
 vi.stubGlobal('window', {
