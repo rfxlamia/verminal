@@ -15,7 +15,8 @@
     initMixedSplitLayout,
     initGridLayout,
     renamePaneInLayout,
-    recolorPaneInLayout
+    recolorPaneInLayout,
+    setPaneCommandInLayout
   } from '../../stores/layout-store.svelte'
   import {
     requestWorkspaceReplace,
@@ -388,6 +389,14 @@
     isLoadingLayout = true
     loadLayoutError = ''
 
+    const cleanupSpawnedSessions = (sessionIds: number[]): void => {
+      for (const sessionId of sessionIds) {
+        window.api.pty.kill(sessionId).catch((err: Error) => {
+          console.warn('Failed to cleanup spawned session during load error:', err.message)
+        })
+      }
+    }
+
     try {
       // Step 3: Load saved layout data
       const loadResult = await window.api.layout.load(layoutName)
@@ -433,22 +442,28 @@
       const pathsResult = await window.api.app.getPaths()
       const cwd = pathsResult.ok ? pathsResult.data.home : ''
 
-      // Step 7: Spawn PTY sessions sequentially
+      // Step 7: Spawn PTY sessions sequentially and collect pending commands
       const newSessionIds: number[] = []
+      const pendingCommands: Array<{ sessionId: number; command: string }> = []
       for (let i = 0; i < paneCount; i++) {
         const spawnResult = await window.api.pty.spawn(shell, [], cwd)
         if (!spawnResult.ok) {
           // Cleanup any spawned sessions
-          for (const sessionId of newSessionIds) {
-            window.api.pty.kill(sessionId).catch((err: Error) => {
-              console.warn('Failed to cleanup session during load error:', err.message)
-            })
-          }
+          cleanupSpawnedSessions(newSessionIds)
           loadLayoutError = `Failed to spawn terminal: ${spawnResult.error.message}`
           isLoadingLayout = false
           return
         }
         newSessionIds.push(spawnResult.data.sessionId)
+
+        // Collect pending commands for panes that have them
+        const savedPane = savedLayout.panes[i]
+        if (savedPane?.command) {
+          pendingCommands.push({
+            sessionId: spawnResult.data.sessionId,
+            command: savedPane.command
+          })
+        }
       }
 
       // Step 8: Validate pane count matches layout type
@@ -460,6 +475,8 @@
       }
       const expectedCount = expectedPaneCounts[savedLayout.layout_name]
       if (expectedCount && paneCount !== expectedCount) {
+        // Cleanup spawned sessions before returning
+        cleanupSpawnedSessions(newSessionIds)
         loadLayoutError = `Layout "${savedLayout.layout_name}" expects ${expectedCount} panes, but found ${paneCount}`
         isLoadingLayout = false
         return
@@ -484,7 +501,7 @@
           initSinglePaneLayout(newSessionIds[0])
       }
 
-      // Step 9b: Restore pane identity (name and color) from saved layout
+      // Step 9b: Restore pane identity (name, color, and command) from saved layout
       const newPanes = layoutState.panes
       savedLayout.panes.forEach((savedPane, index) => {
         // Match by pane_id if available, fallback to array index for legacy layouts
@@ -504,6 +521,7 @@
         }
         if (savedPane.name) renamePaneInLayout(pane.paneId, savedPane.name)
         if (savedPane.color) recolorPaneInLayout(pane.paneId, savedPane.color)
+        if (savedPane.command) setPaneCommandInLayout(pane.paneId, savedPane.command)
       })
 
       // Step 10: Kill old sessions fire-and-forget
@@ -513,7 +531,14 @@
         })
       }
 
-      // Step 10: Reset state and close
+      // Step 11: Execute queued commands after layout commit (50ms delay)
+      for (const { sessionId, command } of pendingCommands) {
+        setTimeout(() => {
+          window.api.pty.write(sessionId, `${command}\n`)
+        }, 50)
+      }
+
+      // Step 12: Reset state and close
       loadLayoutError = ''
       closeCommandCenter()
       closeAndRestoreFocus()

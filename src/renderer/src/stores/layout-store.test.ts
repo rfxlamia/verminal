@@ -48,6 +48,54 @@ describe('layout-store', () => {
 
       expect(pane1.paneId).not.toBe(pane2.paneId)
     })
+
+    it('createPane stores optional command metadata in PaneState', async () => {
+      const { createPane } = await import('./layout-store.svelte')
+      const pane = createPane(10, 'Dev Server', 'npm run dev')
+      expect(pane.command).toBe('npm run dev')
+    })
+
+    it('createPane stores command as undefined when not provided', async () => {
+      const { createPane } = await import('./layout-store.svelte')
+      const pane = createPane(10, 'Dev Server')
+      expect(pane.command).toBeUndefined()
+    })
+  })
+
+  describe('setPaneCommandInLayout()', () => {
+    it('setPaneCommandInLayout updates command metadata for an existing pane', async () => {
+      const { initSinglePaneLayout, layoutState, setPaneCommandInLayout } =
+        await import('./layout-store.svelte')
+
+      initSinglePaneLayout(42)
+      const paneId = layoutState.panes[0].paneId
+
+      setPaneCommandInLayout(paneId, 'npm run dev')
+      expect(layoutState.panes[0].command).toBe('npm run dev')
+    })
+
+    it('setPaneCommandInLayout is a no-op when pane not found', async () => {
+      const { initSinglePaneLayout, layoutState, setPaneCommandInLayout } =
+        await import('./layout-store.svelte')
+
+      initSinglePaneLayout(42)
+      layoutState.panes[0].command = 'original command'
+
+      setPaneCommandInLayout(9999, 'npm run dev')
+      expect(layoutState.panes[0].command).toBe('original command')
+    })
+
+    it('setPaneCommandInLayout with undefined removes command', async () => {
+      const { initSinglePaneLayout, layoutState, setPaneCommandInLayout } =
+        await import('./layout-store.svelte')
+
+      initSinglePaneLayout(42)
+      setPaneCommandInLayout(layoutState.panes[0].paneId, 'npm run dev')
+      expect(layoutState.panes[0].command).toBe('npm run dev')
+
+      setPaneCommandInLayout(layoutState.panes[0].paneId, undefined)
+      expect(layoutState.panes[0].command).toBeUndefined()
+    })
   })
 
   describe('layoutState', () => {
