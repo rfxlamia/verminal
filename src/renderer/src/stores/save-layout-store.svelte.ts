@@ -90,6 +90,17 @@ export async function saveCurrent(): Promise<Result<string>> {
   saveLayoutState.isSaving = true
 
   try {
+    // AC #6: validate per-pane commands before serializing
+    for (const pane of layoutState.panes) {
+      if (pane.command !== undefined && pane.command.trim() === '') {
+        saveLayoutState.validationError = `Command for pane '${pane.name || `Pane ${pane.paneId}`}' cannot be only whitespace`
+        return {
+          ok: false,
+          error: { code: 'VALIDATION_ERROR', message: saveLayoutState.validationError }
+        }
+      }
+    }
+
     const data = serializeLayoutForSave(name, layoutState)
 
     // Guard: IPC bridge must be available

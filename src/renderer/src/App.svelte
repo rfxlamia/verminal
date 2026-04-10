@@ -16,17 +16,20 @@
   // Status bar message state (auto-clears after 3s)
   let statusMessage = $state('')
   let statusTimer: ReturnType<typeof setTimeout> | undefined
+  let statusIsError = $state(false)
 
   function setStartupError(message: string, details?: unknown): void {
     startupError = message
     console.error('[App] startup failure:', message, details)
   }
 
-  function showStatusMessage(msg: string): void {
+  function showStatusMessage(msg: string, isError = false): void {
     if (statusTimer) clearTimeout(statusTimer)
     statusMessage = msg
+    statusIsError = isError
     statusTimer = setTimeout(() => {
       statusMessage = ''
+      statusIsError = false
       statusTimer = undefined
     }, 3000)
   }
@@ -82,7 +85,7 @@
       // openSaveLayout() returns false when no active workspace exists
       const opened = openSaveLayout()
       if (!opened) {
-        showStatusMessage('No active workspace to save')
+        showStatusMessage('No active workspace to save', true)
       }
     }
   }
@@ -97,7 +100,12 @@
     </div>
   {/if}
   {#if statusMessage}
-    <div class="status-bar-message" role="status" aria-live="polite">
+    <div
+      class="status-bar-message"
+      class:status-bar-message--error={statusIsError}
+      role="status"
+      aria-live="polite"
+    >
       {statusMessage}
     </div>
   {/if}
@@ -133,5 +141,9 @@
     font-size: 13px;
     line-height: 1.5;
     text-align: center;
+  }
+
+  .status-bar-message--error {
+    background-color: #dc2626;
   }
 </style>

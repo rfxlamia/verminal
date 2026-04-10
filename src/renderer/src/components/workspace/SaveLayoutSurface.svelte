@@ -17,9 +17,10 @@
 
   interface Props {
     onSaved?: (name: string) => void
+    onClose?: () => void
   }
 
-  let { onSaved }: Props = $props()
+  let { onSaved, onClose }: Props = $props()
 
   let inputEl: HTMLInputElement | undefined = $state()
 
@@ -33,17 +34,23 @@
   function handleKeydown(event: KeyboardEvent): void {
     if (event.key === 'Escape') {
       event.preventDefault()
+      onClose?.()
       closeSaveLayout()
     }
-    if (event.key === 'Enter' && !saveLayoutState.isSaving) {
+    if (event.key === 'Enter') {
       event.preventDefault()
-      void handleSave()
+      if (!saveLayoutState.isSaving) {
+        void handleSave()
+      } else {
+        saveLayoutState.validationError = 'Save already in progress'
+      }
     }
   }
 
   function handleBackdropClick(event: MouseEvent): void {
     // Only close if clicking backdrop itself (not the surface card)
-    if (event.target === event.currentTarget) {
+    if (event.target && event.target === event.currentTarget) {
+      onClose?.()
       closeSaveLayout()
     }
   }
@@ -108,6 +115,7 @@
                   value={pane.command ?? ''}
                   oninput={(e) => {
                     const target = e.currentTarget as HTMLInputElement
+                    if (!target) return
                     const cmd = target.value.trim()
                     pane.command = cmd || undefined
                   }}
