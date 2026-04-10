@@ -13,8 +13,19 @@ try {
   const rawYaml = fs.readFileSync(sprintStatusPath, 'utf8')
   sprintStatus = yaml.parse(rawYaml)
 } catch {
-  console.error(`ERROR: Cannot read sprint-status.yaml at ${sprintStatusPath}`)
-  process.exit(1)
+  // Fallback for CI/test environments where the file may be gitignored or inaccessible
+  const envSprintStatus = process.env.REPO_CONTEXT_TEST_SPRINT_STATUS
+  if (envSprintStatus) {
+    try {
+      sprintStatus = yaml.parse(envSprintStatus)
+    } catch {
+      console.error(`ERROR: Cannot parse REPO_CONTEXT_TEST_SPRINT_STATUS as valid YAML`)
+      process.exit(1)
+    }
+  } else {
+    console.error(`ERROR: Cannot read sprint-status.yaml at ${sprintStatusPath}`)
+    process.exit(1)
+  }
 }
 
 // Guard against malformed structure (valid YAML but missing expected keys)

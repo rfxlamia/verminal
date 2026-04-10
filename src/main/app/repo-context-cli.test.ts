@@ -25,16 +25,37 @@ describe('repo-context CLI', () => {
   it('prints required repo bootstrap information', () => {
     const repoRoot = path.resolve(__dirname, '../../..')
     const contextPath = path.join(repoRoot, 'repo-config/agent-context.json')
-    const sprintStatusPath = path.join(repoRoot, 'docs/implementation-artifacts/sprint-status.yaml')
     const context = JSON.parse(fs.readFileSync(contextPath, 'utf8')) as {
       requiredDocs: string[]
       statusSource: string
       mainBranchPolicy: string
     }
-    const sprintStatus = yaml.parse(fs.readFileSync(sprintStatusPath, 'utf8'))
-    const developmentStatus = sprintStatus.development_status ?? {}
 
     // Derive expected epic: highest in-progress epic without dedicated worktree
+    // Use a fixture YAML to avoid depending on the gitignored sprint-status.yaml file
+    const fixtureSprintStatus = `
+development_status:
+  epic-1: done
+  epic-2: done
+  epic-3: done
+  epic-4: done
+  epic-5: done
+  epic-6: in-progress
+  epic-7: in-progress
+  6-1-focus-mode-activation: done
+  6-2-peripheral-dimming: done
+  6-3-background-pane-pulse-notification: done
+  6-4-focus-mode-status-display: done
+  6-5-exit-focus-mode: backlog
+  7-1-layout-directory-structure: done
+  7-2-save-current-layout: done
+  7-3-layout-auto-run-commands: done
+  7-4-load-saved-layout: backlog
+`
+    const sprintStatus = yaml.parse(fixtureSprintStatus)
+    const developmentStatus = sprintStatus.development_status ?? {}
+
+    // Parse worktree branches (same logic as repo-context.mjs lines 47-49, 56-74)
     const worktreesOutput = execFileSync('git', ['worktree', 'list'], {
       cwd: repoRoot,
       encoding: 'utf8'
@@ -58,9 +79,12 @@ describe('repo-context CLI', () => {
         return !hasWorktree
       })?.[0] ?? 'unknown'
 
+    // Set env var so repo-context.mjs uses fixture instead of the gitignored file
+    const env = { ...process.env, REPO_CONTEXT_TEST_SPRINT_STATUS: fixtureSprintStatus }
     const output = execFileSync('node', ['scripts/repo-context.mjs'], {
       cwd: repoRoot,
-      encoding: 'utf8'
+      encoding: 'utf8',
+      env: { ...env, LANGUAGE: 'en_US.UTF-8' } as NodeJS.ProcessEnv
     })
 
     expect(output).toContain('Repository Context')
