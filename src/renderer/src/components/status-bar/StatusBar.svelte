@@ -3,7 +3,7 @@
   import { layoutState } from '../../stores/layout-store.svelte'
 
   // Derived: focused pane name
-  const focusedPaneName = $derived(() => {
+  const focusedPaneName = $derived.by(() => {
     if (!workspaceUIState.isFocusMode || workspaceUIState.focusedPaneId === null) {
       return null
     }
@@ -15,7 +15,7 @@
   const isFocusModeActive = $derived(workspaceUIState.isFocusMode)
 </script>
 
-<div class="status-bar" role="status" aria-live="polite">
+<div class="status-bar" role="status" aria-live="polite" aria-label="Focus mode status">
   <div class="status-bar-left">
     <!-- Layout info placeholder for future expansion -->
     {#if layoutState.layoutName}
@@ -29,9 +29,9 @@
   </div>
 
   <div class="status-bar-right">
-    {#if isFocusModeActive && focusedPaneName()}
+    {#if isFocusModeActive && focusedPaneName}
       <span class="focus-indicator" data-testid="focus-indicator">
-        [FOCUS: {focusedPaneName()}]
+        [FOCUS: {focusedPaneName}]
       </span>
     {/if}
   </div>
