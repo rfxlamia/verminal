@@ -8,6 +8,7 @@
   import { layoutState } from './stores/layout-store.svelte'
   import { openCommandCenter } from './stores/command-center-store.svelte'
   import { openSaveLayout } from './stores/save-layout-store.svelte'
+  import { workspaceUIState, exitFocusMode } from './stores/workspace-ui-store.svelte'
 
   // Local state for inline recoverable errors
   let startupError = $state('')
@@ -75,6 +76,15 @@
       target.isContentEditable
     ) {
       return
+    }
+
+    // Esc → exit Focus Mode if active (AC #2)
+    if (event.key === 'Escape') {
+      if (workspaceUIState.isFocusMode) {
+        event.preventDefault()
+        exitFocusMode()
+        return
+      }
     }
 
     // Ctrl+Shift+S → open Save Layout Surface (Epic 7)

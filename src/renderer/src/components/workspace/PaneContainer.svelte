@@ -4,7 +4,8 @@
   import {
     workspaceUIState,
     setFocusedPaneId,
-    enterFocusMode
+    enterFocusMode,
+    exitFocusMode
   } from '../../stores/workspace-ui-store.svelte'
   import {
     layoutState,
@@ -47,15 +48,22 @@
     paneHeaderRef?.startEditExternally()
   }
 
-  // Handle double-click on header for Focus Mode activation (AC #1)
+  // Handle double-click on header for Focus Mode activation (AC #1) and exit (AC #1)
   function handleHeaderDblClick(): void {
     // AC #4: guard — harus ada lebih dari 1 pane
     if (totalPanes <= 1) return
-    // AC #5: guard — jangan re-enter jika sudah focus mode
-    if (workspaceUIState.isFocusMode) return
     // Validate this paneId still exists in current layout
     const paneExists = layoutState.panes.some((p) => p.paneId === paneId)
     if (!paneExists) return
+
+    if (workspaceUIState.isFocusMode) {
+      // AC #2 / #3: Exit Focus Mode via double-click on focused pane
+      if (paneId === workspaceUIState.focusedPaneId) {
+        exitFocusMode()
+      }
+      return
+    }
+    // Enter Focus Mode
     enterFocusMode(paneId)
   }
 

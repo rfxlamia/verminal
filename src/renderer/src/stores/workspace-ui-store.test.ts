@@ -195,4 +195,76 @@ describe('workspace-ui-store', () => {
       expect(workspaceUIState.pulsingPaneIds.has(2)).toBe(false)
     })
   })
+
+  describe('Exit Focus Mode', () => {
+    beforeEach(() => {
+      vi.resetModules()
+    })
+
+    it('stores previous focused pane ID when entering focus mode from another pane', async () => {
+      const { workspaceUIState, enterFocusMode, setFocusedPaneId } =
+        await import('./workspace-ui-store.svelte')
+      setFocusedPaneId(1)
+      enterFocusMode(2)
+
+      expect(workspaceUIState.previousFocusedPaneId).toBe(1)
+      expect(workspaceUIState.focusedPaneId).toBe(2)
+    })
+
+    it('restores previous focused pane ID when exiting focus mode', async () => {
+      const { workspaceUIState, enterFocusMode, setFocusedPaneId, exitFocusMode } =
+        await import('./workspace-ui-store.svelte')
+      setFocusedPaneId(1)
+      enterFocusMode(2)
+
+      exitFocusMode()
+
+      expect(workspaceUIState.focusedPaneId).toBe(1)
+      expect(workspaceUIState.isFocusMode).toBe(false)
+      expect(workspaceUIState.previousFocusedPaneId).toBeNull()
+    })
+
+    it('preserves current focus target if there was no previous focused pane', async () => {
+      const { workspaceUIState, enterFocusMode, exitFocusMode } =
+        await import('./workspace-ui-store.svelte')
+
+      enterFocusMode(1)
+
+      exitFocusMode()
+
+      expect(workspaceUIState.focusedPaneId).toBe(1)
+      expect(workspaceUIState.isFocusMode).toBe(false)
+    })
+
+    it('clears pulse state when exiting focus mode', async () => {
+      const { workspaceUIState, enterFocusMode, setFocusedPaneId, exitFocusMode } =
+        await import('./workspace-ui-store.svelte')
+      setFocusedPaneId(1)
+      enterFocusMode(1)
+      workspaceUIState.pulsingPaneIds.add(2)
+
+      exitFocusMode()
+
+      expect(workspaceUIState.pulsingPaneIds.size).toBe(0)
+    })
+
+    it('handles exit without prior enter as a no-op', async () => {
+      const { workspaceUIState, exitFocusMode } = await import('./workspace-ui-store.svelte')
+
+      exitFocusMode()
+
+      expect(workspaceUIState.isFocusMode).toBe(false)
+      expect(workspaceUIState.focusedPaneId).toBeNull()
+    })
+
+    it('previousFocusedPaneId is null when entering focus mode with no prior focus', async () => {
+      const { workspaceUIState, enterFocusMode } = await import('./workspace-ui-store.svelte')
+
+      // No prior focus, directly enter focus mode
+      enterFocusMode(1)
+
+      expect(workspaceUIState.previousFocusedPaneId).toBeNull()
+      expect(workspaceUIState.focusedPaneId).toBe(1)
+    })
+  })
 })

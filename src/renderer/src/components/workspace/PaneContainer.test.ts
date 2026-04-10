@@ -666,7 +666,7 @@ describe('PaneContainer', () => {
       expect(workspaceUIState.isFocusMode).toBe(false)
     })
 
-    it('does not re-enter focus mode if already active (AC #5)', async () => {
+    it('exits focus mode when double-clicking focused pane header (replaces old re-entry guard)', async () => {
       const PaneContainer = await getPaneContainer()
       const target = document.createElement('div')
       document.body.appendChild(target)
@@ -689,14 +689,88 @@ describe('PaneContainer', () => {
       expect(workspaceUIState.isFocusMode).toBe(true)
       expect(workspaceUIState.focusedPaneId).toBe(1)
 
-      // Try to double-click again
+      // Double-click on the focused pane header - this exits focus mode (AC #1)
       const header = target.querySelector('header.pane-header')
       expect(header).not.toBeNull()
 
       const dblClickEvent = new MouseEvent('dblclick', { bubbles: true })
       header!.dispatchEvent(dblClickEvent)
 
-      // Should still be focused on pane 1 (re-entry guard)
+      // Focus mode should exit (not stay active)
+      expect(workspaceUIState.isFocusMode).toBe(false)
+      expect(workspaceUIState.focusedPaneId).toBe(1) // restored to self (previousFocusedPaneId was 1)
+    })
+
+    it('double-click on focused pane exits focus mode (AC #1 / #2)', async () => {
+      const PaneContainer = await getPaneContainer()
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const { workspaceUIState, enterFocusMode } =
+        await import('../../stores/workspace-ui-store.svelte')
+      const { layoutState } = await import('../../stores/layout-store.svelte')
+
+      // Setup multi-pane layout
+      layoutState.panes = [
+        { paneId: 1, sessionId: 101, name: 'Server' },
+        { paneId: 2, sessionId: 102, name: 'Logs' }
+      ]
+
+      // Start with pane 2 focused
+      workspaceUIState.focusedPaneId = 2
+
+      mount(PaneContainer, { target, props: { paneId: 2, sessionId: 102, resizeTick: 0 } })
+
+      // Enter focus mode on pane 2
+      enterFocusMode(2)
+      expect(workspaceUIState.isFocusMode).toBe(true)
+      expect(workspaceUIState.focusedPaneId).toBe(2)
+
+      // Double-click on the focused pane header to exit
+      const header = target.querySelector('header.pane-header')
+      expect(header).not.toBeNull()
+
+      const dblClickEvent = new MouseEvent('dblclick', { bubbles: true })
+      header!.dispatchEvent(dblClickEvent)
+
+      // Verify focus mode exited
+      expect(workspaceUIState.isFocusMode).toBe(false)
+      expect(workspaceUIState.focusedPaneId).toBe(2) // restored to pane 2 (previousFocusedPaneId)
+    })
+
+    it('double-click on non-focused pane does not exit focus mode', async () => {
+      const PaneContainer = await getPaneContainer()
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      const { workspaceUIState, enterFocusMode } =
+        await import('../../stores/workspace-ui-store.svelte')
+      const { layoutState } = await import('../../stores/layout-store.svelte')
+
+      // Setup multi-pane layout
+      layoutState.panes = [
+        { paneId: 1, sessionId: 101, name: 'Server' },
+        { paneId: 2, sessionId: 102, name: 'Logs' }
+      ]
+
+      mount(PaneContainer, { target, props: { paneId: 2, sessionId: 102, resizeTick: 0 } })
+
+      // Enter focus mode on pane 1 (different pane)
+      workspaceUIState.focusedPaneId = 1
+      enterFocusMode(1)
+      expect(workspaceUIState.isFocusMode).toBe(true)
+      expect(workspaceUIState.focusedPaneId).toBe(1)
+
+      // Double-click on pane 2 (not the focused pane)
+      const header = target.querySelector('header.pane-header')
+      expect(header).not.toBeNull()
+
+      const dblClickEvent = new MouseEvent('dblclick', { bubbles: true })
+      header!.dispatchEvent(dblClickEvent)
+
+      // Should still be in focus mode (exit only happens on focused pane double-click)
       expect(workspaceUIState.isFocusMode).toBe(true)
       expect(workspaceUIState.focusedPaneId).toBe(1)
     })

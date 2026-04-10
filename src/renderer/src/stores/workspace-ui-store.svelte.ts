@@ -12,12 +12,14 @@ export interface WorkspaceUIState {
   focusedPaneId: number | null
   isFocusMode: boolean // NEW: true saat Focus Mode aktif
   pulsingPaneIds: SvelteSet<number> // NEW: panes yang sedang berpulse
+  previousFocusedPaneId: number | null // NEW: pane yang fokus sebelum enter Focus Mode
 }
 
 export const workspaceUIState = $state<WorkspaceUIState>({
   focusedPaneId: null,
   isFocusMode: false, // default: tidak ada Focus Mode
-  pulsingPaneIds: new SvelteSet<number>() // NEW
+  pulsingPaneIds: new SvelteSet<number>(), // NEW
+  previousFocusedPaneId: null // NEW
 })
 
 // Module-level timer registry (NOT reactive state – housekeeping only)
@@ -34,13 +36,32 @@ export function setFocusMode(active: boolean): void {
 
 /**
  * Activate Focus Mode on the given pane.
+ * Stores the previously focused pane ID for restoration on exit.
  * Guard: no-op if paneId is null or Focus Mode already active (AC #4, #5).
  */
 export function enterFocusMode(paneId: number | null): void {
   if (paneId === null) return
   if (workspaceUIState.isFocusMode) return // already in focus mode
+
+  workspaceUIState.previousFocusedPaneId = workspaceUIState.focusedPaneId
   workspaceUIState.focusedPaneId = paneId
   workspaceUIState.isFocusMode = true
+}
+
+/**
+ * Exit Focus Mode and restore the pane that was focused before entering.
+ * - Sets isFocusMode to false
+ * - Restores focusedPaneId to previousFocusedPaneId when available
+ * - Falls back to the current focused pane if Focus Mode was entered with no prior focus
+ * - Clears previousFocusedPaneId and pulsingPaneIds cleanup state
+ */
+export function exitFocusMode(): void {
+  const fallbackFocusedPaneId = workspaceUIState.focusedPaneId
+
+  workspaceUIState.isFocusMode = false
+  workspaceUIState.focusedPaneId = workspaceUIState.previousFocusedPaneId ?? fallbackFocusedPaneId
+  workspaceUIState.previousFocusedPaneId = null
+  workspaceUIState.pulsingPaneIds.clear()
 }
 
 /**

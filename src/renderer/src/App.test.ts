@@ -380,4 +380,94 @@ describe('App.svelte', () => {
       expect(workspaceUIState.isFocusMode).toBe(false)
     })
   })
+
+  describe('Exit Focus Mode via Esc key', () => {
+    it('exits focus mode when Esc is pressed', async () => {
+      const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
+      const mockCommandCenterOnOpen = vi.fn().mockReturnValue(() => {})
+
+      // @ts-expect-error - mocking window.api
+      window.api = {
+        quit: { onShowDialog: mockOnShowDialog, confirm: vi.fn(), cancel: vi.fn() },
+        commandCenter: { onOpen: mockCommandCenterOnOpen },
+        layout: {
+          list: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+          load: vi.fn().mockResolvedValue({
+            ok: true,
+            data: { name: 'test', layout_name: 'single', panes: [{}] }
+          }),
+          save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+          delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+        }
+      }
+
+      render(App)
+
+      // Setup: Set up layout with 2 panes and focus pane 2
+      const { layoutState } = await import('./stores/layout-store.svelte')
+      const { setFocusedPaneId, enterFocusMode, workspaceUIState } =
+        await import('./stores/workspace-ui-store.svelte')
+
+      layoutState.panes = [
+        { paneId: 1, sessionId: 101, name: 'Server' },
+        { paneId: 2, sessionId: 102, name: 'Logs' }
+      ]
+      setFocusedPaneId(2)
+      enterFocusMode(1)
+
+      expect(workspaceUIState.isFocusMode).toBe(true)
+      expect(workspaceUIState.focusedPaneId).toBe(1)
+
+      // Dispatch Escape key
+      const escEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+      window.dispatchEvent(escEvent)
+
+      // Verify focus mode exited and focus restored to pane 2
+      expect(workspaceUIState.isFocusMode).toBe(false)
+      expect(workspaceUIState.focusedPaneId).toBe(2)
+    })
+
+    it('Esc does nothing if focus mode is not active', async () => {
+      const mockOnShowDialog = vi.fn().mockReturnValue(() => {})
+      const mockCommandCenterOnOpen = vi.fn().mockReturnValue(() => {})
+
+      // @ts-expect-error - mocking window.api
+      window.api = {
+        quit: { onShowDialog: mockOnShowDialog, confirm: vi.fn(), cancel: vi.fn() },
+        commandCenter: { onOpen: mockCommandCenterOnOpen },
+        layout: {
+          list: vi.fn().mockResolvedValue({ ok: true, data: [] }),
+          load: vi.fn().mockResolvedValue({
+            ok: true,
+            data: { name: 'test', layout_name: 'single', panes: [{}] }
+          }),
+          save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+          delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+        }
+      }
+
+      render(App)
+
+      // Setup: Focus mode is NOT active
+      const { layoutState } = await import('./stores/layout-store.svelte')
+      const { setFocusedPaneId, workspaceUIState } =
+        await import('./stores/workspace-ui-store.svelte')
+
+      layoutState.panes = [
+        { paneId: 1, sessionId: 101, name: 'Server' },
+        { paneId: 2, sessionId: 102, name: 'Logs' }
+      ]
+      setFocusedPaneId(2)
+
+      expect(workspaceUIState.isFocusMode).toBe(false)
+
+      // Dispatch Escape key
+      const escEvent = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+      window.dispatchEvent(escEvent)
+
+      // Should still not be in focus mode (no-op)
+      expect(workspaceUIState.isFocusMode).toBe(false)
+      expect(workspaceUIState.focusedPaneId).toBe(2)
+    })
+  })
 })
