@@ -1,0 +1,19 @@
+name = "with-commands"
+layout_name = "mixed"
+
+[[panes]]
+pane_id = 1
+name = "Server"
+color = "blue"
+command = "npm run dev"
+
+[[panes]]
+pane_id = 2
+name = "Tests"
+color = "green"
+command = "npm test -- --watch"
+
+[[panes]]
+pane_id = 3
+name = "Logs"
+color = "teal"

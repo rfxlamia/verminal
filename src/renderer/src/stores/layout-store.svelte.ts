@@ -15,6 +15,7 @@ export interface PaneState {
   sessionId: number
   name: string
   color?: PaneColor
+  command?: string
 }
 
 export interface LayoutState {
@@ -42,12 +43,13 @@ export const layoutState = $state<LayoutState>({
  * Creates a new pane with the next sequential paneId.
  * ONLY this function may increment _paneIdCounter.
  */
-export function createPane(sessionId: number, name = ''): PaneState {
+export function createPane(sessionId: number, name = '', command?: string): PaneState {
   _paneIdCounter++
   return {
     paneId: _paneIdCounter,
     sessionId,
-    name: name || `Pane ${_paneIdCounter}`
+    name: name || `Pane ${_paneIdCounter}`,
+    command
   }
 }
 
@@ -272,5 +274,17 @@ export function recolorPaneInLayout(paneId: number, color: PaneColor | undefined
   const pane = layoutState.panes.find((p) => p.paneId === paneId)
   if (pane) {
     pane.color = color
+  }
+}
+
+/**
+ * Sets the command metadata for a pane by its paneId.
+ * No-op if pane not found.
+ * Setting command to undefined removes the command.
+ */
+export function setPaneCommandInLayout(paneId: number, command: string | undefined): void {
+  const pane = layoutState.panes.find((p) => p.paneId === paneId)
+  if (pane) {
+    pane.command = command
   }
 }

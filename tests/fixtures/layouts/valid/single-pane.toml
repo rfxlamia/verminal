@@ -1,0 +1,6 @@
+name = "single-pane"
+layout_name = "single"
+
+[[panes]]
+pane_id = 1
+name = "Main"

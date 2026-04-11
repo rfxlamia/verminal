@@ -1,14 +1,12 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte'
   import Workspace from './components/workspace/Workspace.svelte'
-  import StatusBar from './components/status-bar/StatusBar.svelte'
   import QuitDialog from './components/workspace/QuitDialog.svelte'
   import CommandCenter from './components/command-center/CommandCenter.svelte'
   import SaveLayoutSurface from './components/workspace/SaveLayoutSurface.svelte'
   import { layoutState } from './stores/layout-store.svelte'
   import { openCommandCenter } from './stores/command-center-store.svelte'
   import { openSaveLayout } from './stores/save-layout-store.svelte'
-  import { workspaceUIState, exitFocusMode } from './stores/workspace-ui-store.svelte'
 
   // Local state for inline recoverable errors
   let startupError = $state('')
@@ -18,17 +16,20 @@
   // Status bar message state (auto-clears after 3s)
   let statusMessage = $state('')
   let statusTimer: ReturnType<typeof setTimeout> | undefined
+  let statusIsError = $state(false)
 
   function setStartupError(message: string, details?: unknown): void {
     startupError = message
     console.error('[App] startup failure:', message, details)
   }
 
-  function showStatusMessage(msg: string): void {
+  function showStatusMessage(msg: string, isError = false): void {
     if (statusTimer) clearTimeout(statusTimer)
     statusMessage = msg
+    statusIsError = isError
     statusTimer = setTimeout(() => {
       statusMessage = ''
+      statusIsError = false
       statusTimer = undefined
     }, 3000)
   }
@@ -78,22 +79,13 @@
       return
     }
 
-    // Esc → exit Focus Mode if active (AC #2)
-    if (event.key === 'Escape') {
-      if (workspaceUIState.isFocusMode) {
-        event.preventDefault()
-        exitFocusMode()
-        return
-      }
-    }
-
     // Ctrl+Shift+S → open Save Layout Surface (Epic 7)
     if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'S') {
       event.preventDefault()
       // openSaveLayout() returns false when no active workspace exists
       const opened = openSaveLayout()
       if (!opened) {
-        showStatusMessage('No active workspace to save')
+        showStatusMessage('No active workspace to save', true)
       }
     }
   }
@@ -108,12 +100,16 @@
     </div>
   {/if}
   {#if statusMessage}
-    <div class="status-bar-message" role="status" aria-live="polite">
+    <div
+      class="status-bar-message"
+      class:status-bar-message--error={statusIsError}
+      role="status"
+      aria-live="polite"
+    >
       {statusMessage}
     </div>
   {/if}
   <Workspace panes={layoutState.panes} />
-  <StatusBar />
 </div>
 <CommandCenter />
 <QuitDialog />
@@ -145,5 +141,9 @@
     font-size: 13px;
     line-height: 1.5;
     text-align: center;
+  }
+
+  .status-bar-message--error {
+    background-color: #dc2626;
   }
 </style>

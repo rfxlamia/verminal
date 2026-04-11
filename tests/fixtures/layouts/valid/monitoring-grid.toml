@@ -1,0 +1,21 @@
+name = "monitoring-grid"
+layout_name = "grid"
+
+[[panes]]
+pane_id = 1
+name = "Logs"
+color = "red"
+
+[[panes]]
+pane_id = 2
+name = "Metrics"
+color = "orange"
+
+[[panes]]
+pane_id = 3
+name = "Alerts"
+
+[[panes]]
+pane_id = 4
+name = "Status"
+color = "green"
