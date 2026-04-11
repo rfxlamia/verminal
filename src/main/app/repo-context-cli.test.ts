@@ -40,7 +40,7 @@ development_status:
   epic-3: done
   epic-4: done
   epic-5: done
-  epic-6: in-progress
+  epic-6: done
   epic-7: in-progress
   6-1-focus-mode-activation: done
   6-2-peripheral-dimming: done
