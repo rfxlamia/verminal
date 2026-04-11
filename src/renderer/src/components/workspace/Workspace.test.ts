@@ -1573,11 +1573,13 @@ describe('Workspace', () => {
       // In jsdom, Svelte's scoped CSS cannot be extracted via style elements or styleSheets.
       // Instead, read the source file directly to verify the CSS rule exists (static verification).
       // This is a valid approach since the CSS is statically defined at compile time.
+      // Use import.meta.url to derive path relative to test file (works in CI too).
+      const { fileURLToPath } = await import('url');
+      const { dirname, resolve } = await import('path');
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = dirname(__filename);
       const sourceCode = await import('fs').then((fs) =>
-        fs.readFileSync(
-          '/home/v/project/verminal/src/renderer/src/components/workspace/Workspace.svelte',
-          'utf8'
-        )
+        fs.readFileSync(resolve(__dirname, 'Workspace.svelte'), 'utf8')
       )
 
       // Verify the @media rule for prefers-reduced-motion exists in the source
