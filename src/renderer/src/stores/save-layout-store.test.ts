@@ -113,6 +113,59 @@ describe('save-layout-store', () => {
       expect(storeModule.saveLayoutState.isOpen).toBe(true) // surface stays open
     })
 
+    it('returns validation error for whitespace-only pane command', async () => {
+      storeModule.openSaveLayout()
+      storeModule.saveLayoutState.nameInput = 'my-layout'
+      layoutModule.layoutState.panes = [
+        { paneId: 1, sessionId: 11, name: 'Code', command: '   ' }
+      ]
+
+      const result = await storeModule.saveCurrent()
+
+      expect(result.ok).toBe(false)
+      if (!result.ok) {
+        expect(result.error.code).toBe('VALIDATION_ERROR')
+      }
+      expect(storeModule.saveLayoutState.validationError).toContain('whitespace-only')
+      expect(mockSave).not.toHaveBeenCalled()
+      expect(storeModule.saveLayoutState.isOpen).toBe(true)
+    })
+
+    it('allows a cleared pane command to save successfully', async () => {
+      mockSave.mockResolvedValue({ ok: true, data: undefined })
+      storeModule.openSaveLayout()
+      storeModule.saveLayoutState.nameInput = 'my-layout'
+      layoutModule.layoutState.panes = [
+        { paneId: 1, sessionId: 11, name: 'Code', command: '' }
+      ]
+
+      const result = await storeModule.saveCurrent()
+
+      expect(result.ok).toBe(true)
+      expect(mockSave).toHaveBeenCalledOnce()
+      expect(storeModule.saveLayoutState.validationError).toBe('')
+      expect(storeModule.saveLayoutState.isOpen).toBe(false)
+    })
+
+    it('rejects whitespace-only pane commands and keeps the surface open', async () => {
+      mockSave.mockResolvedValue({ ok: true, data: undefined })
+      storeModule.openSaveLayout()
+      storeModule.saveLayoutState.nameInput = 'my-layout'
+      layoutModule.layoutState.panes = [
+        { paneId: 1, sessionId: 11, name: 'Code', command: '   ' }
+      ]
+
+      const result = await storeModule.saveCurrent()
+
+      expect(result.ok).toBe(false)
+      if (!result.ok) {
+        expect(result.error.code).toBe('VALIDATION_ERROR')
+      }
+      expect(storeModule.saveLayoutState.validationError).toContain('whitespace-only')
+      expect(mockSave).not.toHaveBeenCalled()
+      expect(storeModule.saveLayoutState.isOpen).toBe(true)
+    })
+
     it('calls window.api.layout.save with correct args on valid input', async () => {
       mockSave.mockResolvedValue({ ok: true, data: undefined })
       storeModule.openSaveLayout()

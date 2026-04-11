@@ -15,6 +15,16 @@ function getLayoutsDir(): string {
   return path.join(getConfigPath(), 'layouts')
 }
 
+function slugifyLayoutName(name: string): string {
+  const slug = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+  return slug || 'layout'
+}
+
 function isValidLayoutName(name: string): boolean {
   // Reject empty or whitespace-only names
   if (!name || name.trim().length === 0) return false
@@ -135,9 +145,14 @@ export function listLayouts(): Result<SavedLayoutSummary[]> {
           console.warn(`[layout-manager] Skipping file "${file}": layout_name missing or invalid`)
           continue
         }
+        const displayName = (parsed as Record<string, unknown>).name
+        if (typeof displayName !== 'string') {
+          console.warn(`[layout-manager] Skipping file "${file}": name missing or invalid`)
+          continue
+        }
         // Only include if layout_name is valid
         if (isValidLayoutNameString(layoutName)) {
-          summaries.push({ name, layout_name: layoutName })
+          summaries.push({ name: displayName, layout_name: layoutName })
         }
       } catch (error) {
         // Log parse errors for debugging but continue processing other files
@@ -172,7 +187,7 @@ export function loadLayout(name: string): Result<SavedLayoutData> {
     }
   }
 
-  const layoutFile = path.join(getLayoutsDir(), `${name}.toml`)
+  const layoutFile = path.join(getLayoutsDir(), `${slugifyLayoutName(name)}.toml`)
 
   try {
     if (!fs.existsSync(layoutFile)) {
@@ -251,7 +266,7 @@ export async function saveLayout(name: string, data: SavedLayoutData): Promise<R
   }
 
   const content = stringify(tomlObj)
-  const filePath = path.join(layoutsDir, `${name}.toml`)
+  const filePath = path.join(layoutsDir, `${slugifyLayoutName(name)}.toml`)
 
   try {
     await atomicWrite(filePath, content)

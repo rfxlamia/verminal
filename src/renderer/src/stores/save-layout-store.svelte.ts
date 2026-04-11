@@ -26,6 +26,18 @@ function hasActiveWorkspace(): boolean {
   return layoutState.layoutName.trim().length > 0 && layoutState.panes.length > 0
 }
 
+function validatePaneCommands(): string {
+  const invalidPane = layoutState.panes.find((pane) => {
+    if (typeof pane.command !== 'string') return false
+    return pane.command.length > 0 && pane.command.trim().length === 0
+  })
+
+  if (!invalidPane) return ''
+
+  const paneLabel = invalidPane.name || `Pane ${invalidPane.paneId}`
+  return `Command for ${paneLabel} cannot be whitespace-only`
+}
+
 /**
  * Client-side validation mirroring main's isValidLayoutName().
  * Returns error message string or '' if valid.
@@ -86,12 +98,16 @@ export async function saveCurrent(): Promise<Result<string>> {
     return { ok: false, error: { code: 'VALIDATION_ERROR', message: err } }
   }
 
+  const commandErr = validatePaneCommands()
+  if (commandErr) {
+    saveLayoutState.validationError = commandErr
+    return { ok: false, error: { code: 'VALIDATION_ERROR', message: commandErr } }
+  }
+
   saveLayoutState.validationError = ''
   saveLayoutState.isSaving = true
 
   try {
-    // command validation - scope Story 7.3
-
     const data = serializeLayoutForSave(name, layoutState)
 
     // Guard: IPC bridge must be available

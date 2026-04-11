@@ -65,13 +65,13 @@ describe('layout-manager', () => {
       vi.mocked(fs.readFileSync).mockImplementation((filepath: unknown) => {
         const path = String(filepath)
         if (path.includes('dev-workspace')) {
-          return 'name = "dev-workspace"\nlayout_name = "horizontal"\npanes = []'
+          return 'name = "Dev Workspace"\nlayout_name = "horizontal"\npanes = []'
         }
         if (path.includes('personal')) {
-          return 'name = "personal"\nlayout_name = "single"\npanes = []'
+          return 'name = "Personal Layout"\nlayout_name = "single"\npanes = []'
         }
         if (path.includes('work')) {
-          return 'name = "work"\nlayout_name = "grid"\npanes = []'
+          return 'name = "Work Setup"\nlayout_name = "grid"\npanes = []'
         }
         return ''
       })
@@ -82,9 +82,9 @@ describe('layout-manager', () => {
       if (result.ok) {
         expect(result.data).toHaveLength(3)
         expect(result.data).toEqual([
-          { name: 'dev-workspace', layout_name: 'horizontal' },
-          { name: 'personal', layout_name: 'single' },
-          { name: 'work', layout_name: 'grid' }
+          { name: 'Dev Workspace', layout_name: 'horizontal' },
+          { name: 'Personal Layout', layout_name: 'single' },
+          { name: 'Work Setup', layout_name: 'grid' }
         ] as SavedLayoutSummary[])
       }
     })
@@ -299,6 +299,32 @@ name = "Bottom Right"
       }
     })
 
+    it('loads a layout by slugified filename when given a display name with spaces', () => {
+      vi.mocked(fs.existsSync).mockImplementation((filePath: unknown) => {
+        return String(filePath).endsWith('my-workspace.toml')
+      })
+      vi.mocked(fs.readFileSync).mockImplementation((filePath: unknown) => {
+        expect(String(filePath)).toContain('my-workspace.toml')
+        return `
+name = "My Workspace"
+layout_name = "horizontal"
+
+[[panes]]
+pane_id = 1
+name = "Editor"
+`
+      })
+
+      const result = loadLayout('My Workspace')
+
+      expect(result.ok).toBe(true)
+      if (result.ok) {
+        expect(result.data.name).toBe('My Workspace')
+        expect(result.data.layout_name).toBe('horizontal')
+        expect(result.data.panes).toHaveLength(1)
+      }
+    })
+
     it('returns LAYOUT_INVALID_DATA error when pane has invalid pane_id', () => {
       vi.mocked(fs.existsSync).mockReturnValue(true)
       vi.mocked(fs.readFileSync).mockReturnValue(`
@@ -494,6 +520,26 @@ color = "teal"
         recursive: true
       })
       expect(atomicWriteMock).toHaveBeenCalled()
+    })
+
+    it('writes slugified layout filenames while preserving display names in TOML', async () => {
+      vi.mocked(fs.promises.mkdir).mockResolvedValue(undefined)
+      const atomicWriteMock = vi.mocked(atomicWrite).mockImplementation(() => undefined)
+
+      const data: SavedLayoutData = {
+        name: 'My Workspace',
+        layout_name: 'horizontal',
+        panes: [{ pane_id: 1, name: 'Editor' }]
+      }
+
+      const result = await saveLayout('My Workspace', data)
+
+      expect(result.ok).toBe(true)
+      expect(atomicWriteMock).toHaveBeenCalledTimes(1)
+      expect(atomicWriteMock).toHaveBeenCalledWith(
+        '/home/test/.verminal/layouts/my-workspace.toml',
+        expect.stringContaining('name = "My Workspace"')
+      )
     })
   })
 })

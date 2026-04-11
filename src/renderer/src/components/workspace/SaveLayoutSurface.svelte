@@ -105,20 +105,19 @@
           {#each layoutState.panes as pane, i (pane.paneId)}
             <div class="pane-command-row">
               <span class="pane-name">{pane.name || `Pane ${pane.paneId}`}</span>
-              <input
-                class="pane-command-input"
-                type="text"
-                placeholder="command to run on load..."
-                value={pane.command ?? ''}
-                oninput={(e) => {
-                  const val = (e.target as HTMLInputElement).value
-                  const next = val.trim() || undefined
-                  // Replace entire panes array to ensure Svelte 5 reactivity detects the change
-                  layoutState.panes = layoutState.panes.map((p, idx) =>
-                    idx === i ? { ...p, command: next } : p
-                  )
-                }}
-              />
+                <input
+                  class="pane-command-input"
+                  type="text"
+                  placeholder="command to run on load..."
+                  value={pane.command ?? ''}
+                  oninput={(e) => {
+                    const val = (e.target as HTMLInputElement).value
+                    // Replace entire panes array to ensure Svelte 5 reactivity detects the change
+                    layoutState.panes = layoutState.panes.map((p, idx) =>
+                      idx === i ? { ...p, command: val } : p
+                    )
+                  }}
+                />
             </div>
           {/each}
         </div>

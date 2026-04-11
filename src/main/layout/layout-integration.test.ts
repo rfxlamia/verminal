@@ -40,7 +40,7 @@ describe('Layout TOML Integration', () => {
 
   it('produces valid TOML with snake_case keys via saveLayout() (AC #3, #4)', async () => {
     const data: SavedLayoutData = {
-      name: 'dev-setup',
+      name: 'Dev Workspace',
       layout_name: 'horizontal',
       panes: [
         { pane_id: 1, name: 'Editor', color: 'blue' },
@@ -49,16 +49,16 @@ describe('Layout TOML Integration', () => {
     }
 
     // Use actual production saveLayout function
-    const result = await saveLayout('dev-setup', data)
+    const result = await saveLayout('Dev Workspace', data)
     expect(result.ok).toBe(true)
 
-    const filePath = path.join(layoutsDir, 'dev-setup.toml')
+    const filePath = path.join(layoutsDir, 'dev-workspace.toml')
     expect(fs.existsSync(filePath)).toBe(true)
 
     // Parseable TOML
     const parsed = parse(fs.readFileSync(filePath, 'utf-8'))
     expect(parsed).toMatchObject({
-      name: 'dev-setup',
+      name: 'Dev Workspace',
       layout_name: 'horizontal'
     })
 
@@ -119,6 +119,27 @@ describe('Layout TOML Integration', () => {
     expect(content).not.toContain('session_id')
   })
 
+  it('uses slugified filenames while preserving display names in TOML', async () => {
+    const data: SavedLayoutData = {
+      name: 'My Workspace',
+      layout_name: 'single',
+      panes: [{ pane_id: 1, name: 'Main' }]
+    }
+
+    const result = await saveLayout('My Workspace', data)
+    expect(result.ok).toBe(true)
+
+    const filePath = path.join(layoutsDir, 'my-workspace.toml')
+    expect(fs.existsSync(filePath)).toBe(true)
+
+    const loaded = loadLayout('My Workspace')
+    expect(loaded.ok).toBe(true)
+    if (loaded.ok) {
+      expect(loaded.data.name).toBe('My Workspace')
+      expect(loaded.data.layout_name).toBe('single')
+    }
+  })
+
   it('loads saved layout correctly via loadLayout()', async () => {
     const data: SavedLayoutData = {
       name: 'roundtrip-test',
@@ -150,6 +171,27 @@ describe('Layout TOML Integration', () => {
       })
       // AC #4: verify pane WITHOUT command loads correctly
       expect(loaded.data.panes[0].command).toBeUndefined()
+    }
+  })
+
+  it('loads a slugified filename when addressed by display name', async () => {
+    const data: SavedLayoutData = {
+      name: 'My Workspace',
+      layout_name: 'single',
+      panes: [{ pane_id: 1, name: 'Main' }]
+    }
+
+    await saveLayout('My Workspace', data)
+    expect(fs.existsSync(path.join(layoutsDir, 'my-workspace.toml'))).toBe(true)
+
+    const loaded = loadLayout('My Workspace')
+
+    expect(loaded.ok).toBe(true)
+    if (loaded.ok) {
+      expect(loaded.data.name).toBe('My Workspace')
+      expect(loaded.data.layout_name).toBe('single')
+      expect(loaded.data.panes).toHaveLength(1)
+      expect(loaded.data.panes[0].name).toBe('Main')
     }
   })
 })
