@@ -116,9 +116,7 @@ describe('save-layout-store', () => {
     it('returns validation error for whitespace-only pane command', async () => {
       storeModule.openSaveLayout()
       storeModule.saveLayoutState.nameInput = 'my-layout'
-      layoutModule.layoutState.panes = [
-        { paneId: 1, sessionId: 11, name: 'Code', command: '   ' }
-      ]
+      layoutModule.layoutState.panes = [{ paneId: 1, sessionId: 11, name: 'Code', command: '   ' }]
 
       const result = await storeModule.saveCurrent()
 
@@ -135,9 +133,7 @@ describe('save-layout-store', () => {
       mockSave.mockResolvedValue({ ok: true, data: undefined })
       storeModule.openSaveLayout()
       storeModule.saveLayoutState.nameInput = 'my-layout'
-      layoutModule.layoutState.panes = [
-        { paneId: 1, sessionId: 11, name: 'Code', command: '' }
-      ]
+      layoutModule.layoutState.panes = [{ paneId: 1, sessionId: 11, name: 'Code', command: '' }]
 
       const result = await storeModule.saveCurrent()
 
@@ -151,9 +147,7 @@ describe('save-layout-store', () => {
       mockSave.mockResolvedValue({ ok: true, data: undefined })
       storeModule.openSaveLayout()
       storeModule.saveLayoutState.nameInput = 'my-layout'
-      layoutModule.layoutState.panes = [
-        { paneId: 1, sessionId: 11, name: 'Code', command: '   ' }
-      ]
+      layoutModule.layoutState.panes = [{ paneId: 1, sessionId: 11, name: 'Code', command: '   ' }]
 
       const result = await storeModule.saveCurrent()
 

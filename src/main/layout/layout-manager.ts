@@ -129,7 +129,6 @@ export function listLayouts(): Result<SavedLayoutSummary[]> {
     // Read each layout file to extract summary (name + layout_name)
     const summaries: SavedLayoutSummary[] = []
     for (const file of tomlFiles) {
-      const name = file.slice(0, -5) // Remove .toml extension
       const layoutFile = path.join(layoutsDir, file)
       try {
         const content = fs.readFileSync(layoutFile, 'utf-8')
