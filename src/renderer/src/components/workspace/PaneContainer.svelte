@@ -28,6 +28,12 @@
   // Derive focus state for this pane - single source of truth
   let isFocused = $derived(workspaceUIState.focusedPaneId === paneId)
 
+  // Reference to the pane container element for focus restoration
+  let paneContainerEl: HTMLDivElement | undefined = $state()
+
+  // Timeout ID for deferred exit focus mode (200ms animation)
+  let exitFocusModeTimeout: ReturnType<typeof setTimeout> | undefined
+
   // Read pane name from layoutState — default "Pane N" name is set by createPane()
   let paneName = $derived(
     (layoutState.panes ?? []).find((p) => p.paneId === paneId)?.name ?? `Pane ${paneId}`
@@ -59,13 +65,29 @@
     if (workspaceUIState.isFocusMode) {
       // AC #2 / #3: Exit Focus Mode via double-click on focused pane
       if (paneId === workspaceUIState.focusedPaneId) {
-        exitFocusMode()
+        // AC #1: Exit with reverse animation - state change completes when animation ends (200ms)
+        // Use setTimeout as a fallback since transitionend may not fire in all environments
+        exitFocusModeTimeout = setTimeout(() => {
+          exitFocusMode()
+          // AC #2: Restore keyboard focus to the terminal when exit transition completes
+          paneContainerEl?.querySelector('.pane-terminal-area')?.focus()
+          exitFocusModeTimeout = undefined
+        }, 200)
       }
       return
     }
     // Enter Focus Mode
     enterFocusMode(paneId)
   }
+
+  // Clean up timeout on destroy to prevent stale callbacks
+  $effect(() => {
+    return () => {
+      if (exitFocusModeTimeout) {
+        clearTimeout(exitFocusModeTimeout)
+      }
+    }
+  })
 
   // Handle rename from PaneHeader edit mode
   function handleRename(newName: string): void {
@@ -116,6 +138,7 @@
   role="button"
   tabindex="0"
   aria-label="Terminal pane {paneId}"
+  bind:this={paneContainerEl}
 >
   <PaneHeader
     {paneId}

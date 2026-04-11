@@ -4,9 +4,15 @@
   import QuitDialog from './components/workspace/QuitDialog.svelte'
   import CommandCenter from './components/command-center/CommandCenter.svelte'
   import SaveLayoutSurface from './components/workspace/SaveLayoutSurface.svelte'
+  import StatusBar from './components/status-bar/StatusBar.svelte'
   import { layoutState } from './stores/layout-store.svelte'
+  import { workspaceUIState } from './stores/workspace-ui-store.svelte'
+  import { exitFocusMode } from './stores/workspace-ui-store.svelte'
   import { openCommandCenter } from './stores/command-center-store.svelte'
   import { openSaveLayout } from './stores/save-layout-store.svelte'
+
+  // Timeout ID for deferred Esc exit (200ms animation matching CSS transition)
+  let escExitTimeout: ReturnType<typeof setTimeout> | undefined
 
   // Local state for inline recoverable errors
   let startupError = $state('')
@@ -66,6 +72,7 @@
     isMounted = false
     unsubCommandCenter?.()
     if (statusTimer) clearTimeout(statusTimer)
+    if (escExitTimeout) clearTimeout(escExitTimeout)
   })
 
   function handleGlobalKeydown(event: KeyboardEvent): void {
@@ -76,6 +83,23 @@
       target instanceof HTMLTextAreaElement ||
       target.isContentEditable
     ) {
+      return
+    }
+
+    // Escape → exit Focus Mode (AC #2: restore focus after 200ms animation)
+    if (event.key === 'Escape' && workspaceUIState.isFocusMode) {
+      event.preventDefault()
+      // Guard: clear any pending exit timeout to prevent double-exit
+      if (escExitTimeout) clearTimeout(escExitTimeout)
+      escExitTimeout = setTimeout(() => {
+        exitFocusMode()
+        // AC #2: Restore keyboard focus to the previously focused pane's terminal
+        const focusedPaneId = workspaceUIState.focusedPaneId
+        if (focusedPaneId !== null) {
+          document.querySelector(`[data-pane-id="${focusedPaneId}"] .pane-terminal-area`)?.focus()
+        }
+        escExitTimeout = undefined
+      }, 200)
       return
     }
 
@@ -110,6 +134,7 @@
     </div>
   {/if}
   <Workspace panes={layoutState.panes} />
+  <StatusBar />
 </div>
 <CommandCenter />
 <QuitDialog />

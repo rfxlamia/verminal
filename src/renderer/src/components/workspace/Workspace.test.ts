@@ -1551,6 +1551,41 @@ describe('Workspace', () => {
       // via visual/manual testing since scoped Svelte CSS is not queryable
       // in the unit test environment. The rule exists in Workspace.svelte.
     })
+
+    it('has @media (prefers-reduced-motion: reduce) rule for is-dimmed (AC #5)', async () => {
+      const Workspace = await getWorkspace()
+      const target = document.createElement('div')
+      target.style.width = '800px'
+      target.style.height = '600px'
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+
+      mount(Workspace, {
+        target,
+        props: {
+          panes: [{ paneId: 1, sessionId: 101 }]
+        }
+      })
+
+      await vi.runAllTimersAsync()
+
+      // In jsdom, Svelte's scoped CSS cannot be extracted via style elements or styleSheets.
+      // Instead, read the source file directly to verify the CSS rule exists (static verification).
+      // This is a valid approach since the CSS is statically defined at compile time.
+      const sourceCode = await import('fs').then((fs) =>
+        fs.readFileSync(
+          '/home/v/project/verminal/src/renderer/src/components/workspace/Workspace.svelte',
+          'utf8'
+        )
+      )
+
+      // Verify the @media rule for prefers-reduced-motion exists in the source
+      expect(sourceCode).toMatch(/@media\s*\(\s*prefers-reduced-motion\s*:\s*reduce\s*\)/)
+
+      // Verify the rule targets .is-dimmed with transition: none
+      expect(sourceCode).toMatch(/\.is-dimmed\s*\{[^}]*transition\s*:\s*none/)
+    })
   })
 
   describe('Background Pane Pulse Notification', () => {

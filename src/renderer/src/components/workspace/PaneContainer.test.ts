@@ -667,6 +667,7 @@ describe('PaneContainer', () => {
     })
 
     it('exits focus mode when double-clicking focused pane header (replaces old re-entry guard)', async () => {
+      vi.useFakeTimers()
       const PaneContainer = await getPaneContainer()
       const target = document.createElement('div')
       document.body.appendChild(target)
@@ -696,12 +697,18 @@ describe('PaneContainer', () => {
       const dblClickEvent = new MouseEvent('dblclick', { bubbles: true })
       header!.dispatchEvent(dblClickEvent)
 
+      // AC #1: exitFocusMode() executes when animation ends (200ms), not immediately
+      // Advance timers past the 200ms animation duration
+      await vi.advanceTimersByTimeAsync(200)
+      await Promise.resolve() // flush Svelte reactive updates
+
       // Focus mode should exit (not stay active)
       expect(workspaceUIState.isFocusMode).toBe(false)
       expect(workspaceUIState.focusedPaneId).toBe(1) // restored to self (previousFocusedPaneId was 1)
     })
 
     it('double-click on focused pane exits focus mode (AC #1 / #2)', async () => {
+      vi.useFakeTimers()
       const PaneContainer = await getPaneContainer()
       const target = document.createElement('div')
       document.body.appendChild(target)
@@ -733,6 +740,11 @@ describe('PaneContainer', () => {
 
       const dblClickEvent = new MouseEvent('dblclick', { bubbles: true })
       header!.dispatchEvent(dblClickEvent)
+
+      // AC #1: exitFocusMode() executes when animation ends (200ms), not immediately
+      // Advance timers past the 200ms animation duration
+      await vi.advanceTimersByTimeAsync(200)
+      await Promise.resolve() // flush Svelte reactive updates
 
       // Verify focus mode exited
       expect(workspaceUIState.isFocusMode).toBe(false)

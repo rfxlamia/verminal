@@ -155,6 +155,7 @@
     visibility: visible; /* AC #3: panes remain visible, not hidden */
     opacity: 0.1; /* AC #2: 10% opacity for background panes */
     transition: opacity 200ms ease-out; /* AC #4: smooth transition */
+    pointer-events: none; /* in-scope: prevent interaction with dimmed panes */
   }
 
   /* Focused pane stays at full opacity (AC #1) */
