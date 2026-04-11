@@ -1120,4 +1120,266 @@ describe('CommandCenter', () => {
       vi.unstubAllGlobals()
     })
   })
+
+  describe('executeSavedLayoutFlow', () => {
+    it('executes saved pane commands only after the new layout has been committed', async () => {
+      vi.useFakeTimers()
+
+      const mockPtySpawn = vi
+        .fn()
+        .mockResolvedValueOnce({ ok: true, data: { sessionId: 201 } })
+        .mockResolvedValueOnce({ ok: true, data: { sessionId: 202 } })
+      const mockPtyWrite = vi.fn().mockResolvedValue({ ok: true, data: undefined })
+      const mockShellDetect = vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] })
+      const mockGetPaths = vi
+        .fn()
+        .mockResolvedValue({ ok: true, data: { home: '/home/test', userData: '', logsDir: '' } })
+      const savedLayouts: SavedLayoutSummary[] = [
+        { name: 'test-layout', layout_name: 'horizontal' }
+      ]
+      const mockLayoutList = vi.fn().mockResolvedValue({ ok: true, data: savedLayouts })
+      const mockLayoutLoad = vi.fn().mockResolvedValue({
+        ok: true,
+        data: {
+          name: 'test-layout',
+          layout_name: 'horizontal',
+          panes: [
+            { pane_id: 1, command: 'echo first' },
+            { pane_id: 2, command: 'echo second' }
+          ]
+        }
+      })
+
+      vi.stubGlobal('window', {
+        api: {
+          shell: { detect: mockShellDetect },
+          app: { getPaths: mockGetPaths },
+          pty: {
+            spawn: mockPtySpawn,
+            write: mockPtyWrite,
+            kill: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+          },
+          layout: {
+            list: mockLayoutList,
+            load: mockLayoutLoad,
+            save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+            delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+          }
+        }
+      })
+
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter, commandCenterState } =
+        await import('../../stores/command-center-store.svelte')
+      const { resetLayoutState } = await import('../../stores/layout-store.svelte')
+
+      resetLayoutState()
+      openCommandCenter()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+      await tick()
+
+      // Select saved layout and submit
+      const savedListEl = target.querySelector('.saved-layout-list')
+      expect(savedListEl).not.toBeNull()
+      ;(savedListEl as HTMLElement).focus()
+
+      const keydownEventEnter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })
+      savedListEl?.dispatchEvent(keydownEventEnter)
+
+      // Wait for async operations (advance fake timers instead of waiting real time)
+      await vi.advanceTimersByTimeAsync(200)
+      await tick()
+
+      // Verify pty.spawn was called for both panes
+      expect(mockPtySpawn).toHaveBeenCalledTimes(2)
+
+      // Advance timers to trigger the pending command execution
+      vi.advanceTimersByTime(60)
+
+      // Verify pty.write was called with commands (after layout commit + 50ms delay)
+      expect(mockPtyWrite).toHaveBeenCalledWith(201, 'echo first\n')
+      expect(mockPtyWrite).toHaveBeenCalledWith(202, 'echo second\n')
+
+      // Command Center should be closed
+      expect(commandCenterState.isOpen).toBe(false)
+
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
+    })
+
+    it('keeps workspace unchanged when layout.load returns LAYOUT_INVALID_TOML', async () => {
+      const mockShellDetect = vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] })
+      const savedLayouts: SavedLayoutSummary[] = [
+        { name: 'test-layout', layout_name: 'horizontal' }
+      ]
+      const mockLayoutList = vi.fn().mockResolvedValue({ ok: true, data: savedLayouts })
+      const mockLayoutLoad = vi.fn().mockResolvedValue({
+        ok: false,
+        error: { code: 'LAYOUT_INVALID_TOML', message: 'Invalid TOML format' }
+      })
+
+      vi.stubGlobal('window', {
+        api: {
+          shell: { detect: mockShellDetect },
+          app: { getPaths: vi.fn() },
+          pty: {
+            spawn: vi.fn().mockResolvedValue({ ok: true, data: { sessionId: 1 } }),
+            kill: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+          },
+          layout: {
+            list: mockLayoutList,
+            load: mockLayoutLoad,
+            save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+            delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+          }
+        }
+      })
+
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter } = await import('../../stores/command-center-store.svelte')
+      const { resetLayoutState } = await import('../../stores/layout-store.svelte')
+
+      resetLayoutState()
+      openCommandCenter()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+      await tick()
+
+      // Select saved layout and submit
+      const savedListEl = target.querySelector('.saved-layout-list')
+      expect(savedListEl).not.toBeNull()
+      ;(savedListEl as HTMLElement).focus()
+
+      const keydownEventEnter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })
+      savedListEl?.dispatchEvent(keydownEventEnter)
+
+      // Wait for async operations
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      await tick()
+
+      // Verify pty.spawn was never called (workspace unchanged)
+      const mockPtySpawn = vi.mocked(window.api.pty.spawn)
+      expect(mockPtySpawn).not.toHaveBeenCalled()
+
+      // Verify error is shown in Command Center (message contains the error description)
+      const errorEl = target.querySelector('.saved-layouts-error')
+      expect(errorEl).not.toBeNull()
+      expect(errorEl?.textContent).toContain('Invalid TOML format')
+
+      vi.unstubAllGlobals()
+    })
+
+    it('kills spawned sessions on validation failure after spawn', async () => {
+      vi.useFakeTimers()
+
+      const mockShellDetect = vi.fn().mockResolvedValue({ ok: true, data: ['/bin/bash'] })
+      const mockGetPaths = vi
+        .fn()
+        .mockResolvedValue({ ok: true, data: { home: '/home/test', userData: '', logsDir: '' } })
+      let spawnCount = 0
+      const mockPtySpawn = vi.fn().mockImplementation(() => {
+        spawnCount++
+        // Only allow 2 spawns, then return error to trigger error path
+        if (spawnCount <= 2) {
+          return Promise.resolve({ ok: true, data: { sessionId: 300 + spawnCount } })
+        }
+        return Promise.resolve({
+          ok: false,
+          error: { code: 'SPAWN_ERROR', message: 'Simulated spawn failure' }
+        })
+      })
+      const mockPtyKill = vi.fn().mockResolvedValue({ ok: true, data: undefined })
+      const savedLayouts: SavedLayoutSummary[] = [
+        { name: 'mismatched-layout', layout_name: 'horizontal' }
+      ]
+      const mockLayoutList = vi.fn().mockResolvedValue({ ok: true, data: savedLayouts })
+      // Layout says 'horizontal' (expects 2 panes) but provides 3 panes
+      const mockLayoutLoad = vi.fn().mockResolvedValue({
+        ok: true,
+        data: {
+          name: 'mismatched-layout',
+          layout_name: 'horizontal',
+          panes: [{ pane_id: 1 }, { pane_id: 2 }, { pane_id: 3 }]
+        }
+      })
+
+      vi.stubGlobal('window', {
+        api: {
+          shell: { detect: mockShellDetect },
+          app: { getPaths: mockGetPaths },
+          pty: {
+            spawn: mockPtySpawn,
+            kill: mockPtyKill,
+            write: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+          },
+          layout: {
+            list: mockLayoutList,
+            load: mockLayoutLoad,
+            save: vi.fn().mockResolvedValue({ ok: true, data: undefined }),
+            delete: vi.fn().mockResolvedValue({ ok: true, data: undefined })
+          }
+        }
+      })
+
+      const CommandCenter = await getCommandCenter()
+      const { openCommandCenter } = await import('../../stores/command-center-store.svelte')
+      const { resetLayoutState } = await import('../../stores/layout-store.svelte')
+
+      resetLayoutState()
+      openCommandCenter()
+
+      const target = document.createElement('div')
+      document.body.appendChild(target)
+
+      const { mount } = await import('svelte')
+      mount(CommandCenter, { target })
+
+      await tick()
+      await tick()
+
+      // Select saved layout and submit
+      const savedListEl = target.querySelector('.saved-layout-list')
+      expect(savedListEl).not.toBeNull()
+      ;(savedListEl as HTMLElement).focus()
+
+      const keydownEventEnter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })
+      savedListEl?.dispatchEvent(keydownEventEnter)
+
+      // Wait for async operations (advance fake timers instead of waiting real time)
+      await vi.advanceTimersByTimeAsync(200)
+      await tick()
+
+      // Verify pty.spawn was called for 3 panes (validation fails post-spawn)
+      expect(spawnCount).toBe(3)
+
+      // Verify pty.kill was called for cleanup (only 2 sessions were successfully spawned before error)
+      // Session 303 was never added because the 3rd spawn call returns an error
+      expect(mockPtyKill).toHaveBeenCalledWith(301)
+      expect(mockPtyKill).toHaveBeenCalledWith(302)
+
+      // Verify pty.write was never called (command execution should not happen)
+      const mockPtyWrite = vi.mocked(window.api.pty.write)
+      expect(mockPtyWrite).not.toHaveBeenCalled()
+
+      // Verify error is shown
+      const errorEl = target.querySelector('.saved-layouts-error')
+      expect(errorEl).not.toBeNull()
+
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
+    })
+  })
 })

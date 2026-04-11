@@ -12,7 +12,10 @@ export function serializeLayoutForSave(displayName: string, state: LayoutState):
     if (pane.name) out.name = pane.name
     // Only include color if it's a valid PaneColor
     if (pane.color && isValidPaneColor(pane.color)) out.color = pane.color
-    // command excluded - scope Story 7.3
+    if (pane.command) {
+      const trimmed = pane.command.trim()
+      if (trimmed) out.command = trimmed
+    }
     return out
   })
 

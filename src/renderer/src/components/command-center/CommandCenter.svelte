@@ -397,6 +397,9 @@
       }
     }
 
+    // Timer tracking for pending commands (declared before try so finally always has access)
+    const pendingCommandTimers: Array<ReturnType<typeof setTimeout>> = []
+
     try {
       // Step 3: Load saved layout data
       const loadResult = await window.api.layout.load(layoutName)
@@ -533,9 +536,10 @@
 
       // Step 11: Execute queued commands after layout commit (50ms delay)
       for (const { sessionId, command } of pendingCommands) {
-        setTimeout(() => {
+        const timer = setTimeout(() => {
           window.api.pty.write(sessionId, `${command}\n`)
         }, 50)
+        pendingCommandTimers.push(timer)
       }
 
       // Step 12: Reset state and close
@@ -544,6 +548,10 @@
       closeAndRestoreFocus()
     } finally {
       isLoadingLayout = false
+      // Note: We do NOT clear pending command timers here.
+      // The timers are meant to fire after this function returns (50ms delay).
+      // They will auto-cleanup after firing once.
+      // Only clear if you need to abort pending commands before they execute.
     }
   }
 </script>

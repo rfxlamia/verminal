@@ -8,6 +8,7 @@
 -->
 <script lang="ts">
   import { tick } from 'svelte'
+  import { layoutState } from '../../stores/layout-store.svelte'
   import {
     saveLayoutState,
     closeSaveLayout,
@@ -95,7 +96,33 @@
           {saveLayoutState.validationError}
         </p>
       {/if}
-      <!-- Pane commands scope Story 7.3 -->
+      <details class="pane-commands">
+        <summary class="pane-commands-summary">
+          <span class="pane-commands-label">Pane Commands</span>
+          <span class="pane-commands-hint">(optional)</span>
+        </summary>
+        <div class="pane-commands-list">
+          {#each layoutState.panes as pane, i (pane.paneId)}
+            <div class="pane-command-row">
+              <span class="pane-name">{pane.name || `Pane ${pane.paneId}`}</span>
+              <input
+                class="pane-command-input"
+                type="text"
+                placeholder="command to run on load..."
+                value={pane.command ?? ''}
+                oninput={(e) => {
+                  const val = (e.target as HTMLInputElement).value
+                  const next = val.trim() || undefined
+                  // Replace entire panes array to ensure Svelte 5 reactivity detects the change
+                  layoutState.panes = layoutState.panes.map((p, idx) =>
+                    idx === i ? { ...p, command: next } : p
+                  )
+                }}
+              />
+            </div>
+          {/each}
+        </div>
+      </details>
       <div class="save-layout-actions">
         <button
           class="save-layout-btn save-layout-btn--cancel"
