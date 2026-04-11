@@ -174,34 +174,6 @@ describe('save-layout-store', () => {
       await firstSavePromise
     })
 
-    it('serializeLayoutForSave includes pane command from layoutState', async () => {
-      layoutModule.layoutState.panes = [
-        { paneId: 1, sessionId: 11, name: 'Dev', command: 'npm run dev' },
-        { paneId: 2, sessionId: 12, name: 'Logs', command: 'tail -f /var/log/syslog' }
-      ]
-      mockSave.mockResolvedValue({ ok: true, data: undefined })
-      storeModule.openSaveLayout()
-      storeModule.saveLayoutState.nameInput = 'test-layout'
-      await storeModule.saveCurrent()
-      expect(mockSave).toHaveBeenCalledWith(
-        'test-layout',
-        expect.objectContaining({
-          panes: expect.arrayContaining([
-            expect.objectContaining({ command: 'npm run dev' }),
-            expect.objectContaining({ command: 'tail -f /var/log/syslog' })
-          ])
-        })
-      )
-    })
-
-    it('pane without command serializes without command field', async () => {
-      layoutModule.layoutState.panes = [{ paneId: 1, sessionId: 11, name: 'Shell' }]
-      mockSave.mockResolvedValue({ ok: true, data: undefined })
-      storeModule.openSaveLayout()
-      storeModule.saveLayoutState.nameInput = 'test'
-      await storeModule.saveCurrent()
-      const savedData = mockSave.mock.calls[0][1]
-      expect(savedData.panes[0].command).toBeUndefined()
-    })
+    // command-related tests scope Story 7.3
   })
 })

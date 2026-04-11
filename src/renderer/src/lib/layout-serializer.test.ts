@@ -101,30 +101,5 @@ describe('serializeLayoutForSave', () => {
     })
   })
 
-  it('serializes command when pane has command', () => {
-    const state: LayoutState = {
-      layoutName: 'horizontal',
-      panes: [{ paneId: 1, sessionId: 11, name: 'Dev', command: 'npm run dev' }]
-    }
-    const result = serializeLayoutForSave('my-layout', state)
-    expect(result.panes[0].command).toBe('npm run dev')
-  })
-
-  it('does not include command when pane has no command', () => {
-    const state: LayoutState = {
-      layoutName: 'horizontal',
-      panes: [{ paneId: 1, sessionId: 11, name: 'Shell' }]
-    }
-    const result = serializeLayoutForSave('my-layout', state)
-    expect(result.panes[0].command).toBeUndefined()
-  })
-
-  it('serializes command when pane metadata contains a command', () => {
-    const state: LayoutState = {
-      layoutName: 'single',
-      panes: [{ paneId: 1, sessionId: 10, name: 'Dev', command: 'npm run dev' }]
-    }
-    const result = serializeLayoutForSave('monitoring', state)
-    expect(result.panes[0].command).toBe('npm run dev')
-  })
+  // command serialization tests scope Story 7.3
 })

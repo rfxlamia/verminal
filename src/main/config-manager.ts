@@ -27,7 +27,7 @@ export function ensureConfigDirectory(): Result<void> {
     for (const subdir of SUBDIRS) {
       const subdirPath = join(configPath, subdir)
       if (!existsSync(subdirPath)) {
-        mkdirSync(subdirPath, { recursive: true })
+        mkdirSync(subdirPath, { recursive: true, mode: 0o700 })
       }
     }
 

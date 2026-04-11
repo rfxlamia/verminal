@@ -148,6 +148,8 @@ describe('Layout TOML Integration', () => {
         name: 'Pane 2',
         command: 'echo hello'
       })
+      // AC #4: verify pane WITHOUT command loads correctly
+      expect(loaded.data.panes[0].command).toBeUndefined()
     }
   })
 })
